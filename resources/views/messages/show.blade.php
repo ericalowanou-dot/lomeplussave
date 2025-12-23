@@ -354,9 +354,9 @@
     }
 </style>
 
-@php
-    $isAdminSender = $message->sender->isAdmin();
-    $currentUser = auth()->user();
+    @php
+        $isAdminSender = $message->sender->isAdmin();
+        $currentUser = auth()->user();
     
     // Photo de profil avec fallback
     $hasPhoto = $message->sender->photo_profil && file_exists(storage_path('app/public/' . $message->sender->photo_profil));
@@ -369,7 +369,7 @@
     
     // Déterminer si c'est un message envoyé ou reçu
     $isSent = $message->sender_id == $currentUser->id;
-@endphp
+    @endphp
 
 <div class="message-view-container">
     <!-- Header -->
@@ -407,12 +407,12 @@
             <div class="message-content-wrapper">
                 <div class="message-sender-header">
                     <span class="message-sender-name">{{ $message->sender->name }}</span>
-                    @if($isAdminSender)
+                        @if($isAdminSender)
                         <span class="admin-badge">
                             <i class="bi bi-shield-check"></i>
                             Admin
-                        </span>
-                    @endif
+                            </span>
+                        @endif
                     <span class="message-time">
                         @if($message->created_at->isToday())
                             Aujourd'hui à {{ $message->created_at->format('H:i') }}
@@ -420,7 +420,7 @@
                             Hier à {{ $message->created_at->format('H:i') }}
                         @else
                             {{ $message->created_at->format('d/m/Y à H:i') }}
-                        @endif
+                    @endif
                     </span>
                 </div>
                 
@@ -436,11 +436,11 @@
                 @if($message->is_group_message)
                     <i class="bi bi-people-fill"></i>
                     <span>Message de groupe</span>
-                @else
+                    @else
                     <i class="bi bi-person-fill"></i>
                     <span>Message personnel</span>
-                @endif
-            </div>
+                    @endif
+                </div>
             <div class="status-check" title="Lu">
                 <i class="bi bi-check2"></i>
                 <i class="bi bi-check2"></i>

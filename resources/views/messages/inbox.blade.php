@@ -417,7 +417,7 @@
             <div class="inbox-icon-wrapper">
                 <i class="bi bi-chat-square-text-fill"></i>
             </div>
-            <div>
+        <div>
                 <h4 class="inbox-title">Ma messagerie</h4>
                 <p class="inbox-subtitle">Gérez vos conversations avec l'administration</p>
             </div>
@@ -446,18 +446,18 @@
 
     <!-- Liste des messages -->
     <div class="messages-list">
-        @if($messages->count() > 0)
-            @foreach($messages as $msg)
-                @php
-                    $isRead = $msg->recipients()
-                        ->where('recipient_id', auth()->id())
-                        ->whereNotNull('read_at')
-                        ->exists();
-                    $isAdmin = $msg->sender->isAdmin();
+            @if($messages->count() > 0)
+                            @foreach($messages as $msg)
+                                @php
+                                    $isRead = $msg->recipients()
+                                        ->where('recipient_id', auth()->id())
+                                        ->whereNotNull('read_at')
+                                        ->exists();
+                                    $isAdmin = $msg->sender->isAdmin();
                     $senderPhoto = $msg->sender->photo_profil 
                         ? asset('storage/' . $msg->sender->photo_profil) 
                         : asset('images/default-avatar.png');
-                @endphp
+                                @endphp
                 
                 <a href="{{ route('messages.show', $msg) }}" class="message-item {{ $isRead ? 'read' : 'unread' }}">
                     <!-- Avatar -->
@@ -467,21 +467,21 @@
                             <div class="message-avatar-admin">
                                 <i class="bi bi-check-lg"></i>
                             </div>
-                        @endif
+                                        @endif
                     </div>
                     
                     <!-- Contenu -->
                     <div class="message-content">
                         <div class="message-sender-row">
                             <span class="message-sender-name">{{ $msg->sender->name }}</span>
-                            @if($isAdmin)
+                                            @if($isAdmin)
                                 <span class="message-admin-badge">Admin</span>
-                            @endif
+                                            @endif
                         </div>
                         <div class="message-subject">
                             {{ $msg->subject ?: Str::limit($msg->body, 50) }}
-                        </div>
-                    </div>
+                                        </div>
+                </div>
                     
                     <!-- Métadonnées -->
                     <div class="message-meta">
@@ -499,13 +499,13 @@
                         <div class="message-status">
                             @if(!$isRead)
                                 <div class="unread-dot"></div>
-                            @else
+            @else
                                 <div class="status-check read">
                                     <i class="bi bi-check2"></i>
                                     <i class="bi bi-check2"></i>
-                                </div>
-                            @endif
-                        </div>
+                </div>
+            @endif
+        </div>
                     </div>
                 </a>
             @endforeach
