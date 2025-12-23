@@ -1,0 +1,169 @@
+/* Professional styling for forgot password page */
+:root {
+    --forgot-primary: #f4751a;
+    --forgot-primary-dark: #d96008;
+    --forgot-border: rgba(17, 25, 40, 0.1);
+    --forgot-muted: #6b7280;
+    --forgot-surface: #ffffff;
+    --forgot-radius: 18px;
+    --forgot-shadow: 0 18px 45px -32px rgba(17, 25, 40, 0.55);
+}
+
+.forgot-pro {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 22px 0 10px;
+}
+
+.forgot-pro__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 24px;
+    border-radius: var(--forgot-radius);
+    background: linear-gradient(115deg, rgba(244, 117, 26, 0.12), rgba(244, 117, 26, 0.22));
+    border: 1px solid rgba(244, 117, 26, 0.18);
+}
+
+.forgot-pro__badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.2rem;
+    background: linear-gradient(135deg, var(--forgot-primary) 0%, var(--forgot-primary-dark) 100%);
+    box-shadow: 0 18px 28px -22px rgba(244, 117, 26, 0.8);
+}
+
+.forgot-pro__headline h2 {
+    margin: 0 0 6px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.forgot-pro__headline p {
+    margin: 0;
+    font-size: 0.94rem;
+    color: var(--forgot-muted);
+    line-height: 1.5;
+}
+
+.forgot-pro__feedback {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+}
+
+.forgot-pro__feedback--success {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.28);
+}
+
+.forgot-pro__form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    background: var(--forgot-surface);
+    border-radius: var(--forgot-radius);
+    border: 1px solid var(--forgot-border);
+    box-shadow: var(--forgot-shadow);
+    padding: 24px;
+}
+
+.form-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+}
+
+.form-control {
+    border-radius: 14px;
+    border: 1px solid rgba(17, 25, 40, 0.12);
+    padding: 12px 14px;
+    font-size: 0.97rem;
+    background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: rgba(244, 117, 26, 0.6);
+    box-shadow: 0 0 0 3px rgba(244, 117, 26, 0.14);
+    outline: none;
+}
+
+.field-error {
+    font-size: 0.82rem;
+    color: #b91c1c;
+}
+
+.forgot-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, var(--forgot-primary) 0%, var(--forgot-primary-dark) 100%);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 20px 40px -28px rgba(244, 117, 26, 0.85);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.forgot-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 26px 52px -32px rgba(244, 117, 26, 0.9);
+}
+
+.forgot-pro__footer {
+    text-align: center;
+    font-size: 0.92rem;
+    color: var(--forgot-muted);
+}
+
+.forgot-pro__footer a {
+    color: var(--forgot-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.forgot-pro__footer a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+    .auth-header {
+        padding: 22px;
+    }
+
+    .auth-body {
+        padding: 0 18px 24px;
+    }
+
+    .forgot-pro__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .forgot-pro__form {
+        padding: 22px;
+    }
+}

@@ -1,0 +1,16 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad-evenementiel" x1="18" y1="14" x2="78" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#645CE9"/>
+      <stop offset="1" stop-color="#00C291"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="22" fill="url(#grad-evenementiel)"/>
+  <rect x="30" y="32" width="36" height="24" rx="8" stroke="white" stroke-width="4" opacity="0.95"/>
+  <circle cx="48" cy="44" r="8" stroke="white" stroke-width="4" opacity="0.9"/>
+  <rect x="24" y="40" width="12" height="22" rx="6" fill="white" opacity="0.15"/>
+  <path d="M30 56L24 68" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M66 56L72 68" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M42 62H54" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+</svg>
+

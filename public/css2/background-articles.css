@@ -1,0 +1,89 @@
+.fixed-filter {
+    position: sticky; /* Reste collant en place lors du défilement */
+    left: 30px; /* Fixé sur le côté gauche */
+    top: 160px; /* Collé en haut */
+    height: 320px; /* Prend toute la hauteur de l'écran "ancienne valeur 100vh"*/
+    width: 200px; /* Largeur fixe */
+    background: rgb(222, 221, 221); /* Fond blanc */
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Ombre pour le style */
+    overflow-y: auto; /*Ajoute un défilement si le contenu est long*/
+    z-index: 100; /* Toujours au-dessus du contenu */
+    border-radius: 15px;
+    border: 1px solid #ddd; /* Bordure douce */
+                               
+}
+
+                
+.fixed-filter h6 {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #333; /* Titre sombre pour plus de lisibilité */
+    margin-bottom: 2px; /* Un peu d'espace sous le titre */
+    text-align: center;
+}
+
+/* Style pour les labels des champs de formulaire */
+.fixed-filter .form-label {
+    font-size: 0.85rem; /* Taille de police modérée */
+    color: #555; /* Couleur sombre pour les labels */
+    margin-bottom: 2px; /* Espacement sous le label */
+}
+
+/* Style pour les champs de formulaire (input, select) */
+.fixed-filter .form-control {
+    font-size: 0.85rem; /* Taille de police confortable */
+    padding: 2px; /* Un peu de padding pour les champs */
+    border-radius: 8px; /* Coins arrondis pour un effet moderne */
+    border: 1px solid #ccc; /* Bordure douce */
+    box-shadow: none; /* Enlever l'ombre par défaut */
+    margin-bottom: 2px; /* Espacement entre les champs */
+}
+
+/* Style pour les champs de texte (comme la ville) */
+.fixed-filter input[type="text"], 
+.fixed-filter input[type="number"] {
+    font-size: 0.85rem; /* Ajuster la taille de police */
+}
+
+/* Style pour le bouton de soumission */
+.fixed-filter button[type="submit"] {
+    background-color: #007bff; /* Couleur de fond bleue */
+    color: white; /* Texte blanc */
+    font-size: 0.85rem; /* Taille de police confortable */
+    padding: 2px;
+    border-radius: 8px; /* Coins arrondis */
+    border: none; /* Enlever la bordure */
+    width: 100%; /* Prendre toute la largeur du conteneur */
+    transition: background-color 0.3s ease; /* Effet de transition pour le bouton */
+}
+
+/* Effet au survol du bouton */
+.fixed-filter button[type="submit"]:hover {
+    background-color: #0056b3; /* Couleur plus foncée au survol */
+}
+
+/* Pour la mise en forme des options dans les menus déroulants */
+.fixed-filter select.form-control {
+    background-color: #f9f9f9; 
+    color: #333; 
+}
+
+
+.fixed-filter .mb-2 {
+    margin-bottom: 4px; 
+}
+
+
+
+@media (min-width: 768px) {
+    .page-content{
+        margin-left: 50px;
+    }
+    .row {
+        margin-left: 250px; 
+    }
+}
+
+
+                      

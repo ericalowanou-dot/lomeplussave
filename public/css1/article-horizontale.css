@@ -1,0 +1,204 @@
+/* scroll horizontal des articles */
+.scroll-container {
+    margin: 220px 0 10px 0; /* Espace en haut et en bas */
+    width: 100%;
+    left: 0;
+    right: 0;
+    position: relative;
+    overflow-x: auto; /* Activation du scroll horizontal */
+    overflow-y: hidden;
+    white-space: nowrap; /* Évite que les éléments passent à la ligne */
+    padding: 10px 0;
+    background-color: #f3f3f3;
+    border-radius: 5px;
+    box-shadow: 0 0 6px -2px rgba(0, 0, 0, 0.5);
+
+}
+
+
+.scroll-container::-webkit-scrollbar {
+    height: 1px; /* Taille de la barre de défilement */
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+    background: #fc6900; /* Couleur du curseur */
+    border-radius: 5px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+    background: #ffffff; /* Couleur de fond */
+}
+
+
+
+
+
+
+.article-container{
+    border: solid 2px rgb(232, 129, 66); 
+    border-radius: 15px;
+}
+
+.article-container-secondaire{
+    position: relative;
+    width: 100px;
+    background-color: #ffffff;
+    border: 1px solid rgb(195, 195, 194);
+    border-radius: 13px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.article-container-image{
+    width: 100%; 
+    height: 85px; 
+    object-fit: cover;
+    border-bottom: 1px solid rgb(0, 0, 0);
+    border-top-left-radius: 13px; 
+    border-top-right-radius: 13px; 
+}
+
+.heure-container-horizontal{
+    position: absolute; 
+    display: flex;
+    align-items: center;
+    text-align: center;
+    top: 0; 
+    right: 0;
+    padding: 1px; 
+    border-radius: 7px; /* Arrondi des coins */
+    border-top-right-radius: 13px; 
+    background-color: rgba(30, 29, 29, 0.199); /* Arrière-plan noir avec 40% de transparence */
+    color: #fff; /* Couleur de l'écriture blanche */
+    font-size: 5px; /* Taille de la police */
+    text-align: center; /* Centre le texte */
+}
+
+.heure-icon{
+    font-size: 12px;
+}
+
+.heure-text{
+    margin-bottom: 0;
+    font-size: 12px;
+}
+
+.article-container-text{
+    position: relative;
+    border: none; 
+    height: 90px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.prix-article{
+    color: rgb(232, 129, 66);
+    font-size: 10px;
+    font-weight: bold;
+    white-space: nowrap; /*empêche le texte d'aller à la ligne*/
+    overflow: hidden; /*cache le texte qui déborde*/
+    text-overflow: ellipsis; /*ajoute 3 points à la fin du texte qui déborde*/
+    max-width: 100px;
+    margin-top: 5px;
+}
+
+.titre-article{
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 10px;
+    white-space: nowrap; /*empêche le retour à la ligne*/
+    overflow: hidden; /*cache le texte qui déborde*/
+    text-overflow: ellipsis; /*ajoute 3 points à la fin du texte qui déborde*/
+    max-width: 60px;
+    text-transform: capitalize; /*mets les premières lettres en majuscule*/
+
+}
+
+.localisation-article{
+    display: flex;
+    margin-top: 15px;
+}
+
+.localisation-icon-horizontal{
+    padding: 0; /* Supprime le padding */
+    margin: 0; /* Supprime les marges */ 
+    width: 10px; /* Largeur de l'icône */
+    height: 10px; /* Hauteur de l'icône */
+    object-fit: contain; /* Ajuste l'image sans la déformer */
+}
+
+.localisation-text-horizontal{
+    color: #555; /* Couleur du texte */
+    margin: 0; /* Supprime les marges par défaut */
+    white-space: nowrap; /* Empêche le retour à la ligne */
+    overflow: hidden; /* Cache le texte qui dépasse */
+    text-overflow: ellipsis; /* Ajoute des points de suspension si le texte est trop long */
+    text-transform: uppercase; /* Met la première lettre de chaque mot en majuscule */
+    font-size: 8px; /* Réduit la taille du texte */
+    margin: 0; /* Supprime toutes les marges */
+    padding: 0; /* Supprime tous les espacements internes */
+    max-width: 30px; /* Limite la largeur du texte */
+    font-weight: bold; /* Texte en gras */  
+}
+
+
+.info-utilisateur{
+    position: absolute;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    bottom: 5px;
+    height: 20px;
+    /* border: 1px solid #d61d1d; */
+    margin: 0;
+    padding: 0;
+}
+
+
+.photo-profil-utilisateur{
+    /* border: 1px solid #d61d1d; */
+    object-fit: cover;
+    height: 13px;
+    width: 13px;
+}
+
+
+.nom-utilisateur{
+    /* border: 1px solid #2b0202; */
+    font-size: 8px;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 25px;
+    margin-top: 15px;
+    margin-left: 2px;
+}
+
+
+
+.certification-horizontal {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    bottom: 7px;
+    right: 5px;
+    background-color: white;
+    padding: 2px 5px;
+    border-radius: 12px;
+    margin-top: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Logo de certification */
+.certification-logo-horizontal {
+    width: 10px;
+    height: 10px;
+    /* margin-right: 2px; */
+}
+
+/* Texte "Vérifié" */
+.certification-text-horizontal {
+    font-size: 6px;
+    font-weight: bold;
+    color: #28a745; /* Vert Bootstrap */
+}
