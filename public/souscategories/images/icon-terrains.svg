@@ -1,0 +1,14 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad-terrains" x1="18" y1="16" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4F6EFF"/>
+      <stop offset="1" stop-color="#3AD99A"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="22" fill="url(#grad-terrains)"/>
+  <path d="M24 60L40 50L56 58L72 48" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+  <path d="M24 68H72" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+  <rect x="28" y="32" width="12" height="12" rx="3" stroke="white" stroke-width="4" opacity="0.85"/>
+  <rect x="56" y="26" width="12" height="12" rx="3" stroke="white" stroke-width="4" opacity="0.85"/>
+</svg>
+

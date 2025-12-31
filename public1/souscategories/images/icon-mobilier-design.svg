@@ -1,0 +1,16 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad-mobilier" x1="18" y1="12" x2="80" y2="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF7B7B"/>
+      <stop offset="1" stop-color="#FFB347"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="22" fill="url(#grad-mobilier)"/>
+  <path d="M28 40C28 33.3726 33.3726 28 40 28H56C62.6274 28 68 33.3726 68 40V52H28V40Z" stroke="white" stroke-width="4" stroke-linejoin="round" opacity="0.95"/>
+  <path d="M32 52V68" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+  <path d="M64 52V68" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+  <path d="M36 68L32 72" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M60 68L64 72" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <rect x="40" y="32" width="16" height="8" rx="4" fill="white" opacity="0.85"/>
+</svg>
+

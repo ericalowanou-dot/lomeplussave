@@ -1,0 +1,113 @@
+/* Fichier de correction pour la stabilité de la page */
+
+/* Correction globale pour empêcher le débordement horizontal */
+html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    position: relative;
+    box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Empêcher tout débordement sur les conteneurs principaux */
+.main-wrapper,
+main.flex-fill,
+.container,
+.container-fluid {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+}
+
+/* Correction spécifique pour mobile */
+@media (max-width: 768px) {
+    html, body {
+        overflow-x: hidden !important;
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    body > * {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    body {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    body::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* Correction pour les éléments positionnés */
+    [class*="fixed"],
+    [class*="absolute"],
+    [style*="position: fixed"],
+    [style*="position: absolute"] {
+        max-width: 100vw !important;
+    }
+}
+
+/* S'assurer que les images ne débordent pas */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Correction pour les éléments qui peuvent causer des problèmes */
+.scroll-container,
+.categories-container-navigation,
+.categories-navigation {
+    max-width: 100% !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Réduire la taille de la scrollbar des catégories */
+.categories-container-navigation {
+    scrollbar-width: thin !important;
+    scrollbar-color: #f57c00 transparent !important;
+    -ms-overflow-style: auto !important;
+}
+.categories-container-navigation::-webkit-scrollbar {
+    height: 4px !important;
+}
+.categories-container-navigation::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+.categories-container-navigation::-webkit-scrollbar-thumb {
+    background: #f57c00 !important;
+    border-radius: 999px;
+}
+.categories-container-navigation::-webkit-scrollbar-thumb:hover {
+    background: #d46600 !important;
+}
+
+@media (max-width: 768px) {
+    .categories-container-navigation {
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(0, 0, 0, 0.2) transparent !important;
+    }
+
+    .categories-container-navigation::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2) !important;
+    }
+}
+
+/* Empêcher le débordement sur les modals */
+.modal,
+.loader-container,
+.overlay {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+

@@ -1,0 +1,79 @@
+body {
+        background-color: #f5f5f5;
+        color: #333;
+}
+            /* Styles pour l'en-tête */
+header {    
+    background-color: #f5f5f5;
+    color: #333; 
+    padding: 2px 2px; /* Ajoute un espace intérieur autour du header */
+    height: 45px; /* Définit la hauteur de l'en-tête */
+    position: fixed; /* Fixe l'en-tête en haut de la page */
+    top: 0; /* Positionne l'en-tête tout en haut */
+    left: 0; /* Aligne l'en-tête sur le bord gauche */
+    right: 0; /* Aligne l'en-tête sur le bord droit */
+    width: 100%; /* Définit la largeur de l'en-tête à 100% de la fenêtre */   
+    display: flex; /* Utilise le modèle flexbox pour l'alignement */
+    justify-content: space-between; /* Répartit les éléments entre les bords gauche et droit */
+    align-items: center; /* Centre verticalement les éléments */
+    border-bottom: 1px solid #ddd; /* Ajoute une bordure inférieure grise */
+    z-index: 500; /* Assure que l'en-tête reste au-dessus des autres éléments */
+}
+
+        /* Logo */
+.logo img {
+    /* border: 1px solid rgb(0, 0, 0); Ajoute une bordure grise autour du logo  */
+    width: 60px; /* Définit la largeur du logo */
+    height: 60px; /* Définit la hauteur du logo */
+    max-height: 60px; /* Définit une hauteur maximale pour éviter qu'il soit trop grand */
+     object-fit: contain; /* Maintient les proportions de l'image sans la couper */
+    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); Ajoute une ombre légère au logo */
+    border-radius: 5px;
+    padding: 0;
+    margin: 0;
+
+}
+
+/* Conteneur des icônes */
+.icons {
+    display: flex; /* Utilise flexbox pour aligner les icônes horizontalement */
+    gap: 3px; /* Ajoute un espacement de 10px entre les icônes */
+    padding-right: 2px; /* Ajoute un espace à droite des icônes */
+    margin: 0;
+            
+}
+
+        /* Icônes */
+
+.icon-button img {
+    width: 20px; /* Définit la largeur des icônes */
+    height: 20px; /* Ajuste la hauteur automatiquement pour conserver les proportions */
+    object-fit: contain; /* Ajuste l'image sans la déformer */
+    border-radius: 5px;
+            
+}
+
+    
+
+
+/* Animation au survol des icônes */
+.icon-button img {
+    transition: transform 0.2s ease-in-out; /* Ajoute une transition fluide */
+}
+.icon-button img:hover {
+    transform: scale(1.1); /* Agrandit légèrement l'icône au survol */
+}
+
+/* Styles pour les écrans de taille réduite */
+@media (max-width: 768px) {
+    .logo img {
+        width: 60px; /* Réduit la taille du logo sur les petits écrans */
+        height: 60px; /* Ajuste la hauteur du logo */
+    }
+    .icon-button img {
+        width: 20px; /* Ajuste la taille des icônes */
+    }
+}
+
+
+

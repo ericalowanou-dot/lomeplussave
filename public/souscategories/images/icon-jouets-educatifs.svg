@@ -1,0 +1,16 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad-jouets" x1="16" y1="16" x2="82" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7F92FF"/>
+      <stop offset="1" stop-color="#A8E6FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="22" fill="url(#grad-jouets)"/>
+  <rect x="26" y="48" width="20" height="20" rx="6" stroke="white" stroke-width="4" opacity="0.95"/>
+  <rect x="50" y="48" width="20" height="20" rx="6" stroke="white" stroke-width="4" opacity="0.95"/>
+  <rect x="38" y="28" width="20" height="20" rx="6" stroke="white" stroke-width="4" opacity="0.95"/>
+  <path d="M36 58H42" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M54 58H60" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M46 38H50" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+</svg>
+
