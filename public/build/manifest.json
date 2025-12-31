@@ -1,0 +1,19 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-CZGlj4IB.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-DzRKWd2m.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/like.js": {
+    "file": "assets/like-CIerxEYI.js",
+    "name": "like",
+    "src": "resources/js/like.js",
+    "isEntry": true
+  }
+}
