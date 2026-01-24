@@ -9,23 +9,6 @@
                     Lome+ est une marketplace locale qui facilite la vente et l'achat au Togo. 
                     Une plateforme simple, accessible et sécurisée pour tous.
                 </p>
-                <div class="footer-social">
-                    <a href="https://www.facebook.com/share/18TxYF2WDD/?mibextid=wwXIfr" target="_blank" class="social-link facebook" title="Facebook">
-                        <i class="bi bi-facebook"></i>
-                    </a>
-                    <a href="https://www.instagram.com/lomep.lus?igsh=MTM5b3F6MTVnbjN0cA%3D%3D&utm_source=qr" target="_blank" class="social-link instagram" title="Instagram">
-                        <i class="bi bi-instagram"></i>
-                    </a>
-                    <a href="https://youtube.com/@lomeplus?si=fp8VI3itFRGLHXy9" target="_blank" class="social-link youtube" title="YouTube">
-                        <i class="bi bi-youtube"></i>
-                    </a>
-                    <a href="https://www.tiktok.com/@lomeplus?_r=1&_t=ZS-91npd7hjNXI" target="_blank" class="social-link tiktok" title="TikTok">
-                        <i class="bi bi-tiktok"></i>
-                    </a>
-                    <a href="https://whatsapp.com/channel/0029VatlBs06GcG5owxIlF0T" target="_blank" class="social-link whatsapp" title="WhatsApp">
-                        <i class="bi bi-whatsapp"></i>
-                    </a>
-                </div>
             </div>
 
             <!-- Colonne 2: Liens rapides -->
@@ -44,9 +27,9 @@
             <div class="footer-column">
                 <h3 class="footer-title">Support</h3>
                 <ul class="footer-links">
-                    <li><a href="mailto:lomeplus80@gmail.com">Contact</a></li>
-                    <li><a href="tel:+22892088853">Appeler</a></li>
-                    <li><a href="https://wa.me/22892088853" target="_blank">WhatsApp</a></li>
+                    {{-- <li><a href="mailto:lomeplus80@gmail.com">Contact</a></li> --}}
+                    {{-- <li><a href="tel:+22892088853">Appeler</a></li> --}}
+                    {{-- <li><a href="https://wa.me/22892088853" target="_blank">WhatsApp</a></li> --}}
                     <li><a href="/mentions-legales">Mentions légales</a></li>
                     <li><a href="/conditions">Conditions d'utilisation</a></li>
                 </ul>
@@ -78,18 +61,35 @@
 
         <!-- Section infos légales -->
         <div class="footer-legal">
+            <div class="footer-social">
+                <a href="https://www.facebook.com/share/18TxYF2WDD/?mibextid=wwXIfr" target="_blank" class="social-link facebook" title="Facebook">
+                    <i class="bi bi-facebook"></i>
+                </a>
+                <a href="https://www.instagram.com/lomep.lus?igsh=MTM5b3F6MTVnbjN0cA%3D%3D&utm_source=qr" target="_blank" class="social-link instagram" title="Instagram">
+                    <i class="bi bi-instagram"></i>
+                </a>
+                <a href="https://youtube.com/@lomeplus?si=fp8VI3itFRGLHXy9" target="_blank" class="social-link youtube" title="YouTube">
+                    <i class="bi bi-youtube"></i>
+                </a>
+                <a href="https://www.tiktok.com/@lomeplus?_r=1&_t=ZS-91npd7hjNXI" target="_blank" class="social-link tiktok" title="TikTok">
+                    <i class="bi bi-tiktok"></i>
+                </a>
+                <a href="https://whatsapp.com/channel/0029VatlBs06GcG5owxIlF0T" target="_blank" class="social-link whatsapp" title="WhatsApp">
+                    <i class="bi bi-whatsapp"></i>
+                </a>
+            </div>
             <div class="legal-info">
                 <p>&copy; {{ date('Y') }} <strong>Lome+</strong>. Tous droits réservés.</p>
                 <div class="legal-details">
-                    <span>Raison sociale : <strong>[RAISON_SOCIALE]</strong></span>
-                    <span>•</span>
-                    <span>Immatriculation : <strong>[IMMATRICULATION]</strong></span>
-                    <span>•</span>
+                    {{-- <span>Raison sociale : <strong>[RAISON_SOCIALE]</strong></span>
+                    <span>•</span> --}}
+                    {{-- <span>Immatriculation : <strong>[IMMATRICULATION]</strong></span>
+                    <span>•</span> --}}
                     <span>Directeur de publication : <strong>Kodjo prince awu</strong></span>
                 </div>
-                <div class="legal-address">
+                {{-- <div class="legal-address">
                     <span>Siège social : <strong>[ADRESSE_SIEGE]</strong></span>
-                </div>
+                </div> --}}
             </div>
         </div>
     </div>
@@ -265,6 +265,11 @@
         text-align: center;
     }
 
+    .footer-legal .footer-social {
+        margin-bottom: 25px;
+        justify-content: center;
+    }
+
     .legal-info {
         display: flex;
         flex-direction: column;
@@ -320,7 +325,21 @@
 
     @media (max-width: 480px) {
         .footer-main {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .footer-title {
+            font-size: 1rem;
+        }
+
+        .footer-description {
+            font-size: 0.85rem;
+        }
+
+        .footer-links a,
+        .contact-item {
+            font-size: 0.85rem;
         }
 
         .footer-social {

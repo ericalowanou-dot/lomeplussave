@@ -36,6 +36,27 @@
             </div>
         @endif
 
+        @if ($errors->any() || session('error_solutions'))
+            <div class="forgot-pro__feedback forgot-pro__feedback--error">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    @foreach ($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                    @if (session('error_solutions'))
+                        <div class="mt-2" style="margin-top: 8px; font-size: 0.9em; opacity: 0.9;">
+                            <strong>Suggestions :</strong>
+                            <ul style="margin-top: 4px; padding-left: 20px;">
+                                @foreach (session('error_solutions') as $solution)
+                                    <li>{{ $solution }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         <form method="POST" action="{{ route('password.email') }}" class="forgot-pro__form">
             @csrf
 

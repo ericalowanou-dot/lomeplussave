@@ -2,7 +2,7 @@
 
 
 
-@section('title', $article->titre . ' - Lome+')
+@section('title', $article->titre . ' - LOME+')
 
 
 
@@ -32,7 +32,7 @@
 
     @endif
 
-    <meta property="og:site_name" content="Lome+">
+    <meta property="og:site_name" content="LOME+">
 
     <meta property="og:locale" content="fr_FR">
 
@@ -70,7 +70,7 @@
 
     // Message pré-rédigé pour WhatsApp (contact vendeur)
 
-    $whatsappMessage = "Bonjour, je suis intéressé(e) par votre article \"" . $article->titre . "\" à " . number_format($article->prix, 0, ',', ' ') . " FCFA sur Lome+. Est-il toujours disponible ?\n\n" . url()->current();
+    $whatsappMessage = "Bonjour, je suis intéressé(e) par votre article \"" . $article->titre . "\" à " . number_format($article->prix_ht, 0, ',', ' ') . " FCFA sur LOME+. Est-il toujours disponible ?\n\n" . url()->current();
 
     $whatsappMessageEncoded = urlencode($whatsappMessage);
 
@@ -78,7 +78,7 @@
 
     // Message pour le partage
 
-    $shareMessage = "Découvrez cet article sur Lome+ : " . $article->titre . " à " . number_format($article->prix, 0, ',', ' ') . " FCFA\n";
+    $shareMessage = "Découvrez cet article sur LOME+ : " . $article->titre . " à " . number_format($article->prix_ht, 0, ',', ' ') . " FCFA\n";
 
     $shareMessageEncoded = urlencode($shareMessage . url()->current());
 
@@ -192,7 +192,7 @@
 
             "@type": "Brand",
 
-            "name": "Lome Plus"
+            "name": "LOME+"
 
         }
 
@@ -4604,13 +4604,13 @@
 
                         @php
 
-                            $diffMinutes = $article->created_at->diffInMinutes();
+                            $diffHours = $article->created_at->diffInHours();
 
                         @endphp
 
 
 
-                        @if ($diffMinutes < 60)
+                        @if ($diffHours < 24)
 
                             <p class="mb-0">
 
@@ -4802,7 +4802,7 @@
 
                 <a href="https://twitter.com/intent/tweet?url={{ urlencode(Request::url()) }}" target="_blank" rel="noopener noreferrer" class="twitter" aria-label="Partager sur Twitter" style="display: inline-flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: #1da1f2; color: white; text-decoration: none; font-size: 20px; transition: transform 0.2s;">
 
-                    <i class="fab fa-x-twitter"></i>
+                    <span style="font-weight: 700;">X</span>
 
                 </a>
 

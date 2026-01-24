@@ -7,7 +7,6 @@ use App\Http\Controllers\CategorieController;
 use App\Models\User;
 use App\Models\Article;
 use App\Http\Controllers\SousCategorieController;
-use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\AnnonceController;
@@ -83,7 +82,6 @@ Route::middleware(['auth', 'check.blocked'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-require __DIR__.'/auth.php';
 
 
 

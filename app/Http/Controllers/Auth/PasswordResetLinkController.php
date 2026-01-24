@@ -29,6 +29,20 @@ class PasswordResetLinkController extends Controller
             'email' => ['required', 'email'],
         ]);
 
+        // Vérifier si l'utilisateur existe et n'est pas bloqué
+        $user = \App\Models\User::where('email', $request->email)->first();
+        
+        if ($user && $user->isBlocked()) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'Ce compte a été bloqué. Contactez l\'administrateur pour plus d\'informations.'])
+                ->with('error_solutions', [
+                    'Votre compte a été suspendu',
+                    'Contactez-nous à : lomeplus80@gmail.com',
+                    'Vérifiez vos emails pour connaître la raison du blocage'
+                ]);
+        }
+
         // We will send the password reset link to this user. Once we have attempted
         // to send the link, we will examine the response then see the message we
         // need to show to the user. Finally, we'll send out a proper response.
@@ -37,7 +51,7 @@ class PasswordResetLinkController extends Controller
         );
 
         if ($status == Password::RESET_LINK_SENT) {
-            return back()->with('status', __($status));
+            return back()->with('status', 'Nous vous avons envoyé par email un lien sécurisé pour réinitialiser votre mot de passe. Vérifiez votre boîte de réception (et les spams).');
         } else {
             $solutions = [];
             if ($status == Password::INVALID_USER) {

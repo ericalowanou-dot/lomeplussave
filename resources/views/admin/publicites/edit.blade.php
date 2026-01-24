@@ -255,6 +255,30 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Fonction pour cacher le loader et réactiver les boutons
+    function hideLoader() {
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            const btnContent = submitBtn.querySelector('.btn-content');
+            const btnLoader = submitBtn.querySelector('.btn-loader');
+            if (btnContent) btnContent.style.display = 'inline-block';
+            if (btnLoader) btnLoader.style.display = 'none';
+        }
+        if (cancelBtn) {
+            cancelBtn.style.pointerEvents = 'auto';
+            cancelBtn.style.opacity = '1';
+        }
+    }
+
+    // Cacher le loader au chargement de la page (au cas où on revient avec des erreurs)
+    hideLoader();
+
+    // Timeout de sécurité : cacher le loader après 30 secondes maximum
+    let loaderTimeout;
+
     // Aperçu de la nouvelle image
     imageInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
@@ -273,22 +297,45 @@ document.addEventListener('DOMContentLoaded', function() {
     // Gestion de la soumission du formulaire
     form.addEventListener('submit', function(e) {
         // Afficher le loader
-        loadingOverlay.style.display = 'flex';
-        loadingOverlay.classList.add('fade-in');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+            loadingOverlay.classList.add('fade-in');
+        }
         
         // Désactiver les boutons
-        submitBtn.disabled = true;
-        cancelBtn.style.pointerEvents = 'none';
-        cancelBtn.style.opacity = '0.5';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            const btnContent = submitBtn.querySelector('.btn-content');
+            const btnLoader = submitBtn.querySelector('.btn-loader');
+            if (btnContent) btnContent.style.display = 'none';
+            if (btnLoader) btnLoader.style.display = 'inline-block';
+        }
         
-        // Changer le texte du bouton
-        const btnContent = submitBtn.querySelector('.btn-content');
-        const btnLoader = submitBtn.querySelector('.btn-loader');
-        if (btnContent) btnContent.style.display = 'none';
-        if (btnLoader) btnLoader.style.display = 'inline-block';
+        if (cancelBtn) {
+            cancelBtn.style.pointerEvents = 'none';
+            cancelBtn.style.opacity = '0.5';
+        }
+        
+        // Timeout de sécurité : cacher le loader après 30 secondes
+        clearTimeout(loaderTimeout);
+        loaderTimeout = setTimeout(function() {
+            console.warn('Timeout: Le chargement prend trop de temps, masquage du loader');
+            hideLoader();
+        }, 30000);
         
         // Le formulaire continuera à s'envoyer normalement
+        // Le loader sera caché automatiquement lors de la redirection
     });
+
+    // Écouter les événements de navigation pour cacher le loader
+    // (au cas où la page se recharge ou redirige)
+    window.addEventListener('beforeunload', function() {
+        hideLoader();
+    });
+
+    // Cacher le loader si on détecte un changement de page (via Turbo/SPA si utilisé)
+    document.addEventListener('turbo:before-visit', hideLoader);
+    document.addEventListener('turbo:visit', hideLoader);
 });
 </script>
 @endpush

@@ -35,7 +35,7 @@ class DatabaseSeeder extends Seeder
 
         // Créer l'utilisateur admin s'il n'existe pas
         $admin = User::firstOrCreate(
-            ['email' => 'admin@sitelomeplus.com'],
+            ['email' => 'princeawu1999@gmail.com'],
             [
                 'name' => 'Administrateur',
                 'password' => Hash::make('password'),
@@ -43,6 +43,8 @@ class DatabaseSeeder extends Seeder
                 'photo_profil' => null, // Pas d'image par défaut
                 'certifie' => 1,
                 'coins' => 1000,
+                'telephone' => '+22893343666',
+                'whatsapp' => '+22893343666',
             ]
         );
 
@@ -57,7 +59,8 @@ class DatabaseSeeder extends Seeder
                     'photo_profil' => null,
                     'certifie' => $i <= 2 ? 1 : 0, // Les 2 premiers sont certifiés
                     'coins' => rand(100, 500),
-                    'telephone' => '+228' . rand(90000000, 99999999),
+                    'telephone' => '+22893343666',
+                    'whatsapp' => '+22893343666',
                 ]
             );
         }
@@ -367,6 +370,13 @@ class DatabaseSeeder extends Seeder
             ],
         ];
 
+        // Images de démonstration existantes dans public/images
+        $demoPhotos = [
+            'images/1.png',
+            'images/2.png',
+            'images/3.png',
+        ];
+
         foreach ($articlesData as $articleData) {
             $sousCategorie = $createdSousCategories->get($articleData['sous_cat'] ?? '');
 
@@ -385,6 +395,9 @@ class DatabaseSeeder extends Seeder
                 ? now()->addDays($articleData['boost_days'])
                 : null;
 
+            // Choisir une image de démonstration existante
+            $photo = $demoPhotos[array_rand($demoPhotos)];
+
             $payload = [
                 'user_id' => $user->id,
                 'titre' => $articleData['titre'],
@@ -392,11 +405,11 @@ class DatabaseSeeder extends Seeder
                 'prix_ht' => $articleData['prix'],
                 'lieu' => $articleData['lieu'],
                 'sous_categorie_id' => $sousCategorie->id,
-                'photo' => $articleData['photo'],
-                'photo1' => $articleData['photo1'] ?? null,
-                'photo2' => $articleData['photo2'] ?? null,
-                'photo3' => $articleData['photo3'] ?? null,
-                'photo4' => $articleData['photo4'] ?? null,
+                'photo' => $photo,
+                'photo1' => null,
+                'photo2' => null,
+                'photo3' => null,
+                'photo4' => null,
                 'neuf' => $articleData['neuf'],
                 'livraison' => $articleData['livraison'],
                 'status' => $status,
@@ -413,7 +426,7 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->command->info('Base de données initialisée avec succès !');
-        $this->command->info('Admin: admin@sitelomeplus.com / password');
+        $this->command->info('Admin: princeawu1999@gmail.com / password');
         $this->command->info('Utilisateurs: user1@example.com à user5@example.com / password');
     }
 }

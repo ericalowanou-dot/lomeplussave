@@ -98,17 +98,25 @@
         }
 
         .gauche{
-            background: linear-gradient(135deg, #f7971e, #ffd200); /* orange dégradé */
+            /*background: linear-gradient(135deg, #f7971e, #ffd200); /* orange dégradé */
+             background: linear-gradient(135deg, #4a5f7a 0%, #5a6f8a 100%); /* gris éclairci */
         }
 
         /* Bouton WhatsApp */
         a.droite[href*="whatsapp"] {
-            background: linear-gradient(135deg, #25D366, #128C7E); /* vert WhatsApp */
+            /*background: linear-gradient(135deg, #25D366, #128C7E); /* vert WhatsApp */
+             background: linear-gradient(135deg, #4a5f7a 0%, #5a6f8a 100%); /* gris éclairci */
         }
 
         /* Bouton YouTube */
         a.droite[href*="youtube"] {
-            background: linear-gradient(135deg, #FF0000, #9d0303ff); /* rouge YouTube */
+            /*background: linear-gradient(135deg, #FF0000, #9d0303ff); /* rouge YouTube */
+             background: linear-gradient(135deg, #4a5f7a 0%, #5a6f8a 100%); /* gris éclairci */
+        }
+
+        .droite i.bi-youtube {
+            font-size: 1.1rem;
+            color: inherit;
         }
 
 
@@ -362,10 +370,10 @@
                     <!-- Heure en haut à droite -->
                     <div class="position-absolute top-0 end-0 px-1 py-0 rounded-bottom-start small d-flex heure">
                         @php
-                            $diffMinutes = $article->created_at->diffInMinutes();
+                            $diffHours = $article->created_at->diffInHours();
                         @endphp
 
-                        @if ($diffMinutes < 60)
+                        @if ($diffHours < 24)
                             <p class="mb-0">
                                 <strong>Récent</strong>
                             </p>

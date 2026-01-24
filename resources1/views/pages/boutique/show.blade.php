@@ -103,10 +103,10 @@
                     <!-- Heure en haut à droite -->
                     <div class="position-absolute top-0 end-0 px-1 py-0 rounded-bottom-start small d-flex heure">
                         @php
-                            $diffMinutes = $article->created_at->diffInMinutes();
+                            $diffHours = $article->created_at->diffInHours();
                         @endphp
 
-                        @if ($diffMinutes < 60)
+                        @if ($diffHours < 24)
                             <p class="mb-0">
                                 <strong>Récent</strong>
                             </p>

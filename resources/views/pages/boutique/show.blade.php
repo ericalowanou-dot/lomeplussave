@@ -3,92 +3,172 @@
 @section('title', 'Boutique de ' . $user->name)
 
 @section('boutique-header')
+<div class="boutique-header-content">
     <img src="{{ $user->getProfilPhotoUrl() }}" 
-         alt="Profil"
+         alt="Photo de profil de {{ $user->name }}"
+         class="profile-avatar"
          onerror="this.src='{{ asset('images/user_default.png') }}';">
-    <h2 class="mt-2">{{ $user->name }}</h2>
-    <div>{{ $user->email }}</div>
-    {{-- Ajoute ici une bannière, un slogan, etc. --}}
+    
+    <div class="profile-info">
+        <h1 class="profile-name">{{ $user->name }}</h1>
+        <p class="profile-email">
+            <i class="bi bi-box-seam me-1"></i>
+            {{ $user->articles()->where('status', 'approved')->count() }} article(s) publié(s)
+        </p>
+        
+        <div class="profile-meta">
+            <div class="meta-item">
+                <i class="bi bi-calendar3"></i>
+                <span>Membre depuis {{ $user->created_at->format('d/m/Y') }}</span>
+            </div>
+            @if($user->telephone)
+            <div class="meta-item">
+                <i class="bi bi-telephone"></i>
+                <span>{{ $user->telephone }}</span>
+            </div>
+            @endif
+        </div>
+        
+        @if($user->estCertifie())
+        <div class="certification-badge">
+            <i class="bi bi-patch-check-fill"></i>
+            <span>Boutique certifiée</span>
+        </div>
+        @endif
+    </div>
+</div>
+@endsection
+
+@section('head')
+<style>
+    .detail-home {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: linear-gradient(135deg, #FF9900 0%, #E68900 100%);
+        color: #fff;
+        padding: 0.75rem 1rem;
+        border-radius: 50px;
+        text-decoration: none;
+        box-shadow: 0 4px 16px rgba(255, 153, 0, 0.35);
+        transition: all 0.3s ease;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+    
+    .detail-home:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 153, 0, 0.45);
+        color: #fff;
+    }
+    
+    .detail-home img {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .boutique-sidebar {
+        position: sticky;
+        top: 80px;
+    }
+    
+    .boutique-sidebar h5 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .call-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .call-buttons .btn {
+        font-weight: 500;
+        font-size: 0.9375rem;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        border: none;
+    }
+    
+    .call-buttons .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .call-buttons .btn-warning {
+        background: linear-gradient(135deg, #FF9900 0%, #E68900 100%);
+        color: #fff;
+    }
+    
+    .call-buttons .btn-success {
+        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        color: #fff;
+    }
+    
+    @media (max-width: 768px) {
+        .detail-home {
+            bottom: 15px;
+            left: 15px;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8125rem;
+        }
+        
+        .boutique-sidebar {
+            position: relative;
+            top: 0;
+        }
+    }
+</style>
 @endsection
 
 @section('boutique-sidebar')
-     <a class="detail-home" href="{{route('articles.index')}}">
-                    <img src="{{asset('images/immobilier.png')}}" alt="accueil">
-                    <span>home</span>
-                </a>
+<a class="detail-home" href="{{ route('articles.index') }}">
+    <img src="{{ asset('images/immobilier.png') }}" alt="Accueil">
+    <span>Accueil</span>
+</a>
 
-                <style>
-                    .detail-home {
-                        position: sticky;
-                        top: 50px;
-                        left: -10px; 
-                        z-index: 99;
-                        display: flex;
-                        margin-top: 50px;
-                        align-items: center;
-                        gap: 2px;
-                        margin: 5px 0;
-                        font-size: 18px;
-                        cursor: pointer;
-                        background-color: #515ffbff;
-                        border-radius: 10px;
-                        padding: 4px;
-                        width: fit-content; /*prends juste la largeur de son contenu*/
-                    }
-
-                    .detail-home:hover {
-                        background-color: #bbbbbb;
-                    }
-                    .detail-home img {
-                        width: 20px;
-                        height: 20px;
-                        border-radius: 50%;
-                        object-fit: cover;
-                    }
-
-                    .detail-home span {
-                        color: #ffffffff;
-                        font-weight: bold;
-                        font-size: 15px;
-                        font-family: Arial, Helvetica, sans-serif;
-                    }
-                </style>
-    <div class="boutique-sidebar">
-        <h5>À propos</h5>
-        <p>Membre depuis le <strong>{{ $user->created_at->format('d/m/Y') }}</strong></p>
-      
-        <div class="call-buttons d-flex flex-column gap-2 mb-3">
-            <!-- Bouton Appel téléphonique -->
-            <a href="tel:{{ $user->telephone }}" class="btn btn-warning w-100">
-                📞 Appeler
-            </a>
-
-            <!-- Bouton WhatsApp -->
-            <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $user->whatsapp) }}" target="_blank" class="btn btn-success w-100">
-                <img src="{{ asset('images/whatsapp_icon.png') }}" alt="WhatsApp" width="20"> 
-                    WhatsApp
-            </a>
-
-            <!-- Bouton de partage -->
-            <button class="btn btn-outline-secondary w-100" onclick="shareShop()">
-                <i class="bi bi-share"></i> Partager la boutique
-            </button>
-        </div>
-                <!-- <style>
-        .call-buttons .btn {
-            font-weight: 500;
-            font-size: 1rem;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 8px 0;
-        }
-        </style> -->
+<div class="boutique-sidebar">
+    <h5><i class="bi bi-info-circle me-2"></i>Actions</h5>
+    
+    <div class="call-buttons">
+        @if($user->telephone)
+        <a href="tel:{{ $user->telephone }}" class="btn btn-warning">
+            <i class="bi bi-telephone-fill"></i>
+            <span>Appeler</span>
+        </a>
+        @endif
         
-        {{-- Ajoute d'autres infos, réseaux sociaux, etc. --}}
+        @if($user->whatsapp)
+        <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $user->whatsapp) }}" 
+           target="_blank" 
+           class="btn btn-success">
+            <img src="{{ asset('images/whatsapp_icon.png') }}" alt="WhatsApp" width="20" height="20" style="filter: brightness(0) invert(1);"> 
+            <span>WhatsApp</span>
+        </a>
+        @endif
+        
+        <button class="btn btn-outline-secondary" onclick="shareShop()">
+            <i class="bi bi-share-fill"></i>
+            <span>Partager</span>
+        </button>
     </div>
+</div>
 @endsection
 
 @section('content')
@@ -103,10 +183,10 @@
                     <!-- Heure en haut à droite -->
                     <div class="position-absolute top-0 end-0 px-1 py-0 rounded-bottom-start small d-flex heure">
                         @php
-                            $diffMinutes = $article->created_at->diffInMinutes();
+                            $diffHours = $article->created_at->diffInHours();
                         @endphp
 
-                        @if ($diffMinutes < 60)
+                        @if ($diffHours < 24)
                             <p class="mb-0">
                                 <strong>Récent</strong>
                             </p>

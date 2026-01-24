@@ -40,10 +40,43 @@
             </div>
         </div>
 
-        @if($errors->has('general'))
+        @if(session('error'))
             <div class="register-pro__feedback register-pro__feedback--error">
                 <i class="bi bi-exclamation-triangle"></i>
-                <span>{{ $errors->first('general') }}</span>
+                <div>
+                    <div>{{ session('error') }}</div>
+                    @if (session('error_solutions'))
+                        <div class="mt-2" style="margin-top: 8px; font-size: 0.9em; opacity: 0.9;">
+                            <strong>Suggestions :</strong>
+                            <ul style="margin-top: 4px; padding-left: 20px;">
+                                @foreach (session('error_solutions') as $solution)
+                                    <li>{{ $solution }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
+        @if($errors->any() && !session('error'))
+            <div class="register-pro__feedback register-pro__feedback--error">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    @foreach ($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                    @if (session('error_solutions'))
+                        <div class="mt-2" style="margin-top: 8px; font-size: 0.9em; opacity: 0.9;">
+                            <strong>Suggestions :</strong>
+                            <ul style="margin-top: 4px; padding-left: 20px;">
+                                @foreach (session('error_solutions') as $solution)
+                                    <li>{{ $solution }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                </div>
             </div>
         @endif
 

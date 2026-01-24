@@ -23,3 +23,45 @@ yarn-error.log
 /storage/framework/views/*.php
 /public/build
 .phpunit.cache
+
+# --- FICHIERS SENSIBLES ET UPLOADS ---
+# Fichiers de configuration sensibles
+*.env.local
+*.env.*.local
+config/database.php
+config/mail.php
+
+# Fichiers uploadés par les utilisateurs
+/public/advertisements/*
+/public/articles/*
+/public/users/profil/*
+/public/images/*
+/public/publicites/*
+
+# Dossiers de build et assets compilés
+/public/build*
+/public/css*
+/public/js*
+/public/images*
+
+# Fichiers de logs et cache
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+
+# Fichiers temporaires
+*.log
+*.tmp
+*.cache
+.DS_Store
+Thumbs.db
+
+# Scripts et fichiers de démarrage locaux
+start.sh
+scripts/
+
+# Documentation locale (optionnel - à garder si vous voulez)
+# CONFIGURATION_EMAIL.md
+# FIX_DOM_ERROR.md
+# LANCER_PROJET.md

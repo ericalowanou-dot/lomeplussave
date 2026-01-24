@@ -511,6 +511,12 @@
                 <span class="photo-text">Cliquez pour changer</span>
 
               </div>
+              
+              <!-- Indicateur de chargement -->
+              <div class="photo-upload-loader" id="photoUploadLoader" style="display: none;">
+                <div class="photo-upload-spinner"></div>
+                <span class="photo-upload-text">En cours...</span>
+              </div>
 
             </div>
 
@@ -575,6 +581,105 @@
 <script>
 
 document.addEventListener('DOMContentLoaded', function() {
+  
+  // Fonction pour afficher une notification toast professionnelle
+  function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification toast-' + type;
+    toast.innerHTML = `
+      <div class="toast-icon">
+        ${type === 'success' ? '<i class="bi bi-check-circle-fill"></i>' : '<i class="bi bi-x-circle-fill"></i>'}
+      </div>
+      <div class="toast-message">${message}</div>
+    `;
+    
+    // Styles pour le toast
+    if (!document.getElementById('toast-styles')) {
+      const style = document.createElement('style');
+      style.id = 'toast-styles';
+      style.textContent = `
+        .toast-notification {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #fff;
+          border-radius: 12px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+          padding: 16px 20px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          z-index: 10000;
+          min-width: 300px;
+          max-width: 400px;
+          animation: slideInRight 0.3s ease-out;
+          border-left: 4px solid;
+        }
+        .toast-success {
+          border-left-color: #28a745;
+        }
+        .toast-success .toast-icon {
+          color: #28a745;
+          font-size: 1.5rem;
+        }
+        .toast-error {
+          border-left-color: #dc3545;
+        }
+        .toast-error .toast-icon {
+          color: #dc3545;
+          font-size: 1.5rem;
+        }
+        .toast-message {
+          flex: 1;
+          font-size: 0.9375rem;
+          font-weight: 500;
+          color: #333;
+        }
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+        @media (max-width: 768px) {
+          .toast-notification {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            min-width: auto;
+            max-width: none;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(toast);
+    
+    // Auto-hide après 4 secondes
+    setTimeout(() => {
+      toast.style.animation = 'slideOutRight 0.3s ease-out';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }, 4000);
+  }
 
   const modal = document.getElementById('editUserModal');
 
@@ -757,6 +862,25 @@ document.addEventListener('DOMContentLoaded', function() {
     editForm.addEventListener('submit', function (e) {
 
       e.preventDefault();
+      
+      // Afficher l'indicateur de chargement
+      const photoInput = document.getElementById('userPhoto');
+      const photoLoader = document.getElementById('photoUploadLoader');
+      const submitBtn = editForm.querySelector('button[type="submit"]');
+      
+      // Vérifier si une photo est en cours d'upload
+      if (photoInput && photoInput.files && photoInput.files.length > 0 && photoLoader) {
+        photoLoader.style.display = 'flex';
+      }
+      
+      // Désactiver le bouton de soumission
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        const btnText = submitBtn.querySelector('span:first-child');
+        if (btnText) {
+          btnText.textContent = 'Enregistrement...';
+        }
+      }
 
 
 
@@ -781,6 +905,21 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(res => res.json())
 
       .then(data => {
+        
+        // Cacher l'indicateur de chargement seulement si une photo était sélectionnée
+        const photoInputForHide = document.getElementById('userPhoto');
+        if (photoLoader && photoInputForHide && photoInputForHide.files && photoInputForHide.files.length > 0) {
+          photoLoader.style.display = 'none';
+        }
+        
+        // Réactiver le bouton
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          const btnText = submitBtn.querySelector('span:first-child');
+          if (btnText) {
+            btnText.textContent = 'Enregistrer';
+          }
+        }
 
           if (data.success) {
 
@@ -836,11 +975,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
               }
 
-              alert('✅ Profil mis à jour avec succès !');
+              showToast('Profil mis à jour avec succès !', 'success');
 
           } else {
 
-              alert('❌ Une erreur est survenue lors de la mise à jour');
+              showToast('Une erreur est survenue lors de la mise à jour', 'error');
 
           }
 
@@ -849,8 +988,25 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(err => {
 
           console.error(err);
+          
+          // Cacher l'indicateur de chargement en cas d'erreur seulement si une photo était sélectionnée
+          const photoInput = document.getElementById('userPhoto');
+          const photoLoader = document.getElementById('photoUploadLoader');
+          if (photoLoader && photoInput && photoInput.files && photoInput.files.length > 0) {
+            photoLoader.style.display = 'none';
+          }
+          
+          // Réactiver le bouton
+          const submitBtn = editForm.querySelector('button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            const btnText = submitBtn.querySelector('span:first-child');
+            if (btnText) {
+              btnText.textContent = 'Enregistrer';
+            }
+          }
 
-          alert('❌ Erreur réseau. Veuillez réessayer.');
+          showToast('Erreur réseau. Veuillez réessayer.', 'error');
 
       });
 
@@ -1266,6 +1422,45 @@ document.addEventListener('DOMContentLoaded', function() {
 
         padding: 0 10px;
 
+    }
+    
+    /* Indicateur de chargement upload */
+    .photo-upload-loader {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        backdrop-filter: blur(4px);
+    }
+    
+    .photo-upload-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #FF9900;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 8px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .photo-upload-text {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #FF9900;
+        text-align: center;
     }
 
 

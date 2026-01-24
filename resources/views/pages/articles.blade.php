@@ -46,13 +46,20 @@
         window.addEventListener("scroll", function() {
             let st = window.scrollY || document.documentElement.scrollTop;
             const pub = document.getElementById("hautPublicite");
+            const filterBtn = document.getElementById("openFilter");
 
             if (st > lastScrollTop) {
-                // scroll vers le bas → cacher
+                // scroll vers le bas → cacher les boutons de publicité, montrer le bouton filtre
                 pub.classList.add("disparaitre");
+                if (filterBtn) {
+                    filterBtn.style.display = "inline-flex";
+                }
             } else {
-                // scroll vers le haut → montrer
+                // scroll vers le haut → montrer les boutons de publicité, cacher le bouton filtre
                 pub.classList.remove("disparaitre");
+                if (filterBtn) {
+                    filterBtn.style.display = "none";
+                }
             }
             lastScrollTop = st <= 0 ? 0 : st; // évite valeur négative
         });
@@ -995,8 +1002,8 @@
         }
     </style>
     @else
-    <!-- articles horizontaux -->
-    <div class="scroll-container" id="horizontal-articles">
+    {{-- articles horizontaux --}}
+    {{-- <div class="scroll-container" id="horizontal-articles">
         <div class="d-flex flex-nowrap gap-3">
             @foreach($articles as $article)
                 <div class="article-container" style="z-index: 1;">
@@ -1047,7 +1054,7 @@
                 </div>
             @endforeach
         </div>
-    </div>
+    </div> --}}
 
     
     <!-- Bouton de filtre -->
@@ -1071,7 +1078,7 @@
     .filter-btn {
         position: absolute;
         z-index: 99;
-        display: inline-flex;
+        display: none; /* Caché par défaut, apparaît seulement quand les boutons de publicité disparaissent */
         align-items: center;
         gap: 6px;
         padding: 4px 10px;
@@ -1140,6 +1147,9 @@
         const filterBtn = document.getElementById("openFilter");
         if (!filterBtn) return;
 
+        // Cacher le bouton filtre au chargement (les boutons de publicité sont visibles)
+        filterBtn.style.display = "none";
+
         // Position initiale du bouton
         let btnOriginalTop = filterBtn.getBoundingClientRect().top + window.scrollY;
         const fixedTop = 180;
@@ -1155,29 +1165,45 @@
         function handleScroll() {
             const scrollY = window.scrollY;
             const shouldBeFixed = scrollY + fixedTop >= btnOriginalTop;
+            const pub = document.getElementById("hautPublicite");
+            const pubDisparait = pub && pub.classList.contains("disparaitre");
 
-            // Passage à fixé (entrée)
-            if (shouldBeFixed && !isCurrentlyFixed && !isAnimating) {
-                isCurrentlyFixed = true;
-                clearTimeout(animationTimeout);
-                filterBtn.classList.remove("is-unfixing");
-                filterBtn.classList.add("is-fixed");
-            }
-            // Retour à normal (sortie avec animation fluide)
-            else if (!shouldBeFixed && isCurrentlyFixed && !isAnimating) {
-                isCurrentlyFixed = false;
-                isAnimating = true;
+            // Le bouton filtre apparaît seulement si les boutons de publicité ont disparu
+            if (pubDisparait) {
+                // Boutons de publicité cachés → montrer le bouton filtre
+                if (filterBtn.style.display === "none") {
+                    filterBtn.style.display = "inline-flex";
+                }
                 
-                // Garder is-fixed pendant l'animation de sortie
-                filterBtn.classList.add("is-unfixing");
-                
-                // Attendre la fin de l'animation (700ms) avant de retirer les classes
-                clearTimeout(animationTimeout);
-                animationTimeout = setTimeout(function() {
-                    filterBtn.classList.remove("is-fixed");
+                // Passage à fixé (entrée)
+                if (shouldBeFixed && !isCurrentlyFixed && !isAnimating) {
+                    isCurrentlyFixed = true;
+                    clearTimeout(animationTimeout);
                     filterBtn.classList.remove("is-unfixing");
-                    isAnimating = false;
-                }, 700);
+                    filterBtn.classList.add("is-fixed");
+                }
+                // Retour à normal (sortie avec animation fluide)
+                else if (!shouldBeFixed && isCurrentlyFixed && !isAnimating) {
+                    isCurrentlyFixed = false;
+                    isAnimating = true;
+                    
+                    // Garder is-fixed pendant l'animation de sortie
+                    filterBtn.classList.add("is-unfixing");
+                    
+                    // Attendre la fin de l'animation (700ms) avant de retirer les classes
+                    clearTimeout(animationTimeout);
+                    animationTimeout = setTimeout(function() {
+                        filterBtn.classList.remove("is-fixed");
+                        filterBtn.classList.remove("is-unfixing");
+                        isAnimating = false;
+                    }, 700);
+                }
+            } else {
+                // Boutons de publicité visibles → cacher le bouton filtre
+                filterBtn.style.display = "none";
+                filterBtn.classList.remove("is-fixed");
+                filterBtn.classList.remove("is-unfixing");
+                isCurrentlyFixed = false;
             }
         }
 
@@ -1189,12 +1215,12 @@
 </script>
 
             
-            <h6 class="titre-nouveaute" style="margin-bottom: 20px; background-color: none;">Les nouveautés </h6>
+            {{-- <h6 class="titre-nouveaute" style="margin-top: 90px; margin-bottom: 20px; background-color: none;">Les nouveautés </h6> --}}
 
 
 
 
-        <div class="container mt-4" style="width: 100%; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
+        <div class="container" style="margin-top: 160px; width: 100%; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
             <!-- Publicités en haut de page -->
             @include('partials.publicites', ['position' => 'header'])
             @include('partials.publicites', ['position' => 'homepage_top'])
@@ -1217,106 +1243,141 @@
     </main>
     @endif
 
-    @if(!$articles->isEmpty())
-        <!-- Pagination avec sélecteur du nombre d'articles -->
-        <div id="articles-pagination" class="pagination-container">
-            <div class="per-page-selector">
-                <label for="quick-per-page">Afficher :</label>
-                <select id="quick-per-page" onchange="changePerPage(this.value)">
-                    <option value="12" {{ request('per_page') == 12 ? 'selected' : '' }}>12</option>
-                    <option value="24" {{ request('per_page') == 24 ? 'selected' : '' }}>24</option>
-                    <option value="48" {{ request('per_page') == 48 ? 'selected' : '' }}>48</option>
-                    <option value="96" {{ request('per_page') == 96 ? 'selected' : '' }}>96</option>
-                </select>
-                <span>par page</span>
-            </div>
-            <div class="pagination-links">
+    @if(!$articles->isEmpty() && $articles->hasPages())
+        <!-- Pagination classique Laravel -->
+        <div class="pagination-wrapper">
             {{ $articles->links() }}
-            </div>
-            <div class="total-articles">
-                {{ $articles->total() }} article(s) au total
-            </div>
         </div>
 
         <style>
-            .pagination-container {
+            /* Conteneur de pagination */
+            .pagination-wrapper {
                 display: flex;
-                flex-direction: column;
+                justify-content: center;
                 align-items: center;
-                gap: 16px;
-                margin: 24px 0;
+                margin: 40px 0;
                 padding: 0 16px;
             }
 
-            .per-page-selector {
+            /* Styles pour la pagination Laravel */
+            .pagination {
                 display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
                 align-items: center;
                 gap: 8px;
-                background: linear-gradient(145deg, #ffffff 0%, #f8fafd 100%);
-                padding: 10px 16px;
-                border-radius: 12px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-                border: 1px solid rgba(226, 232, 240, 0.7);
-            }
-
-            .per-page-selector label {
-                font-size: 0.9rem;
-                font-weight: 600;
-                color: #475569;
+                list-style: none;
+                padding: 0;
                 margin: 0;
             }
 
-            .per-page-selector select {
-                padding: 6px 12px;
-                border-radius: 8px;
-                border: 1px solid rgba(148, 163, 184, 0.35);
-                background: #fff;
-                font-size: 0.9rem;
-                font-weight: 600;
-                color: #1f2937;
-                cursor: pointer;
-                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            .pagination li {
+                display: inline-block;
+                margin: 0;
             }
 
-            .per-page-selector select:focus {
-                outline: none;
-                border-color: #2563eb;
-                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-            }
-
-            .per-page-selector span {
-                font-size: 0.9rem;
-                color: #64748b;
-            }
-
-            .pagination-links {
-                display: flex;
+            /* Liens de pagination */
+            .pagination a,
+            .pagination span {
+                display: inline-flex;
+                align-items: center;
                 justify-content: center;
+                min-width: 40px;
+                height: 40px;
+                padding: 8px 12px;
+                font-size: 0.95rem;
+                font-weight: 600;
+                color: #475569;
+                text-decoration: none;
+                border-radius: 10px;
+                transition: all 0.3s ease;
+                background: #ffffff;
+                border: 2px solid #e2e8f0;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             }
 
-            .total-articles {
-                font-size: 0.85rem;
-                color: #64748b;
-                font-weight: 500;
+            /* Liens cliquables */
+            .pagination a:hover {
+                background: linear-gradient(135deg, #4a5f7a 0%, #5a6f8a 100%);
+                color: #ffffff;
+                border-color: #4a5f7a;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(74, 95, 122, 0.3);
             }
 
-            @media (min-width: 768px) {
-                .pagination-container {
-                    flex-direction: row;
-                    justify-content: center;
-                    flex-wrap: wrap;
+            /* Page active */
+            .pagination .active span {
+                background: linear-gradient(135deg, #4a5f7a 0%, #5a6f8a 100%);
+                color: #ffffff;
+                border-color: #4a5f7a;
+                box-shadow: 0 4px 12px rgba(74, 95, 122, 0.3);
+                cursor: default;
+            }
+
+            /* Liens désactivés (première/dernière page) */
+            .pagination .disabled span {
+                background: #f1f5f9;
+                color: #94a3b8;
+                border-color: #e2e8f0;
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+
+            /* Flèches précédent/suivant */
+            .pagination .page-link {
+                font-weight: 700;
+            }
+
+            /* Responsive pour mobile */
+            @media (max-width: 640px) {
+                .pagination-wrapper {
+                    margin: 30px 0;
+                    padding: 0 12px;
+                }
+
+                .pagination {
+                    gap: 6px;
+                }
+
+                .pagination a,
+                .pagination span {
+                    min-width: 36px;
+                    height: 36px;
+                    padding: 6px 10px;
+                    font-size: 0.875rem;
+                }
+
+                /* Masquer les numéros de page sur très petit écran, garder seulement prev/next */
+                .pagination li:not(.disabled):not(:first-child):not(:last-child) {
+                    display: none;
+                }
+
+                /* Afficher quelques pages autour de la page active */
+                .pagination li.active,
+                .pagination li.active + li,
+                .pagination li.active + li + li,
+                .pagination li.active - li,
+                .pagination li.active - li - li {
+                    display: inline-block;
                 }
             }
-        </style>
 
-        <script>
-            function changePerPage(value) {
-                const url = new URL(window.location.href);
-                url.searchParams.set('per_page', value);
-                url.searchParams.delete('page'); // Retour à la première page
-                window.location.href = url.toString();
+            /* Pour les écrans moyens */
+            @media (min-width: 641px) and (max-width: 1024px) {
+                .pagination a,
+                .pagination span {
+                    min-width: 38px;
+                    height: 38px;
+                    padding: 7px 11px;
+                }
             }
-        </script>
+
+            /* Animation au survol */
+            .pagination a:active {
+                transform: translateY(0);
+                box-shadow: 0 2px 4px rgba(74, 95, 122, 0.2);
+            }
+        </style>
     @endif
 
             <footer class="text-body-secondary py-5">

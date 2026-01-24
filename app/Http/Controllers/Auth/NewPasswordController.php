@@ -36,12 +36,34 @@ class NewPasswordController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // Vérifier si l'utilisateur est bloqué avant de réinitialiser
+        $user = User::where('email', $request->email)->first();
+        
+        if ($user && $user->isBlocked()) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'Ce compte a été bloqué. Vous ne pouvez pas réinitialiser votre mot de passe.'])
+                ->with('error_solutions', [
+                    'Votre compte a été suspendu',
+                    'Contactez-nous à : lomeplus80@gmail.com',
+                    'Vous devez d\'abord débloquer votre compte'
+                ]);
+        }
+
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
         // database. Otherwise we will parse the error and return the response.
+        $resetError = null;
+        
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user) use ($request) {
+            function (User $user) use ($request, &$resetError) {
+                // Vérifier à nouveau avant de modifier le mot de passe
+                if ($user->isBlocked()) {
+                    $resetError = 'blocked';
+                    return;
+                }
+                
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
@@ -50,12 +72,24 @@ class NewPasswordController extends Controller
                 event(new PasswordReset($user));
             }
         );
+        
+        // Si l'utilisateur était bloqué dans la callback, retourner l'erreur
+        if ($resetError === 'blocked') {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'Ce compte a été bloqué. Vous ne pouvez pas réinitialiser votre mot de passe.'])
+                ->with('error_solutions', [
+                    'Votre compte a été suspendu',
+                    'Contactez-nous à : lomeplus80@gmail.com',
+                    'Vous devez d\'abord débloquer votre compte'
+                ]);
+        }
 
         // If the password was successfully reset, we will redirect the user back to
         // the application's home authenticated view. If there is an error we can
         // redirect them back to where they came from with their error message.
         if ($status == Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', __($status));
+            return redirect()->route('login')->with('status', trans('passwords.reset'));
         } else {
             $solutions = [];
             if ($status == Password::INVALID_TOKEN) {

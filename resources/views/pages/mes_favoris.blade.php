@@ -106,8 +106,8 @@
                         list-style: none;
                         padding: 0;
                         margin: 0;
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                        display: flex;
+                        flex-direction: column;
                         gap: 12px;
                     }
 
@@ -117,7 +117,7 @@
                         gap: 10px;
                         color: #475569;
                         font-size: 0.9rem;
-                        line-height: 1.5;
+                        line-height: 1.6;
                     }
 
                     .mes-favoris-header__features li i {
@@ -134,7 +134,6 @@
 
                     @media (max-width: 768px) {
                         .mes-favoris-header__features {
-                            grid-template-columns: 1fr;
                             gap: 10px;
                         }
 

@@ -2301,10 +2301,10 @@
                     <!-- Heure en haut à droite -->
                     <div class="position-absolute top-0 end-0 px-1 py-0 rounded-bottom-start small d-flex heure">
                         @php
-                            $diffMinutes = $article->created_at->diffInMinutes();
+                            $diffHours = $article->created_at->diffInHours();
                         @endphp
 
-                        @if ($diffMinutes < 60)
+                        @if ($diffHours < 24)
                             <p class="mb-0">
                                 <strong>Récent</strong>
                             </p>
@@ -2413,7 +2413,7 @@
                     <i class="fab fa-whatsapp"></i>
                 </a>
                 <a href="https://twitter.com/intent/tweet?url={{ urlencode(Request::url()) }}" target="_blank" rel="noopener noreferrer" class="twitter" aria-label="Partager sur Twitter" style="display: inline-flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: #1da1f2; color: white; text-decoration: none; font-size: 20px; transition: transform 0.2s;">
-                    <i class="fab fa-x-twitter"></i>
+                    <span style="font-weight: 700;">X</span>
                 </a>
             </div>
         </div>

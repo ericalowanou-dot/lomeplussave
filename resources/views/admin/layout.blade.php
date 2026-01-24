@@ -238,6 +238,40 @@
             });
         });
     </script>
+    
+    <!-- Script global pour cacher les loaders au chargement de la page -->
+    <script>
+        // Cacher tous les loaders au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cacher tous les overlays de chargement
+            const loaders = document.querySelectorAll('#loadingOverlay, .loading-overlay, [id*="loading"]');
+            loaders.forEach(function(loader) {
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+            });
+            
+            // Réactiver tous les boutons désactivés
+            const disabledButtons = document.querySelectorAll('button:disabled, .btn:disabled');
+            disabledButtons.forEach(function(btn) {
+                // Ne réactiver que si ce n'est pas intentionnellement désactivé
+                if (btn.hasAttribute('data-keep-disabled')) {
+                    return;
+                }
+            });
+        });
+        
+        // Cacher les loaders lors de la navigation
+        window.addEventListener('pageshow', function(event) {
+            const loaders = document.querySelectorAll('#loadingOverlay, .loading-overlay, [id*="loading"]');
+            loaders.forEach(function(loader) {
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+            });
+        });
+    </script>
+    
     @stack('scripts')
 </body>
 </html>

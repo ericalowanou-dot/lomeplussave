@@ -30,8 +30,9 @@
     
     <!-- Typographie uniforme globale - Doit être chargé après les autres CSS -->
     <style>
-        /* Typographie professionnelle uniforme - Override tous les autres styles */
-        html, body, * {
+        /* Typographie professionnelle uniforme - Override tous les autres styles,
+           mais sans casser les polices d'icônes (Font Awesome, etc.) */
+        html, body, *:not(.fa):not(.fas):not(.far):not(.fal):not(.fab) {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
         }
         
@@ -56,6 +57,14 @@
         /* Cards et contenus */
         .card, .card-title, .card-text {
             font-family: 'Poppins', sans-serif !important;
+        }
+
+        /* Rétablir la police correcte pour les icônes Font Awesome */
+        .fa, .fas, .far, .fal {
+            font-family: "Font Awesome 5 Free" !important;
+        }
+        .fab {
+            font-family: "Font Awesome 5 Brands" !important;
         }
     </style>
     <!-- Police professionnelle uniforme pour tout le site -->

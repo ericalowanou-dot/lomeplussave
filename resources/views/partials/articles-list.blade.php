@@ -9,10 +9,10 @@
                     <!-- Heure en haut à droite -->
                     <div class="position-absolute top-0 end-0 px-1 py-0 rounded-bottom-start small d-flex heure">
                         @php
-                            $diffMinutes = $article->created_at->diffInMinutes();
+                            $diffHours = $article->created_at->diffInHours();
                         @endphp
 
-                        @if ($diffMinutes < 60)
+                        @if ($diffHours < 24)
                             <p class="mb-0">
                                 <strong>Récent</strong>
                             </p>
@@ -97,13 +97,14 @@
             </div> <!-- fin col -->
 
             @if($loop->iteration == 4)
-                <!-- Bannière après la 2e ligne sur mobile (4 articles) -->
+                @guest
+                <!-- Bannière après la 2e ligne sur mobile (4 articles) - Visible seulement si non connecté -->
                 <div class="col-12" style="z-index: 1;">
                     <div class="banner-ad my-3">
-                        <a id="ad-link" href="https://abonnements.lomeplus.com" target="_blank">
-                            <img src="{{ asset('images/annonce.jpg') }}" alt="Publicité" class="ad-img active">
-                            <img src="{{ asset('images/annonce2.png') }}" alt="Publicité" class="ad-img">
-                            <img src="{{ asset('images/annonce3.png') }}" alt="Publicité" class="ad-img">
+                        <a id="ad-link" href="{{ route('login') }}">
+                            <img src="{{ asset('images/1.png') }}" alt="Publicité" class="ad-img active" loading="lazy">
+                            <img src="{{ asset('images/2.png') }}" alt="Publicité" class="ad-img" loading="lazy">
+                            <img src="{{ asset('images/3.png') }}" alt="Publicité" class="ad-img" loading="lazy">
                         </a>
                     </div>
                 </div>
@@ -151,12 +152,9 @@
                         const images = document.querySelectorAll(".banner-ad .ad-img");
                         const adLink = document.getElementById("ad-link");
 
-                        const links = [
-                            "https://abonnements.lomeplus.com",
-                            "https://lomeplus.com",
-                            "https://zhcargo.lomeplus.com"
-                        ];
+                        if (!images.length || !adLink) return;
 
+                        const loginUrl = "{{ route('login') }}";
                         let currentIndex = 0;
 
                         function showNextAd() {
@@ -167,7 +165,7 @@
                             currentIndex = (currentIndex + 1) % images.length;
                             const nextImage = images[currentIndex];
 
-                            adLink.href = links[currentIndex];
+                            adLink.href = loginUrl;
                             nextImage.classList.add("active");
 
                             setTimeout(() => {
@@ -178,6 +176,7 @@
                         setInterval(showNextAd, 5000);
                     });
                 </script>
+                @endguest
             @endif
 
         @endforeach 

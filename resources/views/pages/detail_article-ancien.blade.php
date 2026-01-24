@@ -129,7 +129,7 @@
                                                 <i class="fab fa-whatsapp"></i>
                                             </a>
                                             <a href="https://twitter.com/intent/tweet?url={{ urlencode(Request::url()) }}" target="_blank" class="twitter">
-                                                <i class="fab fa-x-twitter"></i>
+                                                <span style="font-weight: 700;">X</span>
                                             </a>
                                         </div>
                                     </div>

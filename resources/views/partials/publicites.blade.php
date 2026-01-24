@@ -26,13 +26,13 @@
                        target="_blank" 
                        rel="nofollow"
                        class="publicite-link"
-                       onclick="trackPubliciteClick({{ $publicite->id }})">
+                       onclick="return handlePubliciteClick(event, {{ $publicite->id }});">
                         <img src="{{ asset($publicite->image) }}" 
                              alt="{{ $publicite->titre ?? 'Publicité' }}"
                              class="publicite-image"
                              loading="lazy"
                              onload="trackPubliciteView({{ $publicite->id }})"
-                             onerror="this.src='{{ asset('images/placeholder.png') }}';"
+                             onerror="this.src='{{ asset('images/placeholder.png') }}';">
                     </a>
                 @else
                     <img src="{{ asset($publicite->image) }}" 
@@ -50,7 +50,7 @@
         .publicites-container {
             margin: 20px 0;
             width: 100%;
-            padding: 10px 0;
+            padding: 0;
             position: relative;
             z-index: 1;
         }
@@ -59,42 +59,50 @@
             margin-bottom: 15px;
             width: 100%;
             position: relative;
+            text-align: center;
         }
 
         .publicite-link {
             display: block;
             width: 100%;
+            max-width: 100%;
             transition: transform 0.3s ease, opacity 0.3s ease;
             text-decoration: none;
+            line-height: 0; /* Éviter les espaces autour de l'image */
         }
 
-        .publicite-link:hover {
-            transform: scale(1.02);
-            opacity: 0.9;
+        .publicite-link:hover .publicite-image {
+            transform: scale(1.01);
+            opacity: 0.97;
         }
 
         .publicite-image {
             width: 100%;
             height: auto;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
             display: block;
-            margin: 0 auto;
+            margin: 0;
             background: #f8f9fa;
+            pointer-events: auto;
+            object-fit: cover;
+        }
+
+        /* Empêcher les clics en dehors de l'image */
+        .publicite-item {
+            text-align: center;
         }
 
         /* Styles spécifiques par position */
         .publicites-header {
+            width: 100%;
             max-width: 1200px;
             margin: 20px auto 30px auto;
-            padding: 15px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 0;
         }
 
         .publicites-header .publicite-image {
-            max-height: 150px;
+            max-height: 200px;
             object-fit: cover;
             width: 100%;
         }
@@ -110,43 +118,41 @@
         }
 
         .publicites-footer {
+            width: 100%;
             max-width: 1200px;
             margin: 20px auto;
+            padding: 0;
         }
 
         .publicites-footer .publicite-image {
-            max-height: 150px;
-            object-fit: contain;
+            max-height: 200px;
+            object-fit: cover;
         }
 
         .publicites-entre_articles {
-            max-width: 100%;
+            width: 100%;
+            max-width: 1200px;
             margin: 30px auto;
-            padding: 15px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 0;
         }
 
         .publicites-entre_articles .publicite-image {
-            max-height: 200px;
+            max-height: 260px;
             object-fit: cover;
             width: 100%;
         }
 
         .publicites-homepage_top,
         .publicites-homepage_bottom {
+            width: 100%;
             max-width: 1200px;
             margin: 20px auto;
-            padding: 15px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 0;
         }
 
         .publicites-homepage_top .publicite-image,
         .publicites-homepage_bottom .publicite-image {
-            max-height: 250px;
+            max-height: 320px;
             object-fit: cover;
             width: 100%;
         }
@@ -161,7 +167,7 @@
 
         @media (max-width: 768px) {
             .publicites-container {
-                margin: 15px 0;
+                margin: 12px 0;
             }
 
             .publicites-sidebar {
@@ -174,12 +180,19 @@
             }
 
             .publicites-entre_articles .publicite-image {
-                max-height: 150px;
+                max-height: 180px;
             }
 
             .publicites-homepage_top .publicite-image,
             .publicites-homepage_bottom .publicite-image {
-                max-height: 180px;
+                max-height: 210px;
+            }
+
+            /* Sur mobile, coins légèrement arrondis et sans ombre forte */
+            .publicite-image {
+                border-radius: 8px;
+                box-shadow: none;
+                background: transparent;
             }
         }
     </style>
@@ -206,6 +219,41 @@
                 }
             }).catch(err => console.error('Erreur tracking clic:', err));
         }
+        
+        // Fonction pour gérer les clics sur les publicités
+        function handlePubliciteClick(event, publiciteId) {
+            // Vérifier si le clic est directement sur l'image
+            if (event.target && event.target.classList.contains('publicite-image')) {
+                // Le clic est sur l'image, autoriser la navigation et tracker
+                trackPubliciteClick(publiciteId);
+                return true;
+            } else {
+                // Le clic n'est pas sur l'image, empêcher la navigation
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                return false;
+            }
+        }
+        
+        // Protection supplémentaire : empêcher les clics en dehors de l'image
+        document.addEventListener('DOMContentLoaded', function() {
+            // Empêcher les clics sur le conteneur de publicité qui ne sont pas sur l'image
+            const publiciteItems = document.querySelectorAll('.publicite-item');
+            publiciteItems.forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                    const link = item.querySelector('.publicite-link');
+                    const image = item.querySelector('.publicite-image');
+                    
+                    // Si le clic n'est pas sur le lien ou l'image, arrêter la propagation
+                    if (link && e.target !== link && e.target !== image && !link.contains(e.target)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                    }
+                }, true);
+            });
+        });
     </script>
 @endif
 

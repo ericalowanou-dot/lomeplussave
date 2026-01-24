@@ -40,6 +40,13 @@
             </div>
         </div>
 
+        @if (session('status'))
+            <div class="login-pro__feedback login-pro__feedback--success">
+                <i class="bi bi-check-circle"></i>
+                <span>{{ session('status') }}</span>
+            </div>
+        @endif
+
         @if ($errors->has('email') || $errors->has('password'))
             <div class="login-pro__feedback login-pro__feedback--error">
                 <i class="bi bi-exclamation-triangle"></i>

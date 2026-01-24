@@ -831,7 +831,7 @@
                                 <i class="fab fa-whatsapp"></i>
                             </a>
                             <a id="twitter-share" target="_blank" class="twitter" style="display: inline-flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: #1da1f2; color: white; text-decoration: none; font-size: 20px; transition: transform 0.2s;">
-                                <i class="fab fa-x-twitter"></i>
+                                <span style="font-weight: 700;">X</span>
                             </a>
                         </div>
                     </div>

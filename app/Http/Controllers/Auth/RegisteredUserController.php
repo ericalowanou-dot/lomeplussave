@@ -87,7 +87,7 @@ class RegisteredUserController extends Controller
                 }
             }
 
-            return redirect(route('articles.index', absolute: false));
+            return redirect(route('articles.index', absolute: false))->with('success', 'Votre compte a été créé avec succès ! Bienvenue sur Lome+.');
         } catch (\Exception $e) {
             \Log::error('Erreur lors de l\'inscription: ' . $e->getMessage());
             return back()

@@ -18,26 +18,123 @@
             background: #f6f7fb;
         }
         .boutique-header {
-            background: linear-gradient(90deg, #ff9800 0%, #ffb74d 100%);
-            color: #fff;
-            padding: 40px 0 20px 0;
-            text-align: center;
-            border-bottom-left-radius: 40px;
-            border-bottom-right-radius: 40px;
-            margin-bottom: 30px;
+            background: #fff;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 12px;
         }
-        .boutique-header img {
+        
+        .boutique-header-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .boutique-header .profile-avatar {
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
-            border: 4px solid #fff;
-            width: 90px;
-            height: 90px;
             object-fit: cover;
-            margin-bottom: 10px;
+            border: 3px solid #FF9900;
+            flex-shrink: 0;
+        }
+        
+        .boutique-header .profile-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .boutique-header .profile-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 0.25rem 0;
+            line-height: 1.3;
+        }
+        
+        .boutique-header .profile-email {
+            font-size: 0.875rem;
+            color: #666;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .boutique-header .profile-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .boutique-header .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.8125rem;
+            color: #888;
+        }
+        
+        .boutique-header .meta-item i {
+            font-size: 0.875rem;
+            color: #FF9900;
+        }
+        
+        .boutique-header .certification-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: #fff;
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .boutique-header {
+                padding: 1rem;
+                margin-bottom: 1rem;
+                border-radius: 8px;
+            }
+            
+            .boutique-header-content {
+                gap: 0.75rem;
+            }
+            
+            .boutique-header .profile-avatar {
+                width: 56px;
+                height: 56px;
+                border-width: 2px;
+            }
+            
+            .boutique-header .profile-name {
+                font-size: 1.125rem;
+            }
+            
+            .boutique-header .profile-email {
+                font-size: 0.8125rem;
+            }
+            
+            .boutique-header .profile-meta {
+                gap: 0.75rem;
+                margin-top: 0.375rem;
+            }
+            
+            .boutique-header .meta-item {
+                font-size: 0.75rem;
+            }
         }
         .boutique-sidebar {
             background: #fff;
             border-radius: 16px;
-            box-shadow: 0 2px 8px #eee;
             padding: 20px;
             margin-bottom: 30px;
         }
@@ -88,17 +185,19 @@
     <div>
         @include('includes.header')
     </div>
-    <div class="boutique-header" style="margin-top: 45px;">
-        @yield('boutique-header')
+    <div class="container">
+        <div class="boutique-header" style="margin-top: 4.5rem;">
+            @yield('boutique-header')
+        </div>
     </div>
     <div class="container">
         <div class="row">
             {{-- Sidebar à gauche --}}
-            <div class="col-md-3">
+            <div class="col-12 col-md-3 mb-3 mb-md-0">
                 @yield('boutique-sidebar')
             </div>
             {{-- Contenu principal --}}
-            <div class="col-md-9">
+            <div class="col-12 col-md-9">
                 @yield('content')
             </div>
         </div>

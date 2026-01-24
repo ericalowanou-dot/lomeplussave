@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View; 
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Carbon;
 use App\Models\Categorie; 
 use App\Models\Article; 
@@ -25,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Définir la locale de l'application en français
+        App::setLocale('fr');
         Carbon::setLocale('fr');
         
         // Vérifier si les tables existent avant d'y accéder

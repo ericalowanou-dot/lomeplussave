@@ -1,31 +1,72 @@
-<x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-    </div>
+@extends('layouts.auth')
 
-    @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
-    @endif
+@section('title', 'Vérification de l\'email')
 
-    <div class="mt-4 flex items-center justify-between">
-        <form method="POST" action="{{ route('verification.send') }}">
-            @csrf
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('css/forgot-pro.css') }}">
+    <style>
+        .auth-card {
+            max-width: 720px;
+        }
+        .auth-header {
+            padding: 24px 32px;
+        }
+        .auth-body {
+            padding: 0 32px 28px;
+        }
+    </style>
+@endpush
 
-            <div>
-                <x-primary-button>
-                    {{ __('Resend Verification Email') }}
-                </x-primary-button>
+@section('content')
+    <div class="forgot-pro">
+        <div class="forgot-pro__header">
+            <div class="forgot-pro__badge">
+                <i class="bi bi-envelope-check"></i>
             </div>
-        </form>
+            <div class="forgot-pro__headline">
+                <h2>Vérifie ton adresse email</h2>
+                <p>Avant de continuer, vérifie ton adresse email en cliquant sur le lien que nous t'avons envoyé. Si tu n'as pas reçu l'email, nous pouvons t'en renvoyer un.</p>
+            </div>
+        </div>
 
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
+        @if (session('status') == 'verification-link-sent')
+            <div class="forgot-pro__feedback forgot-pro__feedback--success">
+                <i class="bi bi-check-circle"></i>
+                <span>Un nouveau lien de vérification a été envoyé à l'adresse email que tu as fournie lors de l'inscription. Vérifie ta boîte de réception (et les spams).</span>
+            </div>
+        @endif
 
-            <button type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
-                {{ __('Log Out') }}
-            </button>
-        </form>
+        @if ($errors->any())
+            <div class="forgot-pro__feedback forgot-pro__feedback--error">
+                <i class="bi bi-exclamation-triangle"></i>
+                <div>
+                    @foreach ($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        <div class="forgot-pro__form">
+            <form method="POST" action="{{ route('verification.send') }}" style="margin-bottom: 16px;">
+                @csrf
+                <button type="submit" class="btn btn-primary forgot-submit">
+                    <span>Renvoyer l'email de vérification</span>
+                    <i class="bi bi-send"></i>
+                </button>
+            </form>
+
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="btn btn-outline-secondary" style="width: 100%;">
+                    <span>Se déconnecter</span>
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+
+        <div class="forgot-pro__footer">
+            <p>Tu as déjà vérifié ton email ? <a href="{{ route('articles.index') }}">Retour à l'accueil</a></p>
+        </div>
     </div>
-</x-guest-layout>
+@endsection
