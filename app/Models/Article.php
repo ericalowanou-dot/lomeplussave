@@ -150,6 +150,31 @@ class Article extends Model
         }
 
         /**
+         * Scope pour withCount(usersWhoLiked) uniquement.
+         * "Liké par moi" : utiliser $likedIds (injecté par view composer) pour éviter
+         * un 2e withCount sur la même relation qui écraserait le total.
+         */
+        public function scopeWithLikeCounts($query, $userId = null)
+        {
+            $query->withCount('usersWhoLiked');
+            return $query;
+        }
+
+        /**
+         * Utilise liked_by_me_count si présent, sinon $likedIds, sinon fallback query.
+         */
+        public function isLikedByCurrentUser(?array $likedIds = null): bool
+        {
+            if (is_array($likedIds)) {
+                return in_array((int) $this->id, array_map('intval', $likedIds), true);
+            }
+            if (array_key_exists('liked_by_me_count', $this->getAttributes())) {
+                return (int) ($this->liked_by_me_count ?? 0) > 0;
+            }
+            return $this->isLikeByLoggedInUser();
+        }
+
+        /**
          * Obtenir l'URL de l'image principale avec placeholder par défaut
          */
         public function getPhotoUrlAttribute()

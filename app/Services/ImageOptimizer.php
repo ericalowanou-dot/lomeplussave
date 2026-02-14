@@ -12,17 +12,22 @@ class ImageOptimizer
     private ImageManager $manager;
     
     // Tailles maximales recommandées
-    private const MAX_WIDTH_ARTICLE = 1920;
-    private const MAX_HEIGHT_ARTICLE = 1920;
+    private const MAX_WIDTH_ARTICLE = 1280;
+    private const MAX_HEIGHT_ARTICLE = 1280;
     private const MAX_WIDTH_PROFILE = 800;
     private const MAX_HEIGHT_PROFILE = 800;
     private const MAX_WIDTH_CATEGORY = 512;
     private const MAX_HEIGHT_CATEGORY = 512;
     
     // Qualité de compression (0-100)
-    private const JPEG_QUALITY = 85;
-    private const PNG_QUALITY = 90;
-    private const WEBP_QUALITY = 85;
+    // private const JPEG_QUALITY = 85;
+    // private const PNG_QUALITY = 90;
+    // private const WEBP_QUALITY = 85;
+
+    private const JPEG_QUALITY = 35;
+    private const PNG_QUALITY = 35;
+    private const WEBP_QUALITY = 35;
+
 
     public function __construct()
     {

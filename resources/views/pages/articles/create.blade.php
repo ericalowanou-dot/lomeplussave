@@ -60,6 +60,116 @@
 
         }
 
+        /* Styles pour la zone d'upload moderne */
+        .upload-zone {
+            border: 2px dashed rgba(102, 126, 234, 0.4);
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            border-color: rgba(102, 126, 234, 0.6);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+        }
+
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-zone.upload-zone--max {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 16px;
+        }
+
+        .upload-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .upload-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            cursor: pointer;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .upload-btn i {
+            margin-right: 8px;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 16px;
+            margin-bottom: 0;
+        }
+
+        .error-container {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            color: #991b1b;
+            font-size: 14px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .photo-grid-container {
+            animation: fadeIn 0.3s ease;
+        }
+
 
 
         /* Styles pour les toggles comme dans le filtre */
@@ -290,7 +400,7 @@
 
             @csrf
 
-
+            <div id="general-error-ajax" class="error-container" style="display:none;" role="alert"></div>
 
             <div class="article-create__content">
 
@@ -321,56 +431,75 @@
 
 
                         <div class="article-media">
-
-                            <div class="photo-grid">
-
-                                @for ($i = 1; $i <= 6; $i++)
-
-                                    <label class="photo-slot" id="photo-slot-{{ $i }}" for="file-input-{{ $i }}">
-
-                                        <input
-
-                                            type="file"
-
-                                            class="file-input"
-
-                                            accept="image/*"
-
-                                            id="file-input-{{ $i }}"
-
-                                            {{ $i === 1 ? 'required' : '' }}
-
-                                            name="photos[]"
-
-                                            hidden
-
-                                        >
-
-                                        <img src="{{ asset('images/photo_icon.png') }}" id="photo-preview-{{ $i }}" class="photo-preview" alt="Aperçu {{ $i }}">
-
-                                        <span class="add-icon" id="add-icon-{{ $i }}">
-
-                                            <i class="bi bi-plus-lg"></i>
-
-                                        </span>
-
-                                        <button type="button" class="remove-btn" id="remove-btn-{{ $i }}" aria-label="Retirer la photo">
-
-                                            <i class="bi bi-x-lg"></i>
-
-                                        </button>
-
-                                    </label>
-
-                                @endfor
-
+                            
+                            <!-- Zone de drop/upload moderne -->
+                            <div class="upload-zone" id="upload-zone">
+                                <div class="upload-icon">
+                                    <i class="bi bi-cloud-upload"></i>
+                                </div>
+                                <div class="upload-title">Glissez-déposez vos images ici</div>
+                                <div class="upload-subtitle">ou</div>
+                                <button type="button" id="selectMultipleBtn" class="upload-btn">
+                                    <i class="bi bi-images"></i> Sélectionner plusieurs images
+                                </button>
+                                <input type="file" id="multiple-file-input" accept="image/*" multiple hidden>
+                                <p class="upload-hint">
+                                    <i class="bi bi-info-circle"></i> 
+                                    Jusqu'à 6 images (30 Mo par fichier). Formats : JPG, PNG, GIF, WebP, BMP, HEIC/HEIF, AVIF, SVG
+                                </p>
                             </div>
 
+                            <!-- Container des erreurs -->
+                            <div id="photos-error-container" class="error-container" style="display:none;"></div>
 
+                            <!-- Grille de photos (masquée par défaut) -->
+                            <div id="photo-grid-container" class="photo-grid-container" style="display: none;">
+                                <div class="photo-grid">
+
+                                    @for ($i = 1; $i <= 6; $i++)
+
+                                        <label class="photo-slot" id="photo-slot-{{ $i }}" for="file-input-{{ $i }}">
+
+                                            <input
+
+                                                type="file"
+
+                                                class="file-input"
+
+                                                accept="image/*"
+
+                                                id="file-input-{{ $i }}"
+
+                                                {{ $i === 1 ? 'required' : '' }}
+
+                                                name="photos[]"
+
+                                                hidden
+
+                                            >
+
+                                            <img src="{{ asset('images/photo_icon.png') }}" id="photo-preview-{{ $i }}" class="photo-preview" alt="Aperçu {{ $i }}">
+
+                                            <span class="add-icon" id="add-icon-{{ $i }}">
+
+                                                <i class="bi bi-plus-lg"></i>
+
+                                            </span>
+
+                                            <button type="button" class="remove-btn" id="remove-btn-{{ $i }}" aria-label="Retirer la photo">
+
+                                                <i class="bi bi-x-lg"></i>
+
+                                            </button>
+
+                                        </label>
+
+                                    @endfor
+
+                                </div>
+                            </div>
 
                             <p class="form-hint">Formats acceptés : JPG, PNG, GIF, WebP, BMP, HEIC/HEIF, AVIF, SVG – 6 images maximum (30 Mo par fichier). L'application optimisera automatiquement vos images.</p>
-
-
 
                             @error('photos')
 
@@ -816,8 +945,6 @@
 
             const categorieError = $('#categorie-error');
 
-            const photoError = $('#photos-error');
-
             const maxFileSize = 30 * 1024 * 1024; // 30 Mo
 
             const rawOldCategory = categorieSelect.attr('data-old');
@@ -852,23 +979,107 @@
 
 
 
-            const showPhotoError = (message) => {
+            const photoErrorContainer = $('#photos-error-container'); // En haut
+            const photoError = $('#photos-error'); // En bas
 
+            // Afficher erreur en haut (erreurs générales)
+            const showPhotoErrorTop = (message) => {
+                if (!photoErrorContainer.length) return;
+                
+                // Masquer l'erreur du bas si elle existe
+                clearPhotoErrorBottom();
+                
+                photoErrorContainer.text(message).slideDown(300);
+                
+                // Scroll vers l'erreur
+                $('html, body').animate({
+                    scrollTop: photoErrorContainer.offset().top - 100
+                }, 400);
+            };
+
+            // Afficher erreur en bas (erreurs spécifiques à un élément)
+            const showPhotoErrorBottom = (message) => {
                 if (!photoError.length) return;
-
+                
+                // Masquer l'erreur du haut si elle existe
+                clearPhotoErrorTop();
+                
                 photoError.text(message).show();
+                
+                // Scroll vers l'erreur
+                $('html, body').animate({
+                    scrollTop: photoError.offset().top - 100
+                }, 400);
+            };
+
+            // Fonction générique qui choisit automatiquement
+            const showPhotoError = (message, isGeneral = true) => {
+                if (isGeneral) {
+                    showPhotoErrorTop(message);
+                } else {
+                    showPhotoErrorBottom(message);
+                }
+            };
+
+            // Masquer erreur en haut
+            const clearPhotoErrorTop = () => {
+                if (!photoErrorContainer.length) return;
+                photoErrorContainer.slideUp(300, function() {
+                    $(this).text('').hide();
+                });
+            };
+
+            // Masquer erreur en bas
+            const clearPhotoErrorBottom = () => {
+                if (!photoError.length) return;
+                photoError.text('').hide();
+            };
+
+            // Masquer toutes les erreurs
+            const clearPhotoError = () => {
+                clearPhotoErrorTop();
+                clearPhotoErrorBottom();
+            };
+
+            const showPhotoGrid = () => {
+
+                $('#photo-grid-container').fadeIn(300);
+
+                $('#upload-zone').fadeOut(300);
 
             };
 
+            const hidePhotoGridIfEmpty = () => {
 
+                const hasFiles = $('.file-input').toArray().some(input => input.files && input.files.length > 0);
 
-            const clearPhotoError = () => {
+                if (!hasFiles) {
 
-                if (!photoError.length) return;
+                    $('#photo-grid-container').fadeOut(300);
 
-                photoError.text('');
+                    $('#upload-zone').fadeIn(300);
 
-                photoError.hide();
+                }
+
+                updateUploadZoneMax6();
+
+            };
+
+            const photoCount = () => $('.file-input').toArray().filter(input => input.files && input.files.length > 0).length;
+
+            const updateUploadZoneMax6 = () => {
+
+                const n = photoCount();
+
+                const zone = $('#upload-zone');
+
+                const btn = $('#selectMultipleBtn');
+
+                const atMax = n >= 6;
+
+                if (btn.length) btn.prop('disabled', atMax).css('opacity', atMax ? 0.6 : 1);
+
+                zone.toggleClass('upload-zone--max', atMax);
 
             };
 
@@ -1044,7 +1255,7 @@
 
                     if (!file.type.startsWith('image/')) {
 
-                        showPhotoError('Veuillez sélectionner un fichier image (jpg, png, gif, webp).');
+                        showPhotoErrorBottom('Veuillez sélectionner un fichier image (jpg, png, gif, webp).');
 
                         this.value = '';
 
@@ -1066,7 +1277,7 @@
 
                     if (file.size > maxFileSize) {
 
-                        showPhotoError('Chaque image doit faire moins de 30 Mo. L\'application optimisera automatiquement vos images.');
+                        showPhotoErrorBottom('Chaque image doit faire moins de 30 Mo. L\'application optimisera automatiquement vos images.');
 
                         this.value = '';
 
@@ -1097,6 +1308,10 @@
                     removeBtn.show();
 
                     updatePrimaryRequirement();
+
+                    showPhotoGrid();
+
+                    updateUploadZoneMax6();
 
                 });
 
@@ -1136,11 +1351,138 @@
 
                     updatePrimaryRequirement();
 
+                    hidePhotoGridIfEmpty();
+
+                    updateUploadZoneMax6();
+
                 });
 
             });
 
+            updateUploadZoneMax6();
 
+            const handleMultipleFiles = (files) => {
+
+                if (files.length === 0) return;
+                if (photoCount() >= 6) {
+                    showPhotoErrorTop('Vous ne pouvez pas ajouter plus de 6 images.');
+                    return;
+                }
+
+                const existingFiles = photoCount();
+                const totalFiles = existingFiles + files.length;
+                if (totalFiles > 6) {
+                    showPhotoErrorTop('Vous ne pouvez pas avoir plus de 6 images au total. Vous avez déjà ' + existingFiles + ' image(s) et vous essayez d\'en ajouter ' + files.length + '.');
+                    return;
+                }
+
+                // Vérifier la taille de chaque fichier
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    if (!file.type.startsWith('image/')) {
+                        showPhotoErrorTop('Le fichier "' + file.name + '" n\'est pas une image valide. Format requis : JPG, PNG, GIF, WebP.');
+                        return;
+                    }
+                    
+                    if (file.size > maxFileSize) {
+                        showPhotoErrorTop('L\'image "' + file.name + '" est trop grande (' + (file.size / 1024 / 1024).toFixed(2) + ' Mo). Maximum : 30 Mo.');
+                        return;
+                    }
+                }
+
+                // Trouver les slots disponibles (vides)
+                const availableSlots = [];
+                for (let i = 1; i <= 6; i++) {
+                    const input = $('#file-input-' + i);
+                    if (input.length && (!input[0].files || input[0].files.length === 0)) {
+                        availableSlots.push(i);
+                    }
+                }
+
+                if (availableSlots.length < files.length) {
+                    showPhotoErrorTop('Il n\'y a que ' + availableSlots.length + ' emplacement(s) disponible(s) pour ' + files.length + ' image(s).');
+                    return;
+                }
+
+                // Distribuer les fichiers dans les slots disponibles
+                files.forEach((file, index) => {
+                    if (index < availableSlots.length) {
+                        const slotIndex = availableSlots[index];
+                        const input = $('#file-input-' + slotIndex)[0];
+                        const preview = $('#photo-preview-' + slotIndex);
+                        const addIcon = $('#add-icon-' + slotIndex);
+                        const removeBtn = $('#remove-btn-' + slotIndex);
+
+                        // Créer un DataTransfer pour assigner le fichier
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        input.files = dataTransfer.files;
+
+                        // Afficher la prévisualisation
+                        const objectUrl = URL.createObjectURL(file);
+                        preview.attr('src', objectUrl).data('objectUrl', objectUrl).show();
+                        addIcon.hide();
+                        removeBtn.show();
+                    }
+                });
+
+                updatePrimaryRequirement();
+                showPhotoGrid();
+                updateUploadZoneMax6();
+            };
+
+            // Gestion de la sélection multiple
+            const selectMultipleBtn = $('#selectMultipleBtn');
+            const multipleFileInput = $('#multiple-file-input');
+            const uploadZone = $('#upload-zone');
+
+
+            // Handler du bouton - utiliser délégation au niveau du document pour éviter les conflits
+            $(document).on('click', '#selectMultipleBtn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                const input = $('#multiple-file-input')[0];
+                if (input) {
+                    input.click();
+                }
+                return false;
+            });
+
+            multipleFileInput.on('change', function() {
+                clearPhotoError();
+                const files = Array.from(this.files);
+                handleMultipleFiles(files);
+                this.value = '';
+            });
+
+            // Gestion du drag & drop
+            uploadZone.on('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).addClass('dragover');
+            });
+
+            uploadZone.on('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass('dragover');
+            });
+
+            uploadZone.on('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass('dragover');
+                
+                clearPhotoError();
+                const files = Array.from(e.originalEvent.dataTransfer.files);
+                handleMultipleFiles(files);
+            });
+
+            // Clic sur la zone (mais pas sur le bouton) - désactivé pour éviter les conflits
+            // Le bouton gère déjà le clic, pas besoin de handler sur la zone
 
             updatePrimaryRequirement();
             
@@ -1173,216 +1515,145 @@
     </script>
 
     <script>
+        (function() {
+            const form = document.getElementById('articleCreateForm');
+            const overlay = document.getElementById('loading-overlay');
+            const submitBtn = form && form.querySelector('button[type="submit"]');
 
-        document.getElementById('articleCreateForm').addEventListener('submit', function(e) {
+            function clearAllErrors() {
+                ['photos-error-container', 'photos-error', 'categorie-error', 'sous-categorie-error', 'description-error', 'general-error-ajax'].forEach(function(id) {
+                    const el = document.getElementById(id);
+                    if (el) { el.textContent = ''; el.style.display = 'none'; }
+                });
+            }
 
-            let hasError = false;
+            function showFieldError(id, msg) {
+                const el = document.getElementById(id);
+                if (el) { el.textContent = msg; el.style.display = 'block'; return el; }
+                return null;
+            }
 
-            
+            function firstErrorEl() {
+                const ids = ['general-error-ajax', 'photos-error-container', 'photos-error', 'categorie-error', 'sous-categorie-error', 'description-error'];
+                for (let i = 0; i < ids.length; i++) {
+                    const el = document.getElementById(ids[i]);
+                    if (el && el.style.display === 'block') return el;
+                }
+                return null;
+            }
 
-            // Vérifier qu'au moins une photo est sélectionnée
-
-            const fileInputs = document.querySelectorAll('input[type="file"].file-input');
-
-            let hasFile = false;
-
-            let fileCount = 0;
-
-            
-
-            // Parcourir tous les inputs de fichiers
-
-            for (let i = 0; i < fileInputs.length; i++) {
-
-                const input = fileInputs[i];
-
-                if (input && input.files) {
-
-                    // Vérifier chaque fichier dans l'input
-
-                    for (let j = 0; j < input.files.length; j++) {
-
-                        const file = input.files[j];
-
-                        if (file && file.size > 0 && file.type.startsWith('image/')) {
-
-                            hasFile = true;
-
-                            fileCount++;
-
-                            break; // Un seul fichier valide suffit pour cet input
-
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                let hasError = false;
+                const fileInputs = document.querySelectorAll('input[type="file"].file-input');
+                let hasFile = false;
+                for (let i = 0; i < fileInputs.length; i++) {
+                    const input = fileInputs[i];
+                    if (input && input.files && input.files.length > 0) {
+                        for (let j = 0; j < input.files.length; j++) {
+                            const file = input.files[j];
+                            if (file && file.size > 0 && file.type.startsWith('image/')) { hasFile = true; break; }
                         }
-
-                    }
-
-                }
-
-            }
-
-            
-
-            if (!hasFile || fileCount === 0) {
-
-                e.preventDefault();
-
-                const photoError = document.getElementById('photos-error');
-
-                if (photoError) {
-
-                    photoError.textContent = 'Au moins une photo est obligatoire. Veuillez sélectionner au moins une image.';
-
-                    photoError.style.display = 'block';
-
-                    photoError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                }
-
-                hasError = true;
-
-                document.getElementById('loading-overlay').style.display = 'none';
-
-                return false;
-
-            } else {
-
-                // Masquer l'erreur des photos si tout est OK
-
-                const photoError = document.getElementById('photos-error');
-
-                if (photoError) {
-
-                    photoError.style.display = 'none';
-
-                }
-
-            }
-
-            
-
-            // Vérifier la catégorie
-
-            const categorieSelect = document.getElementById('categorie-select');
-
-            if (!categorieSelect || !categorieSelect.value) {
-
-                e.preventDefault();
-
-                const categorieError = document.getElementById('categorie-error');
-
-                if (categorieError) {
-
-                    categorieError.textContent = 'La catégorie est obligatoire.';
-
-                    categorieError.style.display = 'block';
-
-                }
-
-                if (!hasError) {
-
-                    categorieSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                    hasError = true;
-
-                }
-
-            }
-
-            
-
-            // Vérifier la sous-catégorie
-
-            const sousCategorieSelect = document.getElementById('sous-categorie-select');
-
-            if (!sousCategorieSelect || sousCategorieSelect.disabled || !sousCategorieSelect.value) {
-
-                e.preventDefault();
-
-                const sousCategorieError = document.getElementById('sous-categorie-error');
-
-                if (sousCategorieError) {
-
-                    sousCategorieError.textContent = 'La sous-catégorie est obligatoire.';
-
-                    sousCategorieError.style.display = 'block';
-
-                }
-
-                if (!hasError) {
-
-                    sousCategorieSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                    hasError = true;
-
-                }
-
-            } else {
-
-                const sousCategorieError = document.getElementById('sous-categorie-error');
-
-                if (sousCategorieError) {
-
-                    sousCategorieError.style.display = 'none';
-
-                }
-
-            }
-            
-            // Vérifier la description
-            const descriptionField = document.getElementById('description');
-            const descriptionError = document.getElementById('description-error');
-            if (descriptionField) {
-                const descriptionValue = descriptionField.value.trim();
-                const minLength = 20;
-                const maxLength = 1500;
-                
-                if (!descriptionValue || descriptionValue.length < minLength) {
-                    e.preventDefault();
-                    if (descriptionError) {
-                        descriptionError.textContent = 'La description doit contenir au moins ' + minLength + ' caractères. Vous avez actuellement ' + descriptionValue.length + ' caractère(s).';
-                        descriptionError.style.display = 'block';
-                    }
-                    if (!hasError) {
-                        descriptionField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        descriptionField.focus();
-                        hasError = true;
-                    }
-                } else if (descriptionValue.length > maxLength) {
-                    e.preventDefault();
-                    if (descriptionError) {
-                        descriptionError.textContent = 'La description ne peut pas dépasser ' + maxLength + ' caractères. Vous avez actuellement ' + descriptionValue.length + ' caractère(s).';
-                        descriptionError.style.display = 'block';
-                    }
-                    if (!hasError) {
-                        descriptionField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        descriptionField.focus();
-                        hasError = true;
-                    }
-                } else {
-                    if (descriptionError) {
-                        descriptionError.style.display = 'none';
+                        if (hasFile) break;
                     }
                 }
-            }
+                if (!hasFile) {
+                    clearAllErrors();
+                    showFieldError('photos-error', 'Au moins une photo est obligatoire. Veuillez sélectionner au moins une image.');
+                    document.getElementById('photos-error').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+                const categorieSelect = document.getElementById('categorie-select');
+                if (!categorieSelect || !categorieSelect.value) {
+                    clearAllErrors();
+                    const el = showFieldError('categorie-error', 'La catégorie est obligatoire.');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+                const sousCategorieSelect = document.getElementById('sous-categorie-select');
+                if (!sousCategorieSelect || sousCategorieSelect.disabled || !sousCategorieSelect.value) {
+                    clearAllErrors();
+                    const el = showFieldError('sous-categorie-error', 'La sous-catégorie est obligatoire.');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+                const descriptionField = document.getElementById('description');
+                const descriptionError = document.getElementById('description-error');
+                const descVal = descriptionField ? descriptionField.value.trim() : '';
+                const minL = 20, maxL = 1500;
+                if (!descVal || descVal.length < minL) {
+                    clearAllErrors();
+                    showFieldError('description-error', 'La description doit contenir au moins ' + minL + ' caractères. Vous avez actuellement ' + descVal.length + ' caractère(s).');
+                    descriptionField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    descriptionField.focus();
+                    return;
+                }
+                if (descVal.length > maxL) {
+                    clearAllErrors();
+                    showFieldError('description-error', 'La description ne peut pas dépasser ' + maxL + ' caractères.');
+                    descriptionField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
 
-            
+                clearAllErrors();
+                if (overlay) overlay.style.display = 'flex';
+                if (submitBtn) submitBtn.disabled = true;
 
-            if (hasError) {
+                const fd = new FormData(form);
+                const csrf = form.querySelector('input[name="_token"]');
+                const url = form.action;
 
-                document.getElementById('loading-overlay').style.display = 'none';
+                fetch(url, {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }).then(function(r) {
+                    return r.json().then(function(data) { return { ok: r.ok, status: r.status, data: data }; });
+                }).catch(function() {
+                    return { ok: false, status: 0, data: { message: 'Erreur réseau ou serveur. Réessayez.' } };
+                }).then(function(res) {
+                    if (overlay) overlay.style.display = 'none';
+                    if (submitBtn) submitBtn.disabled = false;
 
-                return false;
-
-            }
-
-            
-
-            // Si tout est OK, afficher le loader
-
-            document.getElementById('loading-overlay').style.display = 'flex';
-
-        });
-
+                    if (res.ok && res.data && res.data.success && res.data.redirect) {
+                        window.location.href = res.data.redirect;
+                        return;
+                    }
+                    if (res.status === 422 && res.data && res.data.errors) {
+                        const err = res.data.errors;
+                        let first = null;
+                        if (err.photos && err.photos[0]) {
+                            const el = showFieldError('photos-error-container', err.photos[0]);
+                            if (el) first = first || el;
+                        }
+                        if (err.categorie && err.categorie[0]) {
+                            const el = showFieldError('categorie-error', err.categorie[0]);
+                            if (el) first = first || el;
+                        }
+                        if (err.sous_categorie_id && err.sous_categorie_id[0]) {
+                            const el = showFieldError('sous-categorie-error', err.sous_categorie_id[0]);
+                            if (el) first = first || el;
+                        }
+                        if (err.description && err.description[0]) {
+                            const el = showFieldError('description-error', err.description[0]);
+                            if (el) first = first || el;
+                        }
+                        if (err.general && err.general[0]) {
+                            const el = showFieldError('general-error-ajax', err.general[0]);
+                            if (el) first = first || el;
+                        }
+                        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return;
+                    }
+                    const msg = (res.data && res.data.message) ? res.data.message : 'Une erreur est survenue. Veuillez réessayer.';
+                    showFieldError('general-error-ajax', msg);
+                    document.getElementById('general-error-ajax').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+            });
+        })();
     </script>
 
 @endpush

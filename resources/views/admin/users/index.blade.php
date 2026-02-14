@@ -10,7 +10,7 @@
             <div class="filter-group">
                 <label for="search" class="form-label">Rechercher</label>
                 <input type="text" name="search" id="search" class="form-control" 
-                       value="{{ request('search') }}" placeholder="Nom ou email...">
+                       value="{{ request('search') }}" placeholder="Rechercher par nom...">
             </div>
             
             <div class="filter-group">
@@ -49,8 +49,8 @@
                     <thead>
                         <tr>
                             <th>Utilisateur</th>
-                            <th>Email</th>
-                            <th>Coins</th>
+                            {{-- <th>Email</th> --}}
+                            <th>Contact</th>
                             <th>Téléphone</th>
                             <th>Articles</th>
                             <th>Statut</th>
@@ -74,11 +74,20 @@
                                         @if($user->estCertifie())
                                             <i class="fas fa-check-circle text-success ms-1" title="Utilisateur certifié"></i>
                                         @endif
+                                        <small class="text-muted d-block">{{ $user->coins ?? 0 }} coins</small>
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ $user->email }}</td>
-                            <td><span class="badge bg-info text-dark">{{ $user->coins ?? 0 }}</span></td>
+                            {{-- <td>{{ $user->email }}</td> --}}
+                            <td>
+                                @if($user->getWhatsAppUrl())
+                                    <a href="{{ $user->getWhatsAppUrl() }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm d-inline-flex align-items-center justify-content-center p-2 rounded" style="background:#25D366; color:white;" title="Contacter sur WhatsApp">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" width="22" height="22">
+                                    </a>
+                                @else
+                                    <span class="text-muted" title="Aucun numéro">—</span>
+                                @endif
+                            </td>
                             <td>{{ $user->telephone ?? 'N/A' }}</td>
                             <td>
                                 <span class="badge bg-primary">{{ $user->articles->count() }}</span>
@@ -149,12 +158,18 @@
                                 @if($user->estCertifie())
                                     <i class="fas fa-check-circle text-success" title="Utilisateur certifié"></i>
                                 @endif
-                                <small class="text-muted d-block">{{ $user->email }}</small>
+                                <small class="text-muted d-block">{{ $user->coins ?? 0 }} coins</small>
+                                {{-- <small class="text-muted d-block">{{ $user->email }}</small> --}}
                             </div>
                             <div class="action-buttons">
-                                <a href="{{ route('admin.users.show', $user) }}" class="btn-action btn-sm btn-primary">
+                                <a href="{{ route('admin.users.show', $user) }}" class="btn-action btn-sm btn-primary" title="Voir le profil">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                @if($user->getWhatsAppUrl())
+                                    <a href="{{ $user->getWhatsAppUrl() }}" target="_blank" rel="noopener noreferrer" class="btn-action btn-sm d-inline-flex align-items-center justify-content-center rounded" style="background:#25D366; padding:6px;" title="Contacter sur WhatsApp">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" width="18" height="18">
+                                    </a>
+                                @endif
                                 <form method="POST" action="{{ route('admin.users.add-coins', $user) }}" style="display:inline-flex; gap:6px; align-items:center;">
                                     @csrf
                                     <input type="number" name="amount" min="1" class="form-control form-control-sm" placeholder="Qté" style="width:90px;">

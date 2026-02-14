@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
 use App\Models\Article;
 use App\Models\User;
 use App\Models\Categorie;
@@ -14,42 +13,47 @@ use Illuminate\Support\Facades\DB;
 
 class DetailArticleController extends Controller
 {
-    //
     public function show($id)
     {
-      
-        $article = Article::with(['user', 'comments.user' => function($query) {
-            $query->select('id', 'name', 'photo_profil', 'certifie');
-        }])->findOrFail($id);
-        
-        // Trier les commentaires par date (plus récents en premier)
-        $article->comments = $article->comments->sortByDesc('created_at')->values();
+        $article = Article::with(['user'])
+            ->withCount('comments')
+            ->withLikeCounts(auth()->id())
+            ->findOrFail($id);
 
-        // Récupérer les articles de la même sous-catégorie (avec eager loading)
+        $comments = $article->comments()
+            ->with('user:id,name,photo_profil,certifie')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+        $commentsTotal = $article->comments_count;
+
         $articlesParCategorie = Article::where('sous_categorie_id', $article->sous_categorie_id)
-            ->where('id', '!=', $article->id) // Exclure l'article actuel
-            ->where('status', 'approved') // Seulement les articles approuvés
-            ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom'])
+            ->where('id', '!=', $article->id)
+            ->where('status', 'approved')
             ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'created_at')
-            ->take(5) // Limiter à 5 articles
+            ->withLikeCounts(auth()->id())
+            ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom'])
+            ->take(5)
             ->get();
 
-        // Si aucun article de la même sous-catégorie, récupérer les articles de la même catégorie
         if ($articlesParCategorie->isEmpty()) {
             $articlesParCategorie = Article::whereHas('sousCategorie', function ($query) use ($article) {
                 $query->where('categorie_id', $article->sousCategorie->categorie_id);
             })
-            ->where('id', '!=', $article->id) // Exclure l'article actuel
-            ->where('status', 'approved') // Seulement les articles approuvés
-            ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom'])
-            ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'created_at')
-            ->take(5) // Limiter à 5 articles
-            ->get();
+                ->where('id', '!=', $article->id)
+                ->where('status', 'approved')
+                ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'created_at')
+                ->withLikeCounts(auth()->id())
+                ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom'])
+                ->take(5)
+                ->get();
         }
 
-        return view('pages.detail_article', compact('article', 'articlesParCategorie'));
+        $sellerTotalLikes = (int) DB::table('article_user_like')
+            ->join('articles', 'articles.id', '=', 'article_user_like.article_id')
+            ->where('articles.user_id', $article->user_id)
+            ->count();
 
-
-
+        return view('pages.detail_article', compact('article', 'articlesParCategorie', 'comments', 'commentsTotal', 'sellerTotalLikes'));
     }
 }

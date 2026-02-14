@@ -4,32 +4,6 @@
 @section('page-title', 'Gestion des publicités')
 
 @section('content')
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show success-toast mb-4" role="alert" style="animation: slideDown 0.5s ease-out;">
-        <div class="d-flex align-items-center">
-            <i class="fas fa-check-circle me-2" style="font-size: 1.2rem;"></i>
-            <div>
-                <strong>{{ session('success') }}</strong>
-                @if($publicites->count() > 0)
-                    <div class="mt-2">
-                        <small>Vous avez {{ $publicites->total() }} publicité(s) au total. 
-                        @php
-                            $activeCount = $publicites->where('is_active', true)->count();
-                        @endphp
-                        @if($activeCount > 0)
-                            <span class="badge bg-success">{{ $activeCount }} active(s)</span>
-                        @else
-                            <span class="badge bg-warning">Aucune active</span>
-                        @endif
-                        </small>
-                    </div>
-                @endif
-            </div>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
-
 <div class="search-filters">
     <form method="GET" action="{{ route('admin.publicites.index') }}">
         <div class="filter-row">

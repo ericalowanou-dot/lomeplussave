@@ -193,5 +193,162 @@ function blockArticle(articleId) {
     const modal = new bootstrap.Modal(document.getElementById('blockArticleModal'));
     modal.show();
 }
+
+// Rafraîchissement automatique des données du dashboard
+(function() {
+    const REFRESH_INTERVAL = 30000; // 30 secondes
+    let refreshInterval;
+
+    async function refreshDashboard() {
+        try {
+            const response = await fetch('{{ route("admin.dashboard") }}', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            // Mettre à jour les statistiques
+            if (data.stats) {
+                updateStatCard('total_users', data.stats.total_users);
+                updateStatCard('blocked_users', data.stats.blocked_users);
+                updateStatCard('total_articles', data.stats.total_articles);
+                updateStatCard('pending_articles', data.stats.pending_articles);
+                updateStatCard('approved_articles', data.stats.approved_articles);
+                updateStatCard('blocked_articles', data.stats.blocked_articles);
+                updateStatCard('total_coins', data.stats.total_coins);
+            }
+
+            // Mettre à jour les articles en attente
+            if (data.recent_pending_articles) {
+                updatePendingArticles(data.recent_pending_articles);
+            }
+
+            // Mettre à jour les utilisateurs récents
+            if (data.recent_users) {
+                updateRecentUsers(data.recent_users);
+            }
+        } catch (error) {
+            console.error('Erreur lors du rafraîchissement:', error);
+        }
+    }
+
+    function updateStatCard(statKey, value) {
+        const cards = {
+            'total_users': '.stat-card:first-child .stat-number',
+            'blocked_users': '.stat-card.danger:first-of-type .stat-number',
+            'total_articles': '.stat-card:nth-child(3) .stat-number',
+            'pending_articles': '.stat-card.warning .stat-number',
+            'approved_articles': '.stat-card.success .stat-number',
+            'blocked_articles': '.stat-card.danger:last-of-type .stat-number',
+            'total_coins': '.stat-card.info .stat-number',
+        };
+
+        const selector = cards[statKey];
+        if (selector) {
+            const element = document.querySelector(selector);
+            if (element && element.textContent !== value.toString()) {
+                // Animation de mise à jour
+                element.style.transition = 'all 0.3s';
+                element.style.transform = 'scale(1.1)';
+                element.textContent = value;
+                setTimeout(() => {
+                    element.style.transform = 'scale(1)';
+                }, 300);
+            }
+        }
+    }
+
+    function updatePendingArticles(articles) {
+        const tbody = document.querySelector('.admin-card table tbody');
+        if (!tbody) return;
+
+        if (articles.length === 0) {
+            const cardBody = tbody.closest('.admin-card-body');
+            if (cardBody) {
+                cardBody.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <p class="text-muted">Aucun article en attente d'approbation</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        tbody.innerHTML = articles.map(article => `
+            <tr>
+                <td><strong>${article.titre.length > 30 ? article.titre.substring(0, 30) + '...' : article.titre}</strong></td>
+                <td>${article.user_name}</td>
+                <td>${article.sous_categorie_nom}</td>
+                <td>${article.created_at}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="${article.url}" class="btn-action btn-sm btn-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <form method="POST" action="/admin/articles/${article.id}/approve" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-action btn-sm btn-approve" onclick="return confirm('Approuver cet article ?')">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </form>
+                        <button type="button" class="btn-action btn-sm btn-block" onclick="blockArticle(${article.id})">
+                            <i class="fas fa-ban"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateRecentUsers(users) {
+        const listGroup = document.querySelector('.list-group.list-group-flush');
+        if (!listGroup) return;
+
+        if (users.length === 0) {
+            const cardBody = listGroup.closest('.admin-card-body');
+            if (cardBody) {
+                cardBody.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-user-plus text-primary fa-3x mb-3"></i>
+                        <p class="text-muted">Aucun utilisateur récent</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        listGroup.innerHTML = users.map(user => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${user.name}</strong>
+                    <br>
+                    <small class="text-muted">${user.email}</small>
+                </div>
+                <div>
+                    ${user.is_blocked 
+                        ? '<span class="status-badge blocked">Bloqué</span>' 
+                        : '<span class="status-badge active">Actif</span>'}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Démarrer le rafraîchissement automatique
+    document.addEventListener('DOMContentLoaded', function() {
+        refreshInterval = setInterval(refreshDashboard, REFRESH_INTERVAL);
+    });
+
+    // Nettoyer à la sortie
+    window.addEventListener('beforeunload', function() {
+        if (refreshInterval) clearInterval(refreshInterval);
+    });
+})();
 </script>
 @endpush

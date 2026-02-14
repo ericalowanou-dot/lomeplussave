@@ -5,25 +5,51 @@
 
 @section('content')
 <div class="admin-card">
-    <div class="admin-card-body">
-        @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
+    <div class="admin-card-header d-flex justify-content-between align-items-center">
+        <h5 class="admin-card-title">
+            <i class="fas fa-envelope"></i>
+            {{ $message ? 'Répondre à un message' : 'Envoyer un message' }}
+        </h5>
+        @if($message)
+            <a href="{{ route('admin.messages.show', $message) }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Retour au message
+            </a>
         @endif
-        @if(session('error'))
-            <div class="alert alert-danger">{{ session('error') }}</div>
+    </div>
+    <div class="admin-card-body">
+        @if($message)
+            <div class="alert alert-info mb-4">
+                <h6><i class="fas fa-info-circle"></i> Réponse à :</h6>
+                <p class="mb-1"><strong>De :</strong> {{ $message->sender->name }} ({{ $message->sender->email }})</p>
+                <p class="mb-1"><strong>Sujet :</strong> {{ $message->subject ?: '(Sans sujet)' }}</p>
+                <p class="mb-0"><strong>Message :</strong> {{ Str::limit(strip_tags($message->body), 200) }}</p>
+            </div>
         @endif
 
         <form method="POST" action="{{ route('admin.messages.send') }}" id="messageForm">
             @csrf
+            @if($message)
+                <input type="hidden" name="parent_message_id" value="{{ $message->id }}">
+            @endif
+            
             <div class="mb-3">
                 <label class="form-label">Cible</label>
-                <select name="recipient_scope" id="recipientScope" class="form-control">
-                    <option value="all">Tous les utilisateurs</option>
-                    <option value="active">Utilisateurs actifs uniquement</option>
-                    <option value="blocked">Utilisateurs bloqués uniquement</option>
-                    <option value="certified">Utilisateurs certifiés uniquement</option>
-                    <option value="selected">Sélection manuelle</option>
+                <select name="recipient_scope" id="recipientScope" class="form-control" {{ $message ? 'disabled' : '' }}>
+                    @if($message)
+                        <option value="selected" selected>Répondre à l'expéditeur uniquement</option>
+                    @else
+                        <option value="all">Tous les utilisateurs</option>
+                        <option value="active">Utilisateurs actifs uniquement</option>
+                        <option value="blocked">Utilisateurs bloqués uniquement</option>
+                        <option value="certified">Utilisateurs certifiés uniquement</option>
+                        <option value="selected">Sélection manuelle</option>
+                    @endif
                 </select>
+                @if($message)
+                    <input type="hidden" name="recipient_scope" value="selected">
+                    <input type="hidden" name="recipients[]" value="{{ $message->sender->id }}">
+                    <small class="text-muted">Vous répondez à {{ $message->sender->name }}</small>
+                @endif
             </div>
 
             <!-- Section de sélection manuelle -->
@@ -60,7 +86,8 @@
 
             <div class="mb-3">
                 <label class="form-label">Sujet (optionnel)</label>
-                <input type="text" name="subject" class="form-control" maxlength="200">
+                <input type="text" name="subject" class="form-control" maxlength="200" 
+                       value="{{ $message && $message->subject ? 'Re: ' . $message->subject : '' }}">
             </div>
             <div class="mb-3">
                 <label class="form-label">Message</label>

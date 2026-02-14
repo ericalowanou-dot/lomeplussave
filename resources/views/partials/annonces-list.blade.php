@@ -64,6 +64,7 @@
                              height="150" 
                              alt="Card image cap" 
                              style="object-fit: cover;"
+                             loading="lazy"
                              onerror="this.src='{{ asset('images/placeholder.png') }}';">
                     </a>
 
@@ -80,10 +81,10 @@
                                         @csrf
                                         <input id="post-id-js-{{ $article->id }}" type="hidden" name="article_id" value="{{ $article->id }}">
                                         <button type="button" class="like-button-inline" data-article-id="{{ $article->id }}" aria-label="Ajouter aux favoris">
-                                            <i class="bi bi-heart{{ $article->isLikeByLoggedInUser() ? '-fill' : '' }} like-icon-inline {{ $article->isLikeByLoggedInUser() ? 'liked' : '' }}"></i>
+                                            <i class="bi bi-heart{{ $article->isLikedByCurrentUser($likedIds ?? null) ? '-fill' : '' }} like-icon-inline {{ $article->isLikedByCurrentUser($likedIds ?? null) ? 'liked' : '' }}"></i>
                                         </button>
                                         <div id="count-js-{{ $article->id }}" class="like-count-inline">
-                                            <span class="like-number">{{ $article->usersWhoLiked->count() }}</span>
+                                            <span class="like-number">{{ $article->users_who_liked_count ?? 0 }}</span>
                                         </div>
                                     </form>
                                 </div>

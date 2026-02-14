@@ -126,15 +126,15 @@
         <!-- WhatsApp et autres réseaux sociaux -->
         <meta name="description" content="{{ Str::limit(strip_tags($article->description), 200) }}">
         @else
-        <meta property="og:title" content="Site Lome Plus - Vente et Achat">
-        <meta property="og:description" content="Plateforme de vente et d'achat au Togo">
+        <meta property="og:title" content="Lome+ – Site de vente et achat togolais | Marketplace">
+        <meta property="og:description" content="Lome+ est une marketplace de vente et d'achat au Togo. Simple, accessible et sécurisé.">
         <meta property="og:url" content="{{ Request::url() }}">
         <meta property="og:type" content="website">
 
         <!-- Twitter Card -->
         <meta name="twitter:card" content="summary">
-        <meta name="twitter:title" content="Site Lome Plus - Vente et Achat">
-        <meta name="twitter:description" content="Plateforme de vente et d'achat au Togo">
+        <meta name="twitter:title" content="Lome+ – Site de vente et achat togolais | Marketplace">
+        <meta name="twitter:description" content="Lome+ est une marketplace de vente et d'achat au Togo. Simple, accessible et sécurisé.">
         @endif
 
 
@@ -218,7 +218,16 @@
 
 
         <main class="flex-fill">
-            @yield('content')
+            @if(isset($header) && $header)
+                <div class="container py-4">
+                    {{ $header }}
+                </div>
+            @endif
+            @hasSection('content')
+                @yield('content')
+            @else
+                {{ $slot ?? '' }}
+            @endif
         </main>
 
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\ProblemReport;
+use App\Events\ProblemReportCreated;
 
 class ReportController extends Controller
 {
@@ -11,11 +12,12 @@ class ReportController extends Controller
     {
         try {
             $request->validate([
-                'message' => 'required|string|min:10',
+                'message' => 'required|string|min:10|max:2000',
                 'subject' => 'nullable|string|max:150',
             ], [
                 'message.required' => 'Le message est obligatoire.',
-                'message.min' => 'Le message doit contenir au moins 10 caractères pour être clair.',
+                'message.min' => 'Le message doit contenir au moins 10 caractères.',
+                'message.max' => 'Le message ne peut pas dépasser 2000 caractères.',
                 'subject.max' => 'Le sujet ne peut pas dépasser 150 caractères.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -31,12 +33,22 @@ class ReportController extends Controller
         }
 
         try {
-            ProblemReport::create([
+            $report = ProblemReport::create([
                 'user_id' => optional($request->user())->id,
                 'subject' => $request->subject,
                 'message' => $request->message,
                 'status' => 'open',
             ]);
+
+            try {
+                event(new ProblemReportCreated($report));
+            } catch (\Throwable $e) {
+                \Log::warning('Notification admin non envoyée après signalement: ' . $e->getMessage(), [
+                    'report_id' => $report->id,
+                    'exception' => $e->getFile() . ':' . $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+            }
 
             return response()->json(['success' => true, 'message' => 'Signalement envoyé avec succès.']);
         } catch (\Exception $e) {
@@ -53,10 +65,23 @@ class ReportController extends Controller
         }
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $reports = ProblemReport::with('user')->orderBy('created_at', 'desc')->paginate(20);
-        return view('admin.reports.index', compact('reports'));
+        $query = ProblemReport::with('user')->orderBy('created_at', 'desc');
+
+        if ($request->filled('status') && in_array($request->status, ['open', 'closed'])) {
+            $query->where('status', $request->status);
+        }
+
+        $reports = $query->paginate(20)->withQueryString();
+
+        $stats = [
+            'total' => ProblemReport::count(),
+            'open' => ProblemReport::where('status', 'open')->count(),
+            'closed' => ProblemReport::where('status', 'closed')->count(),
+        ];
+
+        return view('admin.reports.index', compact('reports', 'stats'));
     }
 
     public function updateStatus(Request $request, ProblemReport $report)

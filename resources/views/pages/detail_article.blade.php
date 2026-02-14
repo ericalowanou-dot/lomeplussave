@@ -312,7 +312,7 @@
 
                                             <button type="button" class="like-button-detail" data-article-id="{{ $article->id }}">
 
-                                                <i class="bi bi-heart{{ $article->isLikeByLoggedInUser() ? '-fill' : '' }} like-icon-detail {{ $article->isLikeByLoggedInUser() ? 'liked' : '' }}"></i>
+                                                <i class="bi bi-heart{{ $article->isLikedByCurrentUser($likedIds ?? null) ? '-fill' : '' }} like-icon-detail {{ $article->isLikedByCurrentUser($likedIds ?? null) ? 'liked' : '' }}"></i>
 
                                             </button>
 
@@ -540,7 +540,7 @@
 
                                                 <button type="button" class="like-button-detail" data-article-id="{{ $article->id }}">
 
-                                                    <i class="bi bi-heart{{ $article->isLikeByLoggedInUser() ? '-fill' : '' }} like-icon-detail {{ $article->isLikeByLoggedInUser() ? 'liked' : '' }}"></i>
+                                                    <i class="bi bi-heart{{ $article->isLikedByCurrentUser($likedIds ?? null) ? '-fill' : '' }} like-icon-detail {{ $article->isLikedByCurrentUser($likedIds ?? null) ? 'liked' : '' }}"></i>
 
                                                 </button>
 
@@ -758,7 +758,7 @@
 
                                 </h6>
 
-                                <span class="comments-count">{{ $article->comments->count() }}</span>
+                                <span class="comments-count">{{ $commentsTotal }}</span>
 
                             </div>
 
@@ -768,7 +768,7 @@
 
                             <div class="comments-container" id="commentsContainer">
 
-                                @forelse($article->comments->take(10) as $comment)
+                                @forelse($comments as $comment)
 
                                     <div class="comment-item" data-comment-id="{{ $comment->id }}">
 
@@ -928,13 +928,13 @@
 
                                 
 
-                                @if($article->comments->count() > 10)
+                                @if($commentsTotal > 10)
 
                                 <div class="load-more-comments">
 
                                     <button class="btn-load-more" id="loadMoreComments">
 
-                                        Voir tous les avis ({{ $article->comments->count() }})
+                                        Voir tous les avis ({{ $commentsTotal }})
 
                                     </button>
 
@@ -1132,7 +1132,7 @@
 
                         ❤️ Likes totaux : 
 
-                        <strong>{{ $article->user->articles->sum(fn($a) => $a->usersWhoLiked->count()) }}</strong>
+                        <strong>{{ $sellerTotalLikes }}</strong>
 
                     </p>
 
@@ -3894,7 +3894,7 @@
 
                                                 this.disabled = false;
 
-                                                this.innerHTML = `Voir plus d'avis ({{ $article->comments->count() }} - ${currentOffset} affichés)`;
+                                                this.innerHTML = `Voir plus d'avis ({{ $commentsTotal }} - ${currentOffset} affichés)`;
 
                                             }
 
@@ -4664,10 +4664,10 @@
                                         @csrf
                                         <input id="post-id-js-{{ $article->id }}" type="hidden" name="article_id" value="{{ $article->id }}">
                                         <button type="button" class="like-button-inline" data-article-id="{{ $article->id }}" aria-label="Ajouter aux favoris">
-                                            <i class="bi bi-heart{{ $article->isLikeByLoggedInUser() ? '-fill' : '' }} like-icon-inline {{ $article->isLikeByLoggedInUser() ? 'liked' : '' }}"></i>
+                                            <i class="bi bi-heart{{ $article->isLikedByCurrentUser($likedIds ?? null) ? '-fill' : '' }} like-icon-inline {{ $article->isLikedByCurrentUser($likedIds ?? null) ? 'liked' : '' }}"></i>
                                         </button>
                                         <div id="count-js-{{ $article->id }}" class="like-count-inline">
-                                            <span class="like-number">{{ $article->usersWhoLiked->count() }}</span>
+                                            <span class="like-number">{{ $article->users_who_liked_count ?? 0 }}</span>
                                         </div>
                                     </form>
                                 </div>

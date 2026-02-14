@@ -1,6 +1,10 @@
 @extends('layouts.app2')
 
-@section('title', 'Accueil - Lome+')
+@section('title', "Lome+ – Site de vente et achat togolais | Marketplace")
+
+@section('meta')
+    <meta name="description" content="Lome+ est un site de vente et achat togolais. Marketplace simple, accessible et sécurisée au Togo. Découvrez des milliers d'annonces.">
+@endsection
 
 @section('content')
 <main>
@@ -172,26 +176,22 @@
         }
     </style>
 
-    <!-- script pour le scroll automatique des articles horizontaux -->
+    <!-- script pour le scroll automatique des articles horizontaux (.scroll-container peut exister sur articles, search, etc.) -->
     <script>
         window.addEventListener("load", function () {
             const container = document.querySelector(".scroll-container");
 
-            function animateScroll() {
-                // Avance de 50px
-                container.scrollBy({ left: 50, behavior: "smooth" });
+            if (container) {
+                function animateScroll() {
+                    container.scrollBy({ left: 50, behavior: "smooth" });
+                    setTimeout(() => {
+                        container.scrollBy({ left: -50, behavior: "smooth" });
+                    }, 3000);
+                }
 
-                // Revient au point de départ après 2s
-                setTimeout(() => {
-                    container.scrollBy({ left: -50, behavior: "smooth" });
-                }, 3000);
+                animateScroll();
+                setInterval(animateScroll, 15000);
             }
-
-            // Animation au démarrage
-            animateScroll();
-
-            // Répète toutes les 20s
-            setInterval(animateScroll, 15000);
         });
     </script>
 

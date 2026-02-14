@@ -231,9 +231,20 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('/reports/{report}/status', [ReportController::class, 'updateStatus'])->name('reports.update-status');
     // admin messaging
+    Route::get('/messages/inbox', [AdminController::class, 'messagesInbox'])->name('messages.inbox');
     Route::get('/messages/compose', [MessageController::class, 'adminCompose'])->name('messages.compose');
-    Route::post('/messages/send', [MessageController::class, 'adminSend'])->name('messages.send');
     Route::get('/messages/users', [MessageController::class, 'getUsers'])->name('messages.users');
+    Route::get('/messages/{message}', [AdminController::class, 'showMessage'])->name('messages.show');
+    Route::post('/messages/send', [MessageController::class, 'adminSend'])->name('messages.send');
+
+    // API Notifications
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/unread', [\App\Http\Controllers\Api\NotificationController::class, 'unread'])->name('notifications.unread');
+        Route::get('/notifications/count', [\App\Http\Controllers\Api\NotificationController::class, 'count'])->name('notifications.count');
+        Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    });
 
     // Gestion des catégories (admin)
     Route::get('/categories', [CategorieController::class, 'adminIndex'])->name('categories.index');
@@ -243,6 +254,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
 
     // Gestion des sous-catégories (admin)
     Route::get('/souscategories', [SousCategorieController::class, 'index'])->name('souscategories.index');
+    Route::get('/souscategories/{sousCategorie}/edit', [SousCategorieController::class, 'edit'])->name('souscategories.edit');
     Route::post('/souscategories', [SousCategorieController::class, 'store'])->name('souscategories.store');
     Route::put('/souscategories/{sousCategorie}', [SousCategorieController::class, 'update'])->name('souscategories.update');
     Route::delete('/souscategories/{sousCategorie}', [SousCategorieController::class, 'destroy'])->name('souscategories.destroy');

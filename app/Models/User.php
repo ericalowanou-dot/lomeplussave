@@ -31,6 +31,24 @@ class User extends Authenticatable
         return $this->certifie == 1;
     }
 
+    /**
+     * Retourne l'URL WhatsApp pour contacter l'utilisateur (Togo +228), ou null si pas de numéro.
+     */
+    public function getWhatsAppUrl(): ?string
+    {
+        $phone = $this->whatsapp ?? $this->telephone ?? null;
+        if (!$phone) {
+            return null;
+        }
+        $digits = preg_replace('/\D/', '', $phone);
+        if (str_starts_with($digits, '0')) {
+            $digits = '228' . substr($digits, 1);
+        } elseif ($digits && !str_starts_with($digits, '228')) {
+            $digits = '228' . $digits;
+        }
+        return strlen($digits) >= 8 ? 'https://wa.me/' . $digits : null;
+    }
+
 
 
 

@@ -79,12 +79,12 @@ public function index(Request $request)
         }
     }
 
-    // 3️⃣ et là seulement on pagine (ça exécute) - avec eager loading
     $articles = $query
-        ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id'])
         ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
+        ->withLikeCounts(Auth::id())
+        ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id'])
         ->orderBy('created_at', 'desc')
-        ->paginate(15);
+        ->paginate(30);
 
     // Statistiques optimisées : une seule requête avec groupBy
     $statsQuery = Article::where('user_id', Auth::id())
@@ -142,8 +142,12 @@ public function index(Request $request)
             return redirect()->route('login')->with('error', 'Vous devez être connecté pour voir vos favoris.');
         }
     
-        // Récupérez les favoris de l'utilisateur connecté
-        $favoris = Auth::user()->favoris()->paginate(15); // Assurez-vous que la relation "favoris" est définie dans le modèle User
+        $favoris = Auth::user()->favoris()
+            ->select('articles.id', 'articles.user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'articles.created_at', 'neuf', 'livraison')
+            ->withLikeCounts(Auth::id())
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+            ->orderBy('articles.created_at', 'desc')
+            ->paginate(30);
     
         // Statistiques pour l'utilisateur
         $stats = [
@@ -168,9 +172,16 @@ public function index(Request $request)
     $q = $request->input('q');
 
     $articles = Article::query()
-        ->where('titre', 'like', "%$q%")
-        ->orWhere('description', 'like', "%$q%")
-        ->paginate(15);
+        ->where('status', 'approved')
+        ->where(function ($query) use ($q) {
+            $query->where('titre', 'like', "%$q%")
+                ->orWhere('description', 'like', "%$q%");
+        })
+        ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
+        ->withLikeCounts(Auth::id())
+        ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+        ->orderBy('created_at', 'desc')
+        ->paginate(30);
 
     return view('partials.articles-list', compact('articles'));
 }
@@ -180,9 +191,13 @@ public function index(Request $request)
 {
     $q = $request->input('q');
 
-    $favoris = Auth::user()->favoris() // relation favoris
+    $favoris = Auth::user()->favoris()
         ->where('titre', 'like', "%$q%")
-        ->paginate(15);
+        ->select('articles.id', 'articles.user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'articles.created_at', 'neuf', 'livraison')
+        ->withLikeCounts(Auth::id())
+        ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+        ->orderBy('articles.created_at', 'desc')
+        ->paginate(30);
 
     return view('partials.favoris-list', compact('favoris'));
 }
@@ -194,7 +209,11 @@ public function searchMesAnnonces(Request $request)
 
     $articles = Article::where('user_id', Auth::id())
         ->where('titre', 'like', "%$q%")
-        ->paginate(15);
+        ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
+        ->withLikeCounts(Auth::id())
+        ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id'])
+        ->orderBy('created_at', 'desc')
+        ->paginate(30);
 
     return view('partials.annonces-list', compact('articles'));
 }

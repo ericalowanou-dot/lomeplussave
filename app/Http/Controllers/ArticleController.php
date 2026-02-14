@@ -12,6 +12,8 @@ use App\Models\Categorie;
 
 use App\Models\SousCategorie;
 
+use App\Events\ArticlePending;
+
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Http\JsonResponse;
@@ -149,19 +151,17 @@ class ArticleController extends Controller
 
             })
 
-            // Eager loading pour éviter les requêtes N+1
-
-            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'usersWhoLiked:id'])
-
             ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
 
-            // Tri : articles boostés en premier, puis par date de création
+            ->withLikeCounts(auth()->id())
+
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
 
             ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > NOW()) DESC')
 
             ->orderBy('created_at', 'desc')
 
-            ->paginate(20);
+            ->paginate(40);
 
 
 
@@ -339,25 +339,25 @@ class ArticleController extends Controller
 
         // ð¹ Nombre d'articles par page (12, 24, 48, 96)
 
-        $perPage = $request->get('per_page', 20);
+        $perPage = $request->get('per_page', 40);
 
-        $allowedPerPage = [12, 24, 48, 96];
+        $allowedPerPage = [12, 24, 40, 48, 80, 96];
 
         if (!in_array((int)$perPage, $allowedPerPage)) {
 
-            $perPage = 20;
+            $perPage = 40;
 
         }
 
 
 
-        // Eager loading pour éviter les requêtes N+1
-
         $articles = $articlesQuery
 
-            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'usersWhoLiked:id'])
-
             ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
+
+            ->withLikeCounts(auth()->id())
+
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
 
             ->paginate($perPage)
 
@@ -431,12 +431,19 @@ class ArticleController extends Controller
 
 
 
-    public function store(Request $request){
-
-        // dd($request->file('photos'));
-
-
-        // Récupérer les fichiers photos
+    public function store(Request $request)
+    {
+        $wantsJson = $request->wantsJson() || $request->ajax();
+        $jsonError = function (array $errors, ?string $message = null, array $solutions = []) {
+            $payload = ['errors' => $errors];
+            if ($message !== null) {
+                $payload['message'] = $message;
+            }
+            if ($solutions !== []) {
+                $payload['error_solutions'] = $solutions;
+            }
+            return response()->json($payload, 422);
+        };
 
         $photos = $request->file('photos');
 
@@ -490,30 +497,20 @@ class ArticleController extends Controller
 
 
 
-        // Vérifier qu'il y a au moins une photo
-
         if (empty($photos)) {
-
-            return back()
-
-                ->withErrors(['photos' => 'Au moins une photo est obligatoire. Veuillez sélectionner au moins une image.'])
-
-                ->withInput();
-
+            $err = ['photos' => ['Au moins une photo est obligatoire. Veuillez sélectionner au moins une image.']];
+            if ($wantsJson) {
+                return $jsonError($err, $err['photos'][0]);
+            }
+            return back()->withErrors($err)->withInput();
         }
 
-
-
-        // Vérifier qu'il n'y a pas plus de 6 photos
-
         if (count($photos) > 6) {
-
-            return back()
-
-                ->withErrors(['photos' => 'Vous ne pouvez pas télécharger plus de 6 photos.'])
-
-                ->withInput();
-
+            $err = ['photos' => ['Vous ne pouvez pas télécharger plus de 6 photos.']];
+            if ($wantsJson) {
+                return $jsonError($err, $err['photos'][0]);
+            }
+            return back()->withErrors($err)->withInput();
         }
 
 
@@ -575,49 +572,33 @@ class ArticleController extends Controller
         // Valider chaque photo individuellement
 
         foreach ($photos as $idx => $photo) {
-
             if (!$photo->isValid()) {
-
-                return back()
-
-                    ->withErrors(['photos' => 'Une ou plusieurs photos sont invalides.'])
-
-                    ->withInput();
-
+                $err = ['photos' => ['Une ou plusieurs photos sont invalides.']];
+                if ($wantsJson) {
+                    return $jsonError($err, $err['photos'][0]);
+                }
+                return back()->withErrors($err)->withInput();
             }
-
-
-
-            // Vérifier le type MIME
 
             $allowedMimes = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'svg', 'avif'];
-
             $extension = strtolower($photo->getClientOriginalExtension());
-
             if (!in_array($extension, $allowedMimes)) {
-
-                return back()
-
-                    ->withErrors(['photos' => 'Le format de fichier n\'est pas accepté. Formats acceptés : ' . implode(', ', $allowedMimes) . '.'])
-
-                    ->withInput();
-
+                $msg = 'Le format de fichier n\'est pas accepté. Formats acceptés : ' . implode(', ', $allowedMimes) . '.';
+                $err = ['photos' => [$msg]];
+                if ($wantsJson) {
+                    return $jsonError($err, $msg);
+                }
+                return back()->withErrors($err)->withInput();
             }
-
-
-
-            // Vérifier la taille (30 Mo = 30720 Ko)
 
             if ($photo->getSize() > 30720 * 1024) {
-
-                return back()
-
-                    ->withErrors(['photos' => 'Une ou plusieurs photos dépassent la taille maximale de 30 Mo. L\'application optimisera automatiquement vos images.'])
-
-                    ->withInput();
-
+                $msg = 'Une ou plusieurs photos dépassent la taille maximale de 30 Mo. L\'application optimisera automatiquement vos images.';
+                $err = ['photos' => [$msg]];
+                if ($wantsJson) {
+                    return $jsonError($err, $msg);
+                }
+                return back()->withErrors($err)->withInput();
             }
-
         }
 
 
@@ -626,23 +607,14 @@ class ArticleController extends Controller
 
         $sousCategorie = SousCategorie::select('id', 'categorie_id')->find($validated['sous_categorie_id']);
 
-
-
         if (!$sousCategorie || (int) $sousCategorie->categorie_id !== $categoryId) {
-
-            return back()
-
-                ->withErrors([
-
-                    'sous_categorie_id' => 'La sous-catégorie sélectionnée n\'appartient pas à la catégorie choisie.'
-
-                ])
-
-                ->withInput();
-
+            $msg = 'La sous-catégorie sélectionnée n\'appartient pas à la catégorie choisie.';
+            $err = ['sous_categorie_id' => [$msg]];
+            if ($wantsJson) {
+                return $jsonError($err, $msg);
+            }
+            return back()->withErrors($err)->withInput();
         }
-
-
 
         $images = array_fill(0, 6, null);
 
@@ -689,27 +661,16 @@ class ArticleController extends Controller
         // Vérifier une dernière fois que le dossier est accessible
 
         if (!is_writable($destinationPath)) {
-
             \Log::error('Le dossier articles n\'est toujours pas accessible en écriture après correction', [
-
                 'path' => $destinationPath,
-
                 'permissions' => substr(sprintf('%o', fileperms($destinationPath)), -4)
-
             ]);
-
-            
-
-            return back()
-
-                ->withErrors([
-
-                    'photos' => 'Erreur de permissions : le dossier de destination n\'est pas accessible en écriture. Veuillez contacter l\'administrateur.'
-
-                ])
-
-                ->withInput();
-
+            $msg = 'Erreur de permissions : le dossier de destination n\'est pas accessible en écriture. Veuillez contacter l\'administrateur.';
+            $err = ['photos' => [$msg]];
+            if ($wantsJson) {
+                return $jsonError($err, $msg);
+            }
+            return back()->withErrors($err)->withInput();
         }
 
 
@@ -839,30 +800,20 @@ class ArticleController extends Controller
 
 
 
-            return back()
-
-                ->withErrors([
-
-                    'photos' => $errorMessage
-
-                ])
-
-                ->with('error_solutions', $this->getErrorSolutions($exceptionMessage))
-
-                ->withInput();
-
+            $err = ['photos' => [$errorMessage]];
+            $solutions = $this->getErrorSolutions($exceptionMessage);
+            if ($wantsJson) {
+                return $jsonError($err, $errorMessage, $solutions);
+            }
+            return back()->withErrors($err)->with('error_solutions', $solutions)->withInput();
         }
 
-
-
         if (is_null($images[0])) {
-
-            return back()
-
-                ->withErrors(['photos' => 'La première image est obligatoire.'])
-
-                ->withInput();
-
+            $err = ['photos' => ['La première image est obligatoire.']];
+            if ($wantsJson) {
+                return $jsonError($err, $err['photos'][0]);
+            }
+            return back()->withErrors($err)->withInput();
         }
 
 
@@ -913,6 +864,9 @@ class ArticleController extends Controller
 
             $article->save();
 
+            // Déclencher l'événement pour notifier l'admin
+            event(new ArticlePending($article));
+
 
 
             DB::commit();
@@ -941,33 +895,31 @@ class ArticleController extends Controller
 
 
 
-            return back()
-
-                ->withErrors([
-
-                    'categorie' => 'Impossible d\'enregistrer l\'article pour le moment. Veuillez réessayer.'
-
-                ])
-
-                ->with('error_solutions', [
-
-                    'Vérifiez que tous les champs sont correctement remplis',
-
-                    'Assurez-vous que les images ne dépassent pas 5 Mo chacune',
-
-                    'Vérifiez votre connexion Internet',
-
-                    'Réessayez dans quelques instants'
-
-                ])
-
-                ->withInput();
+            $msg = 'Impossible d\'enregistrer l\'article pour le moment. Veuillez réessayer.';
+            $err = ['general' => [$msg]];
+            $solutions = [
+                'Vérifiez que tous les champs sont correctement remplis',
+                'Assurez-vous que les images ne dépassent pas 5 Mo chacune',
+                'Vérifiez votre connexion Internet',
+                'Réessayez dans quelques instants',
+            ];
+            if ($wantsJson) {
+                return $jsonError($err, $msg, $solutions);
+            }
+            return back()->withErrors($err)->with('error_solutions', $solutions)->withInput();
 
         }
 
 
 
-        return redirect()->route('mes_annonces')->with('success', 'Article ajouté avec succèsâ¯!'); 
+        if ($wantsJson) {
+            return response()->json([
+                'success' => true,
+                'redirect' => route('mes_annonces'),
+                'message' => 'Article ajouté avec succès !',
+            ]);
+        }
+        return redirect()->route('mes_annonces')->with('success', 'Article ajouté avec succès !'); 
 
     }
 
@@ -1462,7 +1414,8 @@ class ArticleController extends Controller
 
         }
 
-        return view('pages.articles.transfer', compact('article'));
+        $users = User::where('id', '!=', auth()->id())->orderBy('name')->get(['id', 'name', 'email']);
+        return view('pages.articles.transfer', compact('article', 'users'));
 
     }
 

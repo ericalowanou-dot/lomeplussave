@@ -3751,9 +3751,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     </label>
 
-                    <textarea id="reportMessage" name="message" class="secondary-textarea" rows="5" placeholder="Décrivez le problème en détail..." required></textarea>
+                    <textarea id="reportMessage" name="message" class="secondary-textarea" rows="5" placeholder="Décrivez le problème en détail..." required minlength="10" maxlength="2000"></textarea>
 
-                    <p class="form-hint">Minimum 10 caractères requis</p>
+                    <p class="form-hint"><span id="reportMessageCounter">0</span> / 10 caractères minimum</p>
+
+                    <p id="reportMessageError" class="form-error text-danger small mt-1" style="display:none;" role="alert"></p>
 
                 </div>
 
@@ -4946,6 +4948,12 @@ document.addEventListener('DOMContentLoaded', function() {
             btnSignaler.addEventListener('click', function () {
 
                 openModal('signalerModal');
+                const f = document.getElementById('reportForm');
+                const err = document.getElementById('reportMessageError');
+                const cnt = document.getElementById('reportMessageCounter');
+                if (f) f.reset();
+                if (err) { err.style.display = 'none'; err.textContent = ''; }
+                if (cnt) cnt.textContent = '0';
 
             });
 
@@ -5017,43 +5025,103 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-        // Soumission report
+        // Soumission report + compteur de caractères
 
         const reportForm = document.getElementById('reportForm');
+        const reportMessage = document.getElementById('reportMessage');
+        const reportMessageCounter = document.getElementById('reportMessageCounter');
+        const reportMessageError = document.getElementById('reportMessageError');
 
-        if (reportForm) {
+        if (reportForm && reportMessage) {
+
+            function updateReportCounter() {
+                const n = (reportMessage.value || '').trim().length;
+                if (reportMessageCounter) reportMessageCounter.textContent = n;
+                if (reportMessageError) { reportMessageError.style.display = 'none'; reportMessageError.textContent = ''; }
+            }
+
+            reportMessage.addEventListener('input', updateReportCounter);
+            reportMessage.addEventListener('paste', function(){ setTimeout(updateReportCounter, 0); });
+            updateReportCounter();
 
             reportForm.addEventListener('submit', function(e){
 
                 e.preventDefault();
 
+                const msg = (reportMessage.value || '').trim();
+                const minLen = 10;
+
+                if (reportMessageError) { reportMessageError.style.display = 'none'; reportMessageError.textContent = ''; }
+
+                if (msg.length < minLen) {
+                    if (reportMessageError) {
+                        reportMessageError.textContent = 'Veuillez saisir au moins ' + minLen + ' caractères (actuellement ' + msg.length + ').';
+                        reportMessageError.style.display = 'block';
+                    }
+                    reportMessage.focus();
+                    return;
+                }
+
                 const fd = new FormData(reportForm);
+                const submitBtn = reportForm.querySelector('button[type="submit"]');
+                if (submitBtn) { submitBtn.disabled = true; }
 
                 fetch(`{{ route('report.store') }}`, {
 
                     method: 'POST',
 
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
 
                     body: fd
 
-                }).then(r=>r.json()).then(data=>{
+                }).then(function(r){
 
-                    if (data.success){
+                    return r.json().then(function(data){ return { ok: r.ok, status: r.status, data: data }; });
+
+                }).then(function(res){
+
+                    if (res.data.success){
 
                         alert('Merci pour votre signalement.');
-
                         closeModal('signalerModal');
-
                         reportForm.reset();
+                        updateReportCounter();
 
                     } else {
 
-                        alert('Veuillez remplir le message (au moins 10 caractères).');
+                        let err = 'Impossible d\'envoyer le signalement.';
+                        if (res.status === 422 && res.data.errors && res.data.errors.message && res.data.errors.message[0]) {
+                            err = res.data.errors.message[0];
+                        } else if (res.data.message) {
+                            err = res.data.message;
+                        }
+                        if (reportMessageError) {
+                            reportMessageError.textContent = err;
+                            reportMessageError.style.display = 'block';
+                        } else {
+                            alert(err);
+                        }
 
                     }
 
-                }).catch(()=>alert('Erreur réseau'));
+                }).catch(function(){
+
+                    if (reportMessageError) {
+                        reportMessageError.textContent = 'Erreur réseau. Vérifiez votre connexion et réessayez.';
+                        reportMessageError.style.display = 'block';
+                    } else {
+                        alert('Erreur réseau.');
+                    }
+
+                }).finally(function(){
+
+                    if (submitBtn) submitBtn.disabled = false;
+
+                });
 
             });
 

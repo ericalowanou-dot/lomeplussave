@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Article;
 use App\Models\Publicite;
+use App\Models\Message;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
@@ -15,17 +17,18 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
-        $stats = [
-            'total_users' => User::count(),
-            'blocked_users' => User::where('is_blocked', true)->count(),
-            'total_articles' => Article::count(),
-            'pending_articles' => Article::where('status', 'pending')->count(),
-            'approved_articles' => Article::where('status', 'approved')->count(),
-            'blocked_articles' => Article::where('status', 'blocked')->count(),
-            'total_coins' => User::sum('coins'),
-        ];
+        $stats = Cache::remember('admin_dashboard_stats', 60, function () {
+            return [
+                'total_users' => User::count(),
+                'blocked_users' => User::where('is_blocked', true)->count(),
+                'total_articles' => Article::count(),
+                'pending_articles' => Article::where('status', 'pending')->count(),
+                'approved_articles' => Article::where('status', 'approved')->count(),
+                'blocked_articles' => Article::where('status', 'blocked')->count(),
+                'total_coins' => User::sum('coins'),
+            ];
+        });
 
-        // Articles récents en attente
         $recent_pending_articles = Article::with(['user', 'sousCategorie'])
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
@@ -36,6 +39,32 @@ class AdminController extends Controller
         $recent_users = User::orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
+
+        // Si requête AJAX, retourner JSON
+        if (request()->ajax()) {
+            return response()->json([
+                'stats' => $stats,
+                'recent_pending_articles' => $recent_pending_articles->map(function($article) {
+                    return [
+                        'id' => $article->id,
+                        'titre' => $article->titre,
+                        'user_name' => $article->user->name ?? 'N/A',
+                        'sous_categorie_nom' => $article->sousCategorie->nom ?? 'N/A',
+                        'created_at' => $article->created_at ? $article->created_at->format('d/m/Y H:i') : 'N/A',
+                        'url' => route('admin.articles.show', $article),
+                    ];
+                }),
+                'recent_users' => $recent_users->map(function($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'is_blocked' => $user->is_blocked,
+                        'url' => route('admin.users.show', $user),
+                    ];
+                }),
+            ]);
+        }
 
         return view('admin.dashboard', compact('stats', 'recent_pending_articles', 'recent_users'));
     }
@@ -80,6 +109,7 @@ class AdminController extends Controller
         ]);
 
         $user->block($request->reason);
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->back()->with('success', 'Utilisateur bloqué avec succès.');
     }
@@ -90,6 +120,7 @@ class AdminController extends Controller
     public function unblockUser(User $user)
     {
         $user->unblock();
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->back()->with('success', 'Utilisateur débloqué avec succès.');
     }
@@ -157,9 +188,8 @@ class AdminController extends Controller
     public function approveArticle(Article $article)
     {
         $article->approve();
-
-        // Envoyer une notification automatique au propriétaire
         $this->sendArticleNotification($article, 'approved');
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->back()->with('success', 'Article approuvé avec succès.');
     }
@@ -174,9 +204,8 @@ class AdminController extends Controller
         ]);
 
         $article->block($request->reason);
-
-        // Envoyer une notification automatique au propriétaire
         $this->sendArticleNotification($article, 'blocked', $request->reason);
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->back()->with('success', 'Article bloqué avec succès.');
     }
@@ -188,6 +217,7 @@ class AdminController extends Controller
     {
         try {
             $article->delete();
+            Cache::forget('admin_dashboard_stats');
 
             return redirect()->back()->with('success', 'Article supprimé avec succès.');
         } catch (\Exception $e) {
@@ -240,6 +270,7 @@ class AdminController extends Controller
             $article->approve();
             $this->sendArticleNotification($article, 'approved');
         }
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->back()->with('success', count($request->article_ids) . ' articles approuvés avec succès.');
     }
@@ -261,6 +292,7 @@ class AdminController extends Controller
             $article->block($request->reason);
             $this->sendArticleNotification($article, 'blocked', $request->reason);
         }
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->back()->with('success', count($request->article_ids) . ' articles bloqués avec succès.');
     }
@@ -635,5 +667,68 @@ class AdminController extends Controller
     {
         $publicite->incrementClicks();
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Afficher les messages reçus par l'admin
+     */
+    public function messagesInbox(Request $request)
+    {
+        $admin = $request->user();
+        $filter = $request->get('filter');
+
+        $query = Message::with(['sender', 'recipients'])
+            ->whereHas('recipients', function($q) use ($admin, $filter) {
+                $q->where('recipient_id', $admin->id);
+                if ($filter === 'unread') {
+                    $q->whereNull('read_at');
+                } elseif ($filter === 'read') {
+                    $q->whereNotNull('read_at');
+                }
+            })
+            ->orderBy('created_at', 'desc');
+
+        $messages = $query->paginate(20)->withQueryString();
+
+        $unreadCount = DB::table('message_recipients')
+            ->where('recipient_id', $admin->id)
+            ->whereNull('read_at')
+            ->count();
+
+        $totalCount = Message::whereHas('recipients', function($q) use ($admin) {
+            $q->where('recipient_id', $admin->id);
+        })->count();
+
+        $stats = [
+            'total' => $totalCount,
+            'unread' => $unreadCount,
+            'read' => $totalCount - $unreadCount,
+        ];
+
+        return view('admin.messages.inbox', compact('messages', 'unreadCount', 'stats'));
+    }
+
+    /**
+     * Afficher un message spécifique reçu par l'admin
+     */
+    public function showMessage(Request $request, Message $message)
+    {
+        $admin = $request->user();
+        
+        // Vérifier que l'admin est destinataire du message
+        $isRecipient = $message->recipients()->where('recipient_id', $admin->id)->exists();
+        
+        if (!$isRecipient) {
+            abort(403, 'Accès non autorisé à ce message.');
+        }
+
+        // Marquer le message comme lu
+        $message->recipients()->updateExistingPivot($admin->id, [
+            'read_at' => now()
+        ]);
+
+        $message->load(['sender', 'recipients']);
+
+        return view('admin.messages.show', compact('message'));
     }
 }
