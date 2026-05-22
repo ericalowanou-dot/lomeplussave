@@ -41,9 +41,8 @@
     </form>
 </div>
 
-<div id="articles-results">
-    {{-- tes articles initiaux ici --}}
-</div>
+{{-- NOTE: ne pas utiliser l'id "articles-results" ici.
+   Il est réservé au conteneur principal de la liste d'articles dans <main>. --}}
 
 <!-- recherche ajax en fonction des pages -->
 <!-- <script>

@@ -197,6 +197,18 @@ class ArticleController extends Controller
 
         $articlesQuery = Article::query();
 
+        // 🔹 Recherche texte (barre "Rechercher...")
+        if ($request->filled('q')) {
+            $q = trim((string) $request->input('q'));
+            if ($q !== '') {
+                $articlesQuery->where(function ($query) use ($q) {
+                    $query->where('titre', 'like', "%{$q}%")
+                        ->orWhere('description', 'like', "%{$q}%")
+                        ->orWhere('lieu', 'like', "%{$q}%");
+                });
+            }
+        }
+
 
 
          // ð¹ Filtrer par sous-catégorie spécifique (prioritaire sur catégorie)
@@ -337,7 +349,8 @@ class ArticleController extends Controller
 
 
 
-        // ð¹ Nombre d'articles par page (12, 24, 48, 96)
+        // 🔹 Nombre d'articles par page
+        // Défaut initial du projet.
 
         $perPage = $request->get('per_page', 40);
 

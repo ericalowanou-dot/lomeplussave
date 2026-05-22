@@ -1245,7 +1245,7 @@
 
     @if(!$articles->isEmpty() && $articles->hasPages())
         <!-- Pagination classique Laravel -->
-        <div class="pagination-wrapper">
+        <div class="pagination-wrapper" id="pagination-wrapper">
             {{ $articles->links() }}
         </div>
 

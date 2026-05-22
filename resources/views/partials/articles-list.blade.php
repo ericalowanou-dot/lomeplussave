@@ -1,7 +1,7 @@
 @if($articles->isEmpty())
     <p class="text-center" style="color: red; font-weight: bold;">Aucun résultat trouvé.</p>
 @else
-    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
+    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
         @foreach($articles as $article)
             <div class="col">
                 <div class="card rounded-4 article-hover">
@@ -101,7 +101,7 @@
                 <!-- Bannière après la 2e ligne sur mobile (4 articles) - Visible seulement si non connecté -->
                 <div class="col-12" style="z-index: 1;">
                     <div class="banner-ad my-3">
-                        <a id="ad-link" href="{{ route('login') }}">
+                        <a href="{{ route('login') }}">
                             <img src="{{ asset('images/1.png') }}" alt="Publicité" class="ad-img active" loading="lazy">
                             <img src="{{ asset('images/2.png') }}" alt="Publicité" class="ad-img" loading="lazy">
                             <img src="{{ asset('images/3.png') }}" alt="Publicité" class="ad-img" loading="lazy">
@@ -148,32 +148,12 @@
                 </style>
 
                 <script>
+                    // Gardé pour compatibilité quand la page est chargée "classiquement".
+                    // En cas de pagination AJAX, les scripts injectés via innerHTML ne s’exécutent pas :
+                    // l’initialisation est donc faite dans resources/js/partialReload.js.
                     document.addEventListener("DOMContentLoaded", function () {
-                        const images = document.querySelectorAll(".banner-ad .ad-img");
-                        const adLink = document.getElementById("ad-link");
-
-                        if (!images.length || !adLink) return;
-
-                        const loginUrl = "{{ route('login') }}";
-                        let currentIndex = 0;
-
-                        function showNextAd() {
-                            const currentImage = images[currentIndex];
-                            currentImage.classList.remove("active");
-                            currentImage.classList.add("exit");
-
-                            currentIndex = (currentIndex + 1) % images.length;
-                            const nextImage = images[currentIndex];
-
-                            adLink.href = loginUrl;
-                            nextImage.classList.add("active");
-
-                            setTimeout(() => {
-                                currentImage.classList.remove("exit");
-                            }, 1000);
-                        }
-
-                        setInterval(showNextAd, 5000);
+                        const banner = document.querySelector(".banner-ad");
+                        if (banner) banner.dataset.loginUrl = "{{ route('login') }}";
                     });
                 </script>
                 @endguest

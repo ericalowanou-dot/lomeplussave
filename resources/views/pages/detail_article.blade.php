@@ -7,6 +7,12 @@
 
 
 @section('meta')
+    @php
+        $shareImage = $article->photo_url;
+        if (!\Illuminate\Support\Str::startsWith($shareImage, ['http://', 'https://'])) {
+            $shareImage = url($shareImage);
+        }
+    @endphp
 
     <!-- Open Graph / Facebook -->
 
@@ -18,19 +24,10 @@
 
     <meta property="og:description" content="{{ Str::limit(strip_tags($article->description), 160) }}">
 
-    @if($article->images && count($article->images) > 0)
-
-        <meta property="og:image" content="{{ asset($article->images[0]) }}">
-
-        <meta property="og:image:width" content="1200">
-
-        <meta property="og:image:height" content="630">
-
-    @else
-
-        <meta property="og:image" content="{{ asset('images/true-logo.png') }}">
-
-    @endif
+    <meta property="og:image" content="{{ $shareImage }}">
+    <meta property="og:image:secure_url" content="{{ $shareImage }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
 
     <meta property="og:site_name" content="LOME+">
 
@@ -46,15 +43,7 @@
 
     <meta name="twitter:description" content="{{ Str::limit(strip_tags($article->description), 160) }}">
 
-    @if($article->images && count($article->images) > 0)
-
-        <meta name="twitter:image" content="{{ asset($article->images[0]) }}">
-
-    @else
-
-        <meta name="twitter:image" content="{{ asset('images/true-logo.png') }}">
-
-    @endif
+    <meta name="twitter:image" content="{{ $shareImage }}">
 
     
 
@@ -1086,13 +1075,13 @@
 
                 <!-- Photo de profil du vendeur (optionnelle) -->
 
-                <img src="{{ $article->user->getProfilPhotoUrl() }}" 
+                <img src="{{ $article->user->getProfilPhotoUrl() }}"
 
-                    alt="Photo vendeur" 
+                    alt="Photo vendeur"
 
-                    class="rounded-circle me-3" 
+                    class="rounded-circle me-3 flex-shrink-0"
 
-                    width="40" 
+                    width="40"
 
                     height="40"
 
@@ -1272,7 +1261,20 @@
 
         }
 
+        /* Carré strict + cover : évite l’ovale (img { height: auto } dans fix-stability.css) */
         .seller-info img {
+
+            width: 40px;
+
+            height: 40px;
+
+            max-width: none;
+
+            object-fit: cover;
+
+            flex-shrink: 0;
+
+            aspect-ratio: 1;
 
             border: 2px solid #ddd;
 
@@ -2612,7 +2614,7 @@
 
                     <script>
 
-                        document.addEventListener('DOMContentLoaded', function() {
+                        function runDetailArticleCommentsInit() {
 
                             const articleId = {{ $article->id }};
 
@@ -3942,7 +3944,17 @@
 
                             initCommentActions();
 
-                        });
+                        }
+
+                        if (document.readyState === 'loading') {
+
+                            document.addEventListener('DOMContentLoaded', runDetailArticleCommentsInit);
+
+                        } else {
+
+                            runDetailArticleCommentsInit();
+
+                        }
 
                     </script>
 
@@ -4588,7 +4600,7 @@
 
         <div class="container">
 
-            <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
+            <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
 
                 @foreach($articlesParCategorie as $article)
 

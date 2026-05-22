@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+.main-fade-out {
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.main-fade-in {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
 /* Typographie professionnelle uniforme */
 @layer base {
     * {
