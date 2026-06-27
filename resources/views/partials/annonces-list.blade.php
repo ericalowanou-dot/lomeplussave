@@ -26,7 +26,7 @@
         </div>
     </div>
 @else
-    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
+    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
         @foreach($articles as $article)
             <div class="col">
                 <div class="card shadow-sm rounded-4 article-hover">

@@ -15,7 +15,9 @@
     <div class="container about-content-wrapper">
         <!-- Section Mission -->
         <section class="about-section mission-section">
-            <div class="section-icon">🎯</div>
+            <div class="section-icon about-icon about-icon--orange">
+                <i class="bi bi-bullseye" aria-hidden="true"></i>
+            </div>
             <h2 class="section-title">Notre Mission</h2>
             <p class="section-text">
                 Lome+ est une plateforme marketplace conçue pour <strong>faciliter l'utilisation et la vente au Togo</strong>. 
@@ -33,22 +35,30 @@
             <h2 class="section-title">Nos Valeurs</h2>
             <div class="values-grid">
                 <div class="value-card">
-                    <div class="value-icon">🔒</div>
+                    <div class="value-icon about-icon about-icon--blue">
+                        <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+                    </div>
                     <h3 class="value-title">Fiabilité & Sécurité</h3>
                     <p class="value-text">Nous garantissons des transactions sécurisées et une plateforme fiable pour tous nos utilisateurs.</p>
                 </div>
                 <div class="value-card">
-                    <div class="value-icon">✨</div>
+                    <div class="value-icon about-icon about-icon--gold">
+                        <i class="bi bi-stars" aria-hidden="true"></i>
+                    </div>
                     <h3 class="value-title">Simplicité</h3>
                     <p class="value-text">Une interface intuitive et facile à utiliser, que vous soyez vendeur ou acheteur.</p>
                 </div>
                 <div class="value-card">
-                    <div class="value-icon">📍</div>
+                    <div class="value-icon about-icon about-icon--red">
+                        <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                    </div>
                     <h3 class="value-title">Accessibilité Locale</h3>
                     <p class="value-text">Connectez-vous avec votre communauté locale pour des échanges de proximité et rapides.</p>
                 </div>
                 <div class="value-card">
-                    <div class="value-icon">🤝</div>
+                    <div class="value-icon about-icon about-icon--green">
+                        <i class="bi bi-people-fill" aria-hidden="true"></i>
+                    </div>
                     <h3 class="value-title">Économie Locale</h3>
                     <p class="value-text">Nous soutenons les commerçants togolais et favorisons l'économie locale.</p>
                 </div>
@@ -60,7 +70,9 @@
             <h2 class="section-title">Fonctionnalités Principales</h2>
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🚀</div>
+                    <div class="feature-icon about-icon about-icon--orange">
+                        <i class="bi bi-rocket-takeoff-fill" aria-hidden="true"></i>
+                    </div>
                     <h3 class="feature-title">Système de Boost</h3>
                     <p class="feature-text">
                         Augmentez la visibilité de vos articles grâce à notre système de boost. 
@@ -68,7 +80,9 @@
                     </p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🏆</div>
+                    <div class="feature-icon about-icon about-icon--gold">
+                        <i class="bi bi-award-fill" aria-hidden="true"></i>
+                    </div>
                     <h3 class="feature-title">Certification des Boutiques</h3>
                     <p class="feature-text">
                         Certifiez votre boutique pour gagner la confiance des acheteurs. 
@@ -76,7 +90,9 @@
                     </p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">📱</div>
+                    <div class="feature-icon about-icon about-icon--blue">
+                        <i class="bi bi-phone-fill" aria-hidden="true"></i>
+                    </div>
                     <h3 class="feature-title">Interface Simple</h3>
                     <p class="feature-text">
                         Publiez vos articles en quelques clics. Une interface claire et intuitive 
@@ -84,7 +100,9 @@
                     </p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">💬</div>
+                    <div class="feature-icon about-icon about-icon--green">
+                        <i class="bi bi-chat-dots-fill" aria-hidden="true"></i>
+                    </div>
                     <h3 class="feature-title">Communication Directe</h3>
                     <p class="feature-text">
                         Contactez facilement les vendeurs via téléphone ou WhatsApp. 
@@ -123,22 +141,30 @@
             <p class="section-text">Une question ? Un problème ? Nous sommes là pour vous aider !</p>
             <div class="contact-grid">
                 <div class="contact-item">
-                    <div class="contact-icon">📧</div>
+                    <div class="contact-icon about-icon about-icon--blue">
+                        <i class="bi bi-envelope-fill" aria-hidden="true"></i>
+                    </div>
                     <h4 class="contact-label">Email</h4>
                     <a href="mailto:lomeplus80@gmail.com" class="contact-value">lomeplus80@gmail.com</a>
                 </div>
                 <div class="contact-item">
-                    <div class="contact-icon">📞</div>
+                    <div class="contact-icon about-icon about-icon--orange">
+                        <i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                    </div>
                     <h4 class="contact-label">Téléphone</h4>
                     <a href="tel:+22892088853" class="contact-value">+228 92 08 88 53</a>
                 </div>
                 <div class="contact-item">
-                    <div class="contact-icon">💬</div>
+                    <div class="contact-icon about-icon about-icon--whatsapp">
+                        <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                    </div>
                     <h4 class="contact-label">WhatsApp</h4>
                     <a href="https://wa.me/22892088853" target="_blank" class="contact-value">92 08 88 53</a>
                 </div>
                 <div class="contact-item">
-                    <div class="contact-icon">📍</div>
+                    <div class="contact-icon about-icon about-icon--red">
+                        <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                    </div>
                     <h4 class="contact-label">Adresse</h4>
                     <p class="contact-value">Lomé Agoe assiyeye</p>
                 </div>
@@ -152,11 +178,11 @@
             <div class="cta-buttons">
                 <a href="{{ route('articles.index') }}" class="btn-cta-primary">
                     <span>Découvrir les articles</span>
-                    <span class="btn-icon">→</span>
+                    <i class="bi bi-arrow-right btn-icon" aria-hidden="true"></i>
                 </a>
                 <a href="{{ route('articles.create') }}" class="btn-cta-secondary">
                     <span>Publier un article</span>
-                    <span class="btn-icon">+</span>
+                    <i class="bi bi-plus-lg btn-icon" aria-hidden="true"></i>
                 </a>
             </div>
         </div>
@@ -231,9 +257,52 @@
     }
 
     .section-icon {
-        font-size: 3rem;
         text-align: center;
         margin-bottom: 20px;
+    }
+
+    .about-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 72px;
+        height: 72px;
+        border-radius: 18px;
+        background: #f8f9fa;
+        margin: 0 auto 15px;
+    }
+
+    .section-icon.about-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+    }
+
+    .about-icon i {
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .section-icon.about-icon i {
+        font-size: 2.4rem;
+    }
+
+    .about-icon--orange i { color: #f4751a; }
+    .about-icon--blue i { color: #2563eb; }
+    .about-icon--green i { color: #16a34a; }
+    .about-icon--red i { color: #dc2626; }
+    .about-icon--gold i { color: #d97706; }
+    .about-icon--whatsapp i { color: #25d366; }
+
+    .value-icon,
+    .feature-icon,
+    .contact-icon {
+        margin-bottom: 15px;
+    }
+
+    .contact-icon.about-icon {
+        margin-bottom: 12px;
     }
 
     .section-title {
@@ -289,11 +358,6 @@
         border-color: #f4751a;
     }
 
-    .value-icon {
-        font-size: 3rem;
-        margin-bottom: 15px;
-    }
-
     .value-title {
         font-size: 1.3rem;
         font-weight: 700;
@@ -326,11 +390,6 @@
     .feature-card:hover {
         transform: translateX(5px);
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    }
-
-    .feature-icon {
-        font-size: 2.5rem;
-        margin-bottom: 15px;
     }
 
     .feature-title {
@@ -420,11 +479,6 @@
         transform: translateY(-5px);
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
         background: white;
-    }
-
-    .contact-icon {
-        font-size: 2.5rem;
-        margin-bottom: 12px;
     }
 
     .contact-label {
@@ -530,6 +584,7 @@
 
     .btn-icon {
         font-size: 1.2rem;
+        line-height: 1;
     }
 
     /* Responsive */

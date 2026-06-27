@@ -1304,7 +1304,28 @@
 
         @media (min-width: 992px) {
 
-            .detail-grid { margin-top: 0; }
+            .detail-container {
+                max-width: 960px;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                padding-left: 24px;
+                padding-right: 32px;
+            }
+
+            .detail-grid {
+                margin-top: 0;
+                --bs-gutter-x: 2.5rem;
+            }
+
+            .detail-grid > .col-lg-7 {
+                flex: 0 0 52%;
+                max-width: 52%;
+            }
+
+            .detail-grid > .col-lg-5 {
+                flex: 0 0 48%;
+                max-width: 48%;
+            }
 
             .detail-sidebar {
 
@@ -1362,6 +1383,12 @@
 
                 gap: 10px;
 
+                max-width: 480px;
+
+                margin-left: auto;
+
+                margin-right: auto;
+
             }
 
             .thumb {
@@ -1396,9 +1423,9 @@
 
             .thumb img { 
 
-                width: 64px; 
+                width: 52px; 
 
-                height: 64px; 
+                height: 52px; 
 
                 object-fit: cover; 
 
@@ -1430,11 +1457,23 @@
 
 
 
+            #carouselArticle {
+
+                max-width: 480px;
+
+                margin-left: auto;
+
+                margin-right: auto;
+
+            }
+
             .image-detail img { 
 
                 width: 100%; 
 
-                height: 500px; 
+                height: 340px; 
+
+                max-height: 340px;
 
                 object-fit: cover; 
 
@@ -4586,21 +4625,23 @@
 
         <section id="articles-similaires">
 
+        @php $mainArticle = $article; @endphp
+
         <h3 style="text-align: center; margin-top: 50px;">Articles similaires</h3>
 
  
 
 
 
-    @if($articles->isEmpty())
+    @if($articlesParCategorie->isEmpty())
 
-        <p class="text-center" style="color: red; font-weight: bold;">Aucun article similaire.</p>
+        <p class="text-center text-muted mb-4">Aucun article similaire pour le moment.</p>
 
     @else
 
         <div class="container">
 
-            <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
+            <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
 
                 @foreach($articlesParCategorie as $article)
 
@@ -4770,11 +4811,15 @@
 
 
 
-        @endforeach 
+        @endforeach
 
-    </div> <!-- fin row -->
+        @php $article = $mainArticle; @endphp
 
-@endif
+            </div> <!-- fin row -->
+
+        </div> <!-- fin container -->
+
+    @endif
 
         </section> <!-- fin articles-similaires -->
 

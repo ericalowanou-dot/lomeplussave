@@ -15,7 +15,7 @@ class DetailArticleController extends Controller
 {
     public function show($id)
     {
-        $article = Article::with(['user'])
+        $article = Article::with(['user', 'sousCategorie'])
             ->withCount('comments')
             ->withLikeCounts(auth()->id())
             ->findOrFail($id);

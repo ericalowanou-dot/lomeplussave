@@ -7,6 +7,7 @@
 @endsection
 
 @section('content')
+<link rel="stylesheet" href="{{ asset('css/homepage-layout.css') }}">
 <main>
     <!-- Conteneur de publicité -->
     <div class="haut-publicite" id="hautPublicite">
@@ -47,25 +48,25 @@
     <!-- Script de disparition et d'apparition des bouton de publicités -->
     <script>
         let lastScrollTop = 0;
+        const isMobileHome = () => window.matchMedia('(max-width: 767.98px)').matches;
+
         window.addEventListener("scroll", function() {
             let st = window.scrollY || document.documentElement.scrollTop;
             const pub = document.getElementById("hautPublicite");
             const filterBtn = document.getElementById("openFilter");
 
             if (st > lastScrollTop) {
-                // scroll vers le bas → cacher les boutons de publicité, montrer le bouton filtre
                 pub.classList.add("disparaitre");
-                if (filterBtn) {
+                if (filterBtn && isMobileHome()) {
                     filterBtn.style.display = "inline-flex";
                 }
             } else {
-                // scroll vers le haut → montrer les boutons de publicité, cacher le bouton filtre
                 pub.classList.remove("disparaitre");
-                if (filterBtn) {
+                if (filterBtn && isMobileHome()) {
                     filterBtn.style.display = "none";
                 }
             }
-            lastScrollTop = st <= 0 ? 0 : st; // évite valeur négative
+            lastScrollTop = st <= 0 ? 0 : st;
         });
     </script>
 
@@ -206,14 +207,13 @@
                 const value = this.value.trim();
 
                 if (value.length > 0) {
-                    horizontalBlock.classList.add('collapsed'); // bloc se rétracte
-                    filterButton.classList.add('disparaitre'); // bouton de filtre disparait
-                    titreNouveate.classList.add('disparaitre'); // titre nouveauté disparait
-
+                    if (horizontalBlock) horizontalBlock.classList.add('collapsed');
+                    if (filterButton) filterButton.classList.add('disparaitre');
+                    if (titreNouveate) titreNouveate.classList.add('disparaitre');
                 } else {
-                    horizontalBlock.classList.remove('collapsed'); // bloc reprend sa taille
-                    filterButton.classList.remove('disparaitre'); // bouton de filtre réapparait
-                    titreNouveate.classList.remove('disparaitre'); // titre nouveauté réapparait
+                    if (horizontalBlock) horizontalBlock.classList.remove('collapsed');
+                    if (filterButton) filterButton.classList.remove('disparaitre');
+                    if (titreNouveate) titreNouveate.classList.remove('disparaitre');
                 }
             });
         });
@@ -1002,255 +1002,109 @@
         }
     </style>
     @else
-    {{-- articles horizontaux --}}
-    {{-- <div class="scroll-container" id="horizontal-articles">
-        <div class="d-flex flex-nowrap gap-3">
-            @foreach($articles as $article)
-                <div class="article-container" style="z-index: 1;">
-                    <div class="article-container-secondaire">
-                        <a href="{{ route('article.details', ['id' => $article->id]) }}" style="text-decoration: none; color: inherit; border-bottom: 1px solid;">
-                            <img class="article-container-image" 
-                                 src="{{ $article->photo_url }}" 
-                                 alt="image de l'article"
-                                 loading="lazy"
-                                 onerror="this.src='{{ asset('images/placeholder.png') }}';">
-                        </a>
-                        <div class="card-body-horizontal">
-                            <div class="article-container-text">
-                                <div class="prix-article">
-                                    <span>{{ intval($article->prix_ht) }} CFA</span>    
-                                </div>
-                                <div class="titre-article" style="margin-bottom: 25px;">
-                                    {{ $article->titre }}
-                                </div>
 
-                                <hr style="border-top: 3px solid #000000;  width: 100%; margin-bottom: 5px; margin-top: 5px;">
-                                                        
-                                @if($article->isBoosted())
-                                    <div class="badge bg-warning text-dark" style="font-size: 10px; border-radius: 4px; padding: 2px 8px; display:inline-block; margin-bottom:4px; text-transform: uppercase; letter-spacing: 0.5px;">Pro</div>
-                                @else
-                                    @if($article->user)
-                                        <div class="info-utilisateur">
-                                            <img class="photo-profil-utilisateur" 
-                                                 src="{{ $article->user->getProfilPhotoUrl() }}" 
-                                                 alt="Profil de {{ $article->user->name }}"
-                                                 loading="lazy"
-                                                 onerror="this.src='{{ asset('images/user_default.png') }}';">
-                                            <p class="nom-utilisateur">{{ $article->user->name ?? 'nom non spécifiée' }}</p>
-                                        </div>
-                                    @endif
-
-                                    @if($article->user && $article->user->estCertifie())
-                                        <div class="certification-horizontal">
-                                            <img src="{{ asset('images/certifier.png') }}" alt="Certifié" class="certification-logo-horizontal">
-                                            <span class="certification-text-horizontal">Vérifié</span>
-                                        </div>
-                                    @endif
-                                @endif
-                                            
-                            </div>
+    <div class="homepage-layout">
+        <div class="container homepage-container">
+            <div class="row homepage-row">
+                <div class="col-12 mb-3 mb-md-0 homepage-sidebar-col">
+                    @include('partials.homepage-sidebar')
+                </div>
+                <div class="col-12 homepage-main-col">
+                    <div class="homepage-articles-panel">
+                        <h4><i class="bi bi-grid me-2"></i>Annonces</h4>
+                        @include('partials.publicites', ['position' => 'header'])
+                        <div id="articles-results" data-context="articles">
+                            @include('partials.articles-list', ['articles' => $articles])
                         </div>
+                        @include('partials.publicites', ['position' => 'homepage_bottom'])
+                        @if($articles->hasPages())
+                            <div class="pagination-wrapper homepage-pagination" id="pagination-wrapper">
+                                {{ $articles->links() }}
+                            </div>
+                        @endif
                     </div>
                 </div>
-            @endforeach
+            </div>
         </div>
-    </div> --}}
+    </div>
 
-    
-    <!-- Bouton de filtre -->
-    <div class="filter-btn-wrapper">
+    {{-- Filtre mobile : bouton flottant + modal (style d'origine) --}}
+    <div class="filter-btn-wrapper homepage-filter-mobile">
         <button id="openFilter" class="filter-btn" type="button">
             <i class="bi bi-funnel"></i>
             <span>Filtrer</span>
         </button>
     </div>
 
-  <!-- CSS et Script du bouton filtre -->
-<style>
-    /* Conteneur du bouton filtre */
-    .filter-btn-wrapper {
-        position: relative;
-        margin-top: 15px;
-        height: 34px; /* Hauteur fixe pour éviter le saut de contenu */
-    }
+    {{-- Script bouton filtre mobile (fixe au scroll) --}}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (window.matchMedia('(min-width: 768px)').matches) return;
 
-    /* Bouton filtre - style professionnel */
-    .filter-btn {
-        position: absolute;
-        z-index: 99;
-        display: none; /* Caché par défaut, apparaît seulement quand les boutons de publicité disparaissent */
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        background: #3498db;
-        border: 1px solid #fff;
-        color: #fff;
-        cursor: pointer;
-        border-radius: 6px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        transform-origin: right center;
-    }
+            const filterBtn = document.getElementById("openFilter");
+            if (!filterBtn) return;
 
-    /* Quand le bouton est fixé */
-    .filter-btn.is-fixed {
-        position: fixed;
-        top: 180px;
-        right: 10px;
-        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-        animation: filterBtnSlideIn 0.7s ease-out forwards;
-    }
+            filterBtn.style.display = "none";
 
-    /* Animation d'entrée - simple et fluide */
-    @keyframes filterBtnSlideIn {
-        from {
-            opacity: 0;
-            transform: translateX(40px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
+            let btnOriginalTop = filterBtn.getBoundingClientRect().top + window.scrollY;
+            const fixedTop = 180;
+            let isCurrentlyFixed = false;
+            let isAnimating = false;
+            let animationTimeout = null;
 
-    /* Animation de sortie - simple et fluide */
-    .filter-btn.is-unfixing {
-        position: fixed;
-        top: 180px;
-        right: 10px;
-        animation: filterBtnSlideOut 0.7s ease-in forwards;
-    }
+            window.addEventListener('load', function() {
+                btnOriginalTop = filterBtn.getBoundingClientRect().top + window.scrollY;
+            });
 
-    @keyframes filterBtnSlideOut {
-        from {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateX(40px);
-        }
-    }
+            function handleScroll() {
+                const scrollY = window.scrollY;
+                const shouldBeFixed = scrollY + fixedTop >= btnOriginalTop;
+                const pub = document.getElementById("hautPublicite");
+                const pubDisparait = pub && pub.classList.contains("disparaitre");
 
-    .filter-btn:hover {
-        background: #2980b9;
-        box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-    }
+                if (pubDisparait) {
+                    if (filterBtn.style.display === "none") {
+                        filterBtn.style.display = "inline-flex";
+                    }
 
-    .filter-btn:active {
-        transform: scale(0.98);
-    }
-</style>
-
-<!-- Script pour fixer le bouton en dessous des catégories -->
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const filterBtn = document.getElementById("openFilter");
-        if (!filterBtn) return;
-
-        // Cacher le bouton filtre au chargement (les boutons de publicité sont visibles)
-        filterBtn.style.display = "none";
-
-        // Position initiale du bouton
-        let btnOriginalTop = filterBtn.getBoundingClientRect().top + window.scrollY;
-        const fixedTop = 180;
-        let isCurrentlyFixed = false;
-        let isAnimating = false;
-        let animationTimeout = null;
-
-        // Recalculer la position originale après le chargement complet
-        window.addEventListener('load', function() {
-            btnOriginalTop = filterBtn.getBoundingClientRect().top + window.scrollY;
-        });
-
-        function handleScroll() {
-            const scrollY = window.scrollY;
-            const shouldBeFixed = scrollY + fixedTop >= btnOriginalTop;
-            const pub = document.getElementById("hautPublicite");
-            const pubDisparait = pub && pub.classList.contains("disparaitre");
-
-            // Le bouton filtre apparaît seulement si les boutons de publicité ont disparu
-            if (pubDisparait) {
-                // Boutons de publicité cachés → montrer le bouton filtre
-                if (filterBtn.style.display === "none") {
-                    filterBtn.style.display = "inline-flex";
-                }
-                
-                // Passage à fixé (entrée)
-                if (shouldBeFixed && !isCurrentlyFixed && !isAnimating) {
-                    isCurrentlyFixed = true;
-                    clearTimeout(animationTimeout);
-                    filterBtn.classList.remove("is-unfixing");
-                    filterBtn.classList.add("is-fixed");
-                }
-                // Retour à normal (sortie avec animation fluide)
-                else if (!shouldBeFixed && isCurrentlyFixed && !isAnimating) {
-                    isCurrentlyFixed = false;
-                    isAnimating = true;
-                    
-                    // Garder is-fixed pendant l'animation de sortie
-                    filterBtn.classList.add("is-unfixing");
-                    
-                    // Attendre la fin de l'animation (700ms) avant de retirer les classes
-                    clearTimeout(animationTimeout);
-                    animationTimeout = setTimeout(function() {
-                        filterBtn.classList.remove("is-fixed");
+                    if (shouldBeFixed && !isCurrentlyFixed && !isAnimating) {
+                        isCurrentlyFixed = true;
+                        clearTimeout(animationTimeout);
                         filterBtn.classList.remove("is-unfixing");
-                        isAnimating = false;
-                    }, 700);
+                        filterBtn.classList.add("is-fixed");
+                    } else if (!shouldBeFixed && isCurrentlyFixed && !isAnimating) {
+                        isCurrentlyFixed = false;
+                        isAnimating = true;
+                        filterBtn.classList.add("is-unfixing");
+                        clearTimeout(animationTimeout);
+                        animationTimeout = setTimeout(function() {
+                            filterBtn.classList.remove("is-fixed");
+                            filterBtn.classList.remove("is-unfixing");
+                            isAnimating = false;
+                        }, 700);
+                    }
+                } else {
+                    filterBtn.style.display = "none";
+                    filterBtn.classList.remove("is-fixed");
+                    filterBtn.classList.remove("is-unfixing");
+                    isCurrentlyFixed = false;
                 }
-            } else {
-                // Boutons de publicité visibles → cacher le bouton filtre
-                filterBtn.style.display = "none";
-                filterBtn.classList.remove("is-fixed");
-                filterBtn.classList.remove("is-unfixing");
-                isCurrentlyFixed = false;
             }
-        }
 
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        
-        // Vérification initiale
-        handleScroll();
-    });
-</script>
+            window.addEventListener("scroll", handleScroll, { passive: true });
+            handleScroll();
+        });
+    </script>
 
-            
-            {{-- <h6 class="titre-nouveaute" style="margin-top: 90px; margin-bottom: 20px; background-color: none;">Les nouveautés </h6> --}}
-
-
-
-
-        <div class="container" style="margin-top: 160px; width: 100%; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
-            <!-- Publicités en haut de page -->
-            @include('partials.publicites', ['position' => 'header'])
-            @include('partials.publicites', ['position' => 'homepage_top'])
-
-                <!-- <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3 articles">  -->
-                    <div id="articles-results" data-context="articles">
-        @include('partials.articles-list', ['articles' => $articles])
-                
-            </div>
-
-            <!-- Publicités en bas de page -->
-            @include('partials.publicites', ['position' => 'homepage_bottom'])
-  
-  
-        
-        </div>
-
-
-
-    </main>
     @endif
 
-    @if(!$articles->isEmpty() && $articles->hasPages())
-        <!-- Pagination classique Laravel -->
-        <div class="pagination-wrapper" id="pagination-wrapper">
-            {{ $articles->links() }}
-        </div>
-
+    @if(!$articles->isEmpty())
         <style>
-            /* Conteneur de pagination */
+            .homepage-pagination {
+                margin-top: 1.5rem;
+                margin-bottom: 0;
+            }
+
             .pagination-wrapper {
                 display: flex;
                 justify-content: center;
@@ -1379,6 +1233,8 @@
             }
         </style>
     @endif
+
+    </main>
 
             <footer class="text-body-secondary py-5">
             <div class="container">
