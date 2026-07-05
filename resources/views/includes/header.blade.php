@@ -41,64 +41,8 @@
     <div class="icons">
 
         @php
-
-            $unreadCount = 0;
-
-            $userCoins = 0;
-
-            if (auth()->check()) {
-
-                try {
-
-                    $unreadCount = \App\Models\Message::whereHas('recipients', function($q){
-
-                        $q->where('recipient_id', auth()->id())
-
-                          ->whereNull('read_at');
-
-                    })->count();
-
-                    $userCoins = auth()->user()->coins ?? 0;
-
-                } catch (\Throwable $e) {
-
-                    $unreadCount = 0;
-
-                    $userCoins = auth()->user()->coins ?? 0;
-
-                }
-
-            }
-
+            $userCoins = auth()->check() ? (auth()->user()->coins ?? 0) : 0;
         @endphp
-
-
-
-        @if (auth()->check())
-
-            <a href="{{ route('messages.inbox') }}" id="headerMessagesBtn" title="Mes messages" style="background: none; border: none; cursor: pointer; margin-right: 18px; display: inline-flex; align-items: center; gap: 4px;">
-
-                <i class="bi bi-chat-left-text-fill" style="font-size: 20px; color: #475569;"></i>
-
-                @if($unreadCount > 0)
-
-                    <span style="background: linear-gradient(135deg, #FF9900, #E68900); color:#fff; font-size:10px; padding:2px 6px; border-radius:10px; min-width: 18px; text-align:center; font-weight: 700; box-shadow: 0 2px 6px rgba(255, 153, 0, 0.4);">{{ $unreadCount }}</span>
-
-                @endif
-
-            </a>
-
-
-
-            {{-- <button id="headerCoinsBtn" title="Mes coins" style="background: none; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-right: 8px;">
-
-                <img src="{{ asset('images/coins.png') }}" alt="coins" style="width:20px;height:20px;">
-
-                <span style="font-size:12px; font-weight:700; color:#333;">{{ $userCoins }}</span>
-
-            </button> --}}
-
-        @endif
 
         <!-- Bouton "Coins" -->
 
@@ -128,74 +72,53 @@
 
 
 
-        <!-- Bouton Menu si connecté ou non-->
+        <!-- Profil (connecté) ou connexion (invité) -->
 
         @if (auth()->check())
 
-            <button id="openAccountModal" class="menu-btn-pro" title="Menu">
-
-                <i class="bi bi-grid-fill"></i>
-
-            </button>
+            <a href="{{ route('profile.edit') }}"
+               class="header-profile-btn"
+               title="Mon profil"
+               aria-label="Mon profil">
+                <img src="{{ auth()->user()->getProfilPhotoUrl() }}"
+                     alt="Profil de {{ auth()->user()->name }}"
+                     class="header-profile-btn__avatar"
+                     onerror="this.src='{{ asset('images/user_default.png') }}';">
+            </a>
 
             <style>
-
-                .menu-btn-pro {
-
-                    background: none;
-
-                    border-radius: 10px;
-
-                    padding: 6px 10px;
-
+                .header-profile-btn {
+                    width: 38px;
+                    height: 38px;
+                    padding: 0;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 50%;
+                    background: #fff;
                     cursor: pointer;
-
                     display: flex;
-
                     align-items: center;
-
                     justify-content: center;
-
-                    transition: all 0.3s ease;
-
-                    
-
+                    overflow: hidden;
+                    box-shadow: 0 0 4px rgba(0, 0, 0, 0.12);
+                    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
                 }
 
-                .menu-btn-pro i {
-
-                    font-size: 20px;
-
-                    color: #475569;
-
-                    transition: color 0.3s ease;
-
+                .header-profile-btn__avatar {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
                 }
 
-                .menu-btn-pro:hover {
-
-                    background: linear-gradient(135deg, #FF9900 0%, #E68900 100%);
-
-                    border-color: #FF9900;
-
-                    box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
-
+                .header-profile-btn:hover {
+                    border-color: #ff9900;
+                    box-shadow: 0 2px 10px rgba(255, 153, 0, 0.35);
                     transform: translateY(-1px);
-
                 }
 
-                .menu-btn-pro:hover i {
-
-                    color: #fff;
-
-                }
-
-                .menu-btn-pro:active {
-
+                .header-profile-btn:active {
                     transform: translateY(0);
-
                 }
-
             </style>
 
         @else
@@ -438,13 +361,13 @@
 
                     <!-- Bouton modifier infos -->
 
-                    <button class="open-modal-btn">
+                    <a href="{{ route('profile.edit') }}" class="open-modal-btn">
 
                         <span class="btn-icon">✏️</span>
 
                         <span class="btn-text">Modifier mes infos</span>
 
-                    </button>
+                    </a>
 
 
 
@@ -1828,6 +1751,8 @@ document.addEventListener('DOMContentLoaded', function() {
         justify-content: center;
 
         gap: 8px;
+
+        text-decoration: none;
 
         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 

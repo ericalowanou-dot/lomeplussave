@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="{{ asset('images/logo_icon.jpg') }}">
     
     <!-- pour les icons bootstrap  -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{{ asset('css/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
     
     <!-- Fonts - Police professionnelle uniforme -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

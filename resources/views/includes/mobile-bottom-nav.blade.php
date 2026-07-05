@@ -80,17 +80,15 @@
                 <span class="mobile-bottom-nav__spacer" aria-hidden="true"></span>
 
                 @auth
-                    <div class="mobile-bottom-nav__item-wrap">
-                        <a href="{{ route('messages.inbox') }}"
-                           class="mobile-bottom-nav__item {{ $isMessages ? 'is-active' : '' }}"
-                           aria-label="Messages"
-                           @if($isMessages) aria-current="page" @endif>
-                            <i class="bi bi-chat-left-text-fill" aria-hidden="true"></i>
-                        </a>
+                    <a href="{{ route('messages.inbox') }}"
+                       class="mobile-bottom-nav__item mobile-bottom-nav__item--has-badge {{ $isMessages ? 'is-active' : '' }}"
+                       aria-label="Messages{{ $unreadMessages > 0 ? ' (' . $unreadMessages . ' non lus)' : '' }}"
+                       @if($isMessages) aria-current="page" @endif>
+                        <i class="bi bi-chat-left-text-fill" aria-hidden="true"></i>
                         @if($unreadMessages > 0)
                             <span class="mobile-bottom-nav__badge">{{ $unreadMessages > 9 ? '9+' : $unreadMessages }}</span>
                         @endif
-                    </div>
+                    </a>
                 @else
                     <a href="{{ route('login') }}" class="mobile-bottom-nav__item" aria-label="Messages">
                         <i class="bi bi-chat-left-text-fill" aria-hidden="true"></i>
@@ -130,11 +128,11 @@
         var menuBtn = document.getElementById('mobile-bottom-nav-menu');
         if (menuBtn) {
             menuBtn.addEventListener('click', function () {
-                var accountModal = document.getElementById('openAccountModal');
+                var accountModalEl = document.getElementById('accountModal');
                 var loginModal = document.getElementById('ouvrirModalConnexion');
 
-                if (accountModal) {
-                    accountModal.click();
+                if (accountModalEl) {
+                    accountModalEl.style.display = 'flex';
                 } else if (loginModal) {
                     loginModal.click();
                 } else {

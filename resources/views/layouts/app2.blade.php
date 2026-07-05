@@ -33,7 +33,7 @@
     <style>
         /* Typographie professionnelle uniforme - Override tous les autres styles,
            mais sans casser les polices d'icônes (Font Awesome, etc.) */
-        html, body, *:not(.fa):not(.fas):not(.far):not(.fal):not(.fab) {
+        html, body, *:not(.fa):not(.fas):not(.far):not(.fal):not(.fab):not(.bi):not([class^="bi-"]):not([class*=" bi-"]) {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
         }
         
@@ -67,12 +67,15 @@
         .fab {
             font-family: "Font Awesome 5 Brands" !important;
         }
+        .bi, [class^="bi-"], [class*=" bi-"] {
+            font-family: "bootstrap-icons" !important;
+        }
     </style>
     <!-- Police professionnelle uniforme pour tout le site -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{{ asset('css/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 
                    

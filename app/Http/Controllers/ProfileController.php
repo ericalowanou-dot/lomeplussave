@@ -24,7 +24,7 @@ class ProfileController extends Controller
         }
         
         // Sinon, utiliser la vue normale
-        return view('profile.edit', [
+        return view('pages.profile.edit', [
             'user' => $request->user(),
         ]);
     }
@@ -35,13 +35,34 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         try {
-            $request->user()->fill($request->validated());
+            $user = $request->user();
+            $user->fill($request->safe()->only(['name', 'email', 'telephone', 'whatsapp']));
 
-            if ($request->user()->isDirty('email')) {
-                $request->user()->email_verified_at = null;
+            if ($user->isDirty('email')) {
+                $user->email_verified_at = null;
             }
 
-            $request->user()->save();
+            if ($request->hasFile('photo')) {
+                if ($user->photo_profil && file_exists(public_path($user->photo_profil))) {
+                    @unlink(public_path($user->photo_profil));
+                }
+
+                $destinationPath = public_path('users/profil');
+                if (! file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0777, true);
+                }
+
+                $filename = time().'_'.uniqid().'.'.$request->file('photo')->getClientOriginalExtension();
+                $imageOptimizer = new \App\Services\ImageOptimizer();
+
+                if (! $imageOptimizer->optimizeProfileImage($request->file('photo'), $destinationPath, $filename)) {
+                    $request->file('photo')->move($destinationPath, $filename);
+                }
+
+                $user->photo_profil = 'users/profil/'.$filename;
+            }
+
+            $user->save();
 
             return Redirect::route('profile.edit')->with('status', 'profile-updated');
         } catch (\Exception $e) {
