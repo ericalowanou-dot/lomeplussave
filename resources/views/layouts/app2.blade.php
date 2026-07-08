@@ -27,7 +27,8 @@
     <!-- <link rel="stylesheet" href="{{ asset('css/background-articles.css') }}"> -->
     <link rel="stylesheet" href="{{ asset('css/detail_article.css') }}">
     <link rel="stylesheet" href="{{ asset('css/fix-stability.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/mobile-bottom-nav.css') }}">
+    {{-- Barre de navigation mobile désactivée (ancien fonctionnement) --}}
+    {{-- <link rel="stylesheet" href="{{ asset('css/mobile-bottom-nav.css') }}"> --}}
     
     <!-- Typographie uniforme globale - Doit être chargé après les autres CSS -->
     <style>
@@ -412,7 +413,8 @@
         @include('includes.footer')
     </div>
 
-    @include('includes.mobile-bottom-nav')
+    {{-- Barre de navigation mobile désactivée (ancien fonctionnement) --}}
+    {{-- @include('includes.mobile-bottom-nav') --}}
 
                 <!-- Bouton pour déclencher le modal -->
             <!-- <div id="megaphone-button" class="phone-bot-button">
