@@ -5,7 +5,7 @@
     text-align: center;
     z-index: 160; /* Assure que la barre reste au-dessus du contenu */
     box-shadow: 0 0 5px rgb(255, 255, 255); /* Ombre légère */
-    margin-top: 45px; /* Décalage depuis le haut */
+    top: 45px; /* Sous le header fixe (45px) */
     position: fixed;
     width: 100%; /* Occupe toute la largeur */
     height: 130px; 
@@ -14,6 +14,8 @@
     border-bottom: 1px solid rgba(255, 255, 255); /* Bordure légère */
     border-radius: 0 0 8px 8px; /* Coins arrondis */
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Ombre légère */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
 
 

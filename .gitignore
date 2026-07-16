@@ -40,9 +40,12 @@ config/mail.php
 
 # Dossiers de build et assets compilés
 /public/build*
-/public/css*
 /public/js*
 /public/images*
+
+# Bootstrap Icons : css + polices uniquement (pas les milliers de .svg)
+/public/css/bootstrap-icons/*.svg
+/public/css/*.zip
 
 # Fichiers de logs et cache
 /storage/logs/*
