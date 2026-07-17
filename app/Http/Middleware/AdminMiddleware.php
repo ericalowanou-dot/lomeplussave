@@ -20,9 +20,7 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        // Vérifier si l'utilisateur est administrateur
-        // Pour l'instant, on considère qu'un utilisateur est admin si son email contient 'admin'
-        // Vous pouvez modifier cette logique selon vos besoins
+        // Vérifier si l'utilisateur est administrateur (role === 'admin')
         if (!auth()->user()->isAdmin()) {
             abort(403, 'Accès non autorisé. Seuls les administrateurs peuvent accéder à cette section.');
         }

@@ -7,6 +7,74 @@ function sameOrigin(url) {
     }
 }
 
+function getFixedHeaderOffset() {
+    const nav = document.querySelector('.navigation');
+    const gap = window.matchMedia?.('(max-width: 767.98px)').matches ? 12 : 8;
+
+    if (nav) {
+        return nav.getBoundingClientRect().bottom + gap;
+    }
+
+    const header = document.querySelector('header');
+    return (header?.getBoundingClientRect().bottom ?? 45) + gap;
+}
+
+function getResultsScrollTarget(listEl) {
+    return listEl || null;
+}
+
+function scrollToResults(listEl, { delay = 0, dismissKeyboard = false, instant = false } = {}) {
+    const targetEl = getResultsScrollTarget(listEl);
+    if (!targetEl) return;
+
+    const run = () => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const offset = getFixedHeaderOffset();
+                const scrollY = window.visualViewport?.pageTop ?? window.scrollY;
+                const rect = targetEl.getBoundingClientRect();
+                const top = rect.top + scrollY - offset;
+
+                window.scrollTo({
+                    top: Math.max(0, top),
+                    behavior: instant ? 'auto' : 'smooth',
+                });
+
+                // Correction si une partie reste sous la navigation
+                window.setTimeout(() => {
+                    const nextRect = targetEl.getBoundingClientRect();
+                    const nextOffset = getFixedHeaderOffset();
+                    if (nextRect.top < nextOffset - 2) {
+                        window.scrollBy({
+                            top: nextRect.top - nextOffset,
+                            behavior: 'auto',
+                        });
+                    }
+                }, instant ? 50 : 350);
+            });
+        });
+    };
+
+    const isMobile = window.matchMedia?.('(max-width: 767.98px)').matches;
+    const searchInput = document.getElementById('search');
+    const shouldBlur =
+        dismissKeyboard && isMobile && searchInput && document.activeElement === searchInput;
+
+    const effectiveDelay = shouldBlur ? Math.max(delay, 550) : delay;
+    const useInstant = instant || (shouldBlur && isMobile);
+
+    if (shouldBlur) {
+        searchInput.blur();
+    }
+
+    if (effectiveDelay > 0) {
+        window.setTimeout(() => scrollToResults(listEl, { delay: 0, dismissKeyboard: false, instant: useInstant }), effectiveDelay);
+        return;
+    }
+
+    run();
+}
+
 function initGuestBannerRotation(root = document) {
     const banner = root.querySelector('.banner-ad');
     if (!banner) return;
@@ -107,7 +175,7 @@ function initAjaxFilters() {
                 closeFilterModalIfOpen();
 
                 const listEl = document.querySelector('main #articles-results[data-context]');
-                listEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                scrollToResults(listEl);
             } catch {
                 // Fallback navigation normale
                 window.location.href = url;
@@ -139,7 +207,7 @@ function initAjaxFilters() {
                 closeFilterModalIfOpen();
 
                 const listEl = document.querySelector('main #articles-results[data-context]');
-                listEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                scrollToResults(listEl);
             } catch {
                 window.location.href = url.toString();
             }
@@ -166,7 +234,7 @@ function initAjaxPagination() {
             window.history.pushState({ partial: true }, '', a.href);
             // Option UX : remonter au début de la liste
             const listEl = document.querySelector('main #articles-results[data-context]');
-            listEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            scrollToResults(listEl);
         } catch (err) {
             // Fallback : navigation normale si AJAX KO
             window.location.href = a.href;
@@ -224,7 +292,7 @@ function initAjaxSearch() {
             const data = await fetchArticlesPartial(url.toString());
             replaceArticlesDom(data);
             window.history.pushState({ partial: true }, '', url.toString());
-            listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            scrollToResults(listEl, { delay: 520, dismissKeyboard: true, instant: false });
         } catch {
             window.location.href = url.toString();
         }
@@ -279,7 +347,7 @@ function initAjaxCategories() {
                 replaceArticlesDom(data);
                 window.history.pushState({ partial: true }, '', url.toString());
                 hideSubcategoriesUi();
-                listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                scrollToResults(listEl);
             } catch {
                 window.location.href = url.toString();
             }
@@ -312,7 +380,7 @@ function initAjaxCategories() {
                 replaceArticlesDom(data);
                 window.history.pushState({ partial: true }, '', url.toString());
                 hideSubcategoriesUi();
-                listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                scrollToResults(listEl);
             } catch {
                 window.location.href = url.toString();
             }
@@ -352,8 +420,19 @@ function wait(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-async function animateMainSwap(mainEl, swapFn) {
+function resetWindowScrollInstant() {
+    // Pas d'animation : la nouvelle page doit se peindre déjà en haut.
+    const prev = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.documentElement.style.scrollBehavior = prev;
+}
+
+async function animateMainSwap(mainEl, swapFn, { resetScroll = false } = {}) {
     if (!mainEl) {
+        if (resetScroll) resetWindowScrollInstant();
         swapFn();
         return;
     }
@@ -361,7 +440,10 @@ async function animateMainSwap(mainEl, swapFn) {
     mainEl.classList.add('main-fade-out');
     await wait(120);
 
+    // Pendant le fondu (contenu invisible) : placer le scroll à 0, puis injecter la page.
+    if (resetScroll) resetWindowScrollInstant();
     swapFn();
+    if (resetScroll) resetWindowScrollInstant();
 
     mainEl.classList.remove('main-fade-out');
     mainEl.classList.add('main-fade-in');
@@ -388,7 +470,7 @@ function executeScriptsFromElement(root) {
     });
 }
 
-async function replaceMainFromHtml(html) {
+async function replaceMainFromHtml(html, { resetScroll = false } = {}) {
     const parser = new DOMParser();
     const nextDoc = parser.parseFromString(html, 'text/html');
 
@@ -396,9 +478,13 @@ async function replaceMainFromHtml(html) {
     const currentMain = document.querySelector('main.flex-fill');
     if (!nextMain || !currentMain) return false;
 
-    await animateMainSwap(currentMain, () => {
-        currentMain.innerHTML = nextMain.innerHTML;
-    });
+    await animateMainSwap(
+        currentMain,
+        () => {
+            currentMain.innerHTML = nextMain.innerHTML;
+        },
+        { resetScroll },
+    );
 
     if (nextDoc.title) {
         document.title = nextDoc.title;
@@ -438,14 +524,14 @@ function initPartialDetailNavigation() {
 
             try {
                 const html = await fetchPageHtml(targetUrl.toString());
-                const replaced = await replaceMainFromHtml(html);
+                const replaced = await replaceMainFromHtml(html, { resetScroll: true });
                 if (!replaced) {
                     window.location.href = targetUrl.toString();
                     return;
                 }
 
                 window.history.pushState({ pjax: true }, '', targetUrl.toString());
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.dispatchEvent(new CustomEvent('app:page-changed'));
             } catch {
                 window.location.href = targetUrl.toString();
             }
@@ -459,10 +545,12 @@ function initPartialDetailNavigation() {
 
         try {
             const html = await fetchPageHtml(url.toString());
-            const replaced = await replaceMainFromHtml(html);
+            const replaced = await replaceMainFromHtml(html, { resetScroll: true });
             if (!replaced) {
                 window.location.reload();
+                return;
             }
+            window.dispatchEvent(new CustomEvent('app:page-changed'));
         } catch {
             window.location.reload();
         }

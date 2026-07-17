@@ -89,20 +89,8 @@ class MessageController extends Controller
             'body.min' => 'Le message doit contenir au moins 2 caractères.',
         ]);
 
-        // Trouver l'admin - plusieurs critères
+        // Destinataire admin : uniquement les comptes avec role=admin
         $admin = User::where('role', 'admin')->first();
-        
-        if (!$admin) {
-            $admin = User::where('email', 'like', '%admin%')->first();
-        }
-        
-        if (!$admin) {
-            $admin = User::where('email', 'lomeplus80@gmail.com')->first();
-        }
-        
-        if (!$admin) {
-            $admin = User::find(1);
-        }
 
         if (!$admin) {
             return back()

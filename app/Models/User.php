@@ -136,9 +136,7 @@ public function favoris()
 // Méthodes pour l'administration
 public function isAdmin()
 {
-    // Pour l'instant, on considère qu'un utilisateur est admin si son email contient 'admin'
-    // Vous pouvez modifier cette logique selon vos besoins
-    return str_contains(strtolower($this->email), 'admin') || $this->role === 'admin';
+    return $this->role === 'admin';
 }
 
 public function isBlocked()

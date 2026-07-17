@@ -22,8 +22,6 @@
 }
 
 .homepage-sidebar-card {
-    position: sticky;
-    top: 185px;
     margin-bottom: 1rem;
 }
 
@@ -154,8 +152,22 @@
     scroll-margin-top: 220px;
 }
 
-/* Desktop : sidebar compacte, contenu centré avec marges latérales */
+/* Desktop : sidebar compacte figée à gauche, articles scrollables */
 @media (min-width: 768px) {
+    /*
+     * overflow-x:hidden sur html/body/.container casse position:sticky
+     * (overflow-y devient auto). clip évite le scroll horizontal sans casser sticky.
+     */
+    html:has(.homepage-layout),
+    body:has(.homepage-layout) {
+        overflow-x: clip !important;
+    }
+
+    body:has(.homepage-layout) .main-wrapper,
+    body:has(.homepage-layout) main.flex-fill {
+        overflow: visible !important;
+    }
+
     .homepage-filter-mobile {
         display: none !important;
     }
@@ -164,6 +176,7 @@
         max-width: min(960px, calc(100% - 5rem));
         padding-left: 2.5rem;
         padding-right: 2.5rem;
+        overflow: visible !important;
     }
 
     .homepage-row {
@@ -174,6 +187,7 @@
         gap: 1rem;
         margin-left: 0;
         margin-right: 0;
+        overflow: visible;
     }
 
     .homepage-sidebar-col {
@@ -182,6 +196,15 @@
         max-width: 185px;
         padding-left: 0;
         padding-right: 0;
+        position: sticky;
+        top: 185px;
+        align-self: flex-start;
+        z-index: 5;
+        max-height: calc(100vh - 200px);
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
     }
 
     .homepage-main-col {
@@ -195,6 +218,9 @@
     .homepage-sidebar-card {
         padding: 0.75rem 0.85rem;
         border-radius: 12px;
+        margin-bottom: 0;
+        position: relative;
+        top: auto;
     }
 
     .homepage-sidebar-card h5 {
@@ -304,12 +330,15 @@
 
     .homepage-filter-mobile {
         position: relative;
-        margin-top: 15px;
-        height: 34px;
+        height: 0;
+        margin: 0;
+        pointer-events: none;
     }
 
     .homepage-filter-mobile .filter-btn {
-        position: absolute;
+        position: fixed;
+        top: 180px;
+        right: 10px;
         z-index: 99;
         display: none;
         align-items: center;
@@ -320,8 +349,9 @@
         color: #fff;
         cursor: pointer;
         border-radius: 6px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
         transform-origin: right center;
+        pointer-events: auto;
     }
 
     .homepage-filter-mobile .filter-btn.is-fixed {

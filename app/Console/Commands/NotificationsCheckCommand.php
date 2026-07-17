@@ -46,7 +46,7 @@ class NotificationsCheckCommand extends Command
         if ($admins->isEmpty()) {
             $this->newLine();
             $this->warn('Aucun admin trouvé. Les notifications ne sont pas créées.');
-            $this->line('Créez un utilisateur avec role=admin ou email contenant "admin" (ex. admin@…).');
+            $this->line('Créez un utilisateur avec role=admin.');
             return self::FAILURE;
         }
 

@@ -56,19 +56,28 @@
             const filterBtn = document.getElementById("openFilter");
 
             if (st > lastScrollTop) {
-                pub.classList.add("disparaitre");
+                if (pub) pub.classList.add("disparaitre");
                 if (filterBtn && isMobileHome()) {
                     filterBtn.style.display = "inline-flex";
                 }
             } else {
-                pub.classList.remove("disparaitre");
-                if (filterBtn && isMobileHome()) {
+                if (pub) pub.classList.remove("disparaitre");
+                if (filterBtn && isMobileHome() && st < 40) {
                     filterBtn.style.display = "none";
+                    filterBtn.classList.remove("is-fixed", "is-unfixing");
                 }
             }
             lastScrollTop = st <= 0 ? 0 : st;
         });
     </script>
+
+    {{-- Filtre mobile : bouton en haut (hors flux des articles) --}}
+    <div class="filter-btn-wrapper homepage-filter-mobile">
+        <button id="openFilter" class="filter-btn" type="button">
+            <i class="bi bi-funnel"></i>
+            <span>Filtrer</span>
+        </button>
+    </div>
 
     <!-- style pour les boutons de publicité  -->
     <style>
@@ -162,6 +171,15 @@
             transform: translateX(200%) rotate(20deg);
             opacity: 0;
         }
+
+        .haut-publicite.disparaitre {
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            pointer-events: none;
+        }
     </style>
 
     <!-- style pour le scroll automatique des articles horizontaux  -->
@@ -205,17 +223,26 @@
 
             searchInput.addEventListener('input', function() {
                 const value = this.value.trim();
+                const hautPub = document.getElementById('hautPublicite');
 
                 if (value.length > 0) {
                     if (horizontalBlock) horizontalBlock.classList.add('collapsed');
                     if (filterButton) filterButton.classList.add('disparaitre');
                     if (titreNouveate) titreNouveate.classList.add('disparaitre');
+                    if (hautPub) hautPub.classList.add('disparaitre');
+                    document.body.classList.add('is-search-active');
                 } else {
                     if (horizontalBlock) horizontalBlock.classList.remove('collapsed');
                     if (filterButton) filterButton.classList.remove('disparaitre');
                     if (titreNouveate) titreNouveate.classList.remove('disparaitre');
+                    if (hautPub) hautPub.classList.remove('disparaitre');
+                    document.body.classList.remove('is-search-active');
                 }
             });
+
+            if (searchInput.value.trim().length > 0) {
+                searchInput.dispatchEvent(new Event('input'));
+            }
         });
 
     </script>
@@ -235,10 +262,9 @@
         }
 
         #openFilter.disparaitre {
-            opacity: 0;
-            height: 0;
-            overflow: hidden;
-
+            opacity: 0 !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
         }
         .titre-nouveaute.disparaitre {
             opacity: 0;
@@ -1028,13 +1054,7 @@
         </div>
     </div>
 
-    {{-- Filtre mobile : bouton flottant + modal (style d'origine) --}}
-    <div class="filter-btn-wrapper homepage-filter-mobile">
-        <button id="openFilter" class="filter-btn" type="button">
-            <i class="bi bi-funnel"></i>
-            <span>Filtrer</span>
-        </button>
-    </div>
+    @endif
 
     {{-- Script bouton filtre mobile (fixe au scroll) --}}
     <script>
@@ -1062,8 +1082,8 @@
                 const pub = document.getElementById("hautPublicite");
                 const pubDisparait = pub && pub.classList.contains("disparaitre");
 
-                if (pubDisparait) {
-                    if (filterBtn.style.display === "none") {
+                if (pubDisparait || scrollY > 40) {
+                    if (filterBtn.style.display === "none" && !filterBtn.classList.contains("disparaitre")) {
                         filterBtn.style.display = "inline-flex";
                     }
 
@@ -1095,8 +1115,6 @@
             handleScroll();
         });
     </script>
-
-    @endif
 
     @if(!$articles->isEmpty())
         <style>

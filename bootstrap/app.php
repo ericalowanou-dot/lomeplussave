@@ -17,5 +17,32 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $jsonClientError = function ($request, string $message, array $errors, int $status) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => $message,
+                    'errors' => $errors,
+                ], $status);
+            }
+
+            return null;
+        };
+
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $e, $request) use ($jsonClientError) {
+            return $jsonClientError(
+                $request,
+                'Les photos sont trop volumineuses pour le serveur. Réduisez le nombre ou la taille des images, puis réessayez.',
+                ['photos' => ['Fichier trop volumineux pour le serveur.']],
+                413
+            );
+        });
+
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, $request) use ($jsonClientError) {
+            return $jsonClientError(
+                $request,
+                'Votre session a expiré. Rechargez la page, reconnectez-vous si besoin, puis réessayez.',
+                ['general' => ['Session expirée.']],
+                419
+            );
+        });
     })->create();

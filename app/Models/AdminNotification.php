@@ -106,23 +106,10 @@ class AdminNotification extends Model
 
     /**
      * Obtenir tous les administrateurs (même logique que User::isAdmin()).
-     * Fallback sur filtre PHP si la requête SQL ne retourne personne.
      */
     private static function getAdmins()
     {
-        $admins = User::where(function ($query) {
-            $query->where('role', 'admin')
-                ->orWhereRaw('LOWER(email) LIKE ?', ['%admin%']);
-        })->get();
-
-        if ($admins->isEmpty()) {
-            $admins = User::all()->filter(fn (User $u) => $u->isAdmin())->values();
-            if ($admins->isNotEmpty()) {
-                \Illuminate\Support\Facades\Log::warning('AdminNotification: getAdmins SQL returned 0, fallback isAdmin() found ' . $admins->count());
-            }
-        }
-
-        return $admins;
+        return User::where('role', 'admin')->get();
     }
 
     /**
@@ -185,7 +172,7 @@ class AdminNotification extends Model
         $userName = $report->user ? $report->user->name : 'Utilisateur anonyme';
 
         if ($admins->isEmpty()) {
-            \Illuminate\Support\Facades\Log::warning('AdminNotification: Aucun admin trouvé (role=admin ou email contient "admin"). Aucune notification créée pour le signalement #' . $report->id);
+            \Illuminate\Support\Facades\Log::warning('AdminNotification: Aucun admin trouvé (role=admin). Aucune notification créée pour le signalement #' . $report->id);
             return $notifications;
         }
 

@@ -4507,17 +4507,10 @@
 
                     </script>
 
+        </div>{{-- fin .detail-container --}}
 
 
 
-
-
-
-                </div>
-
-            </div>
-
-        </div>
 
 
 
@@ -6030,19 +6023,5 @@
         });
 
     </script>
-
-
-
-       
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-
-
 
 @endsection

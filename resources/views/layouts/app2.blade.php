@@ -3,7 +3,7 @@
 <head>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>@yield('title', 'Lome+')</title>
     
     <!-- Meta tags Open Graph pour le partage -->
@@ -434,27 +434,12 @@
             
 <!-- style du bouton de publication d'annonce -->
 <style>
-    /* Caché par défaut sur la page détails */
-    #megaphone-button.details-page {
-        opacity: 0;
-        pointer-events: none;
-        transform: translateX(-50%) scale(0.9);
-        transition: opacity .4s ease, transform .4s ease;
-    }
-
-    /* Quand visible (sur page détails, dans la section articles similaires) */
-    #megaphone-button.details-page.is-visible {
-        opacity: 1;
-        pointer-events: auto;
-        transform: translateX(-50%) scale(1);
-    }
-
     /* Styles propres au bouton */
     #megaphone-button {
         position: fixed;
         bottom: 20px;
         left: 50%;
-        transform: translateX(-50%);
+        transform: translateX(-50%) scale(1);
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -465,15 +450,23 @@
         box-shadow: 0 6px 10px rgba(0, 0, 0, 0.5);
         cursor: pointer;
         overflow: hidden;
-        transition: all .35s ease;
         z-index: 100;
+        opacity: 1;
+        pointer-events: auto;
+        will-change: opacity, transform, left, padding;
+        transition:
+            opacity 0.45s ease,
+            transform 0.45s ease,
+            left 0.35s ease,
+            padding 0.35s ease,
+            box-shadow 0.35s ease;
     }
 
     #megaphone-button img {
         width: 22px;
         height: 22px;
         flex: 0 0 auto;
-        transition: all .35s ease;
+        transition: width 0.35s ease, height 0.35s ease, margin 0.35s ease;
     }
 
     #megaphone-button span {
@@ -482,24 +475,45 @@
         opacity: 1;
         transform: translateX(0);
         white-space: nowrap;
-        transition: opacity .35s ease, max-width .35s ease, transform .35s ease;
+        transition: opacity 0.35s ease, max-width 0.35s ease, transform 0.35s ease;
+    }
+
+    /* Caché par défaut sur la page détails (jusqu'aux articles similaires) */
+    #megaphone-button.details-page:not(.is-visible) {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(-50%) scale(0.92);
+    }
+
+    /* Visible sur page détails (section articles similaires) */
+    #megaphone-button.details-page.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(-50%) scale(1);
+    }
+
+    /* Masqué près du footer (toutes pages) — transition fluide via CSS */
+    #megaphone-button.is-footer-hidden {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transform: translateX(-50%) scale(0.92) !important;
     }
 
     /* État compact pendant le scroll */
-    #megaphone-button.is-compact {
+    #megaphone-button.is-compact:not(.is-footer-hidden) {
         left: 30px;
         padding: 10px;
         border: 1px solid #fff;
         box-shadow: 0 6px 10px rgba(0, 0, 0, 0.5);
     }
 
-    #megaphone-button.is-compact img {
+    #megaphone-button.is-compact:not(.is-footer-hidden) img {
         width: 30px;
         height: 30px;
         margin-right: -7px;
     }
 
-    #megaphone-button.is-compact span {
+    #megaphone-button.is-compact:not(.is-footer-hidden) span {
         opacity: 0;
         max-width: 0;
         transform: translateX(-10px);
@@ -519,74 +533,95 @@
         if (!btn) return;
 
         let scrollTimer;
+        let ticking = false;
 
-        // Vérifier si on est sur la page détails
-        const isDetailsPage = btn.classList.contains('details-page');
+        function currentPath() {
+            return window.location.pathname.replace(/\/+$/, '') || '/';
+        }
 
-        // Fonction pour vérifier si on est proche du footer (pour TOUTES les pages)
+        function isDetailsPage() {
+            return /^\/article\/[^/]+$/.test(currentPath());
+        }
+
+        function isMesAnnoncesPage() {
+            return currentPath() === '/mes-annonces';
+        }
+
+        function isAboutPage() {
+            return currentPath() === '/a-propos';
+        }
+
         function isNearFooter() {
             const footer = document.querySelector('footer');
             if (!footer) return false;
-            
-            const footerRect = footer.getBoundingClientRect();
-            // Masquer le bouton quand le footer est visible (à moins de 100px du bas de l'écran)
-            return footerRect.top < window.innerHeight + 100;
+            return footer.getBoundingClientRect().top < window.innerHeight + 100;
         }
 
-        window.addEventListener('scroll', () => {
-            const scrollY = window.scrollY;
+        function isButtonEffectivelyVisible() {
+            if (isMesAnnoncesPage() || isAboutPage()) return false;
+            if (btn.classList.contains('is-footer-hidden')) return false;
+            if (isDetailsPage()) return btn.classList.contains('is-visible');
+            return true;
+        }
 
-            // ⚠️ PRIORITÉ : Masquer près du footer sur TOUTES les pages
-            if (isNearFooter()) {
-                btn.style.opacity = '0';
-                btn.style.pointerEvents = 'none';
-                if (isDetailsPage) {
-                    btn.classList.remove('is-visible');
-                }
-                return; // Stop
+        function updateMegaphoneVisibility() {
+            if (isMesAnnoncesPage() || isAboutPage()) {
+                return;
+            }
+
+            // Footer : classe CSS (pas de style inline) pour garder la transition
+            btn.classList.toggle('is-footer-hidden', isNearFooter());
+
+            if (!isDetailsPage()) {
+                btn.classList.remove('is-visible');
+                return;
+            }
+
+            const articlesSimilaires = document.getElementById('articles-similaires');
+            if (articlesSimilaires) {
+                const rect = articlesSimilaires.getBoundingClientRect();
+                const inView = rect.top < window.innerHeight && rect.bottom > 0;
+                btn.classList.toggle('is-visible', inView && !btn.classList.contains('is-footer-hidden'));
             } else {
-                // Réafficher le bouton quand on s'éloigne du footer
-                if (!isDetailsPage) {
-                    btn.style.opacity = '1';
-                    btn.style.pointerEvents = 'auto';
-                } else {
-                    btn.style.opacity = '';
-                    btn.style.pointerEvents = '';
-                }
+                btn.classList.toggle('is-visible', window.scrollY > 350 && !btn.classList.contains('is-footer-hidden'));
             }
+        }
 
-            if (isDetailsPage) {
-                // ➡️ Bouton visible UNIQUEMENT dans la section articles similaires
-                const articlesSimilaires = document.getElementById('articles-similaires');
-                
-                if (articlesSimilaires) {
-                    const rect = articlesSimilaires.getBoundingClientRect();
-                    // Afficher quand la section est visible dans le viewport
-                    if (rect.top < window.innerHeight && rect.bottom > 0) {
-                        btn.classList.add('is-visible');
-                    } else {
-                        btn.classList.remove('is-visible');
-                    }
-                } else {
-                    // Fallback : afficher après 350px si pas de section articles similaires
-                    if (scrollY > 350) {
-                        btn.classList.add('is-visible');
-                    } else {
-                        btn.classList.remove('is-visible');
-                    }
-                }
-            }
+        function onScrollFrame() {
+            ticking = false;
+            updateMegaphoneVisibility();
 
-            // Comportement compact/expand pendant le scroll
-            if (!isDetailsPage || btn.classList.contains('is-visible')) {
+            if (isButtonEffectivelyVisible()) {
                 btn.classList.add('is-compact');
-
                 clearTimeout(scrollTimer);
                 scrollTimer = setTimeout(() => {
                     btn.classList.remove('is-compact');
                 }, 1000);
+            } else {
+                btn.classList.remove('is-compact');
             }
+        }
+
+        function syncMegaphoneForPage() {
+            btn.classList.toggle('details-page', isDetailsPage());
+            btn.classList.toggle('hidden-on-mes-annonces', isMesAnnoncesPage());
+            btn.classList.toggle('hidden-on-about', isAboutPage());
+            btn.classList.remove('is-visible', 'is-compact', 'is-footer-hidden');
+
+            // Laisse le navigateur peindre l'état "caché", puis calcule la visibilité
+            requestAnimationFrame(() => {
+                updateMegaphoneVisibility();
+            });
+        }
+
+        window.addEventListener('scroll', () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(onScrollFrame);
         }, { passive: true });
+
+        window.addEventListener('app:page-changed', syncMegaphoneForPage);
+        syncMegaphoneForPage();
     })();
 </script>
 

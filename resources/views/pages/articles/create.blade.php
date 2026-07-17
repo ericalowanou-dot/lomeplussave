@@ -1519,6 +1519,7 @@
             const form = document.getElementById('articleCreateForm');
             const overlay = document.getElementById('loading-overlay');
             const submitBtn = form && form.querySelector('button[type="submit"]');
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
 
             function clearAllErrors() {
                 ['photos-error-container', 'photos-error', 'categorie-error', 'sous-categorie-error', 'description-error', 'general-error-ajax'].forEach(function(id) {
@@ -1533,18 +1534,199 @@
                 return null;
             }
 
-            function firstErrorEl() {
-                const ids = ['general-error-ajax', 'photos-error-container', 'photos-error', 'categorie-error', 'sous-categorie-error', 'description-error'];
-                for (let i = 0; i < ids.length; i++) {
-                    const el = document.getElementById(ids[i]);
-                    if (el && el.style.display === 'block') return el;
+            function showGeneralError(msg, solutions) {
+                const el = showFieldError('general-error-ajax', msg);
+                if (el && Array.isArray(solutions) && solutions.length) {
+                    el.innerHTML = msg + '<ul style="margin:8px 0 0;padding-left:18px;">'
+                        + solutions.map(function(s) { return '<li>' + s + '</li>'; }).join('')
+                        + '</ul>';
                 }
-                return null;
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function compressImageFile(file, maxDim, quality) {
+                maxDim = maxDim || 1280;
+                quality = quality || 0.82;
+
+                if (!file || !file.type || !file.type.startsWith('image/') || file.type === 'image/gif') {
+                    return Promise.resolve(file);
+                }
+
+                if (file.size < 900 * 1024) {
+                    return Promise.resolve(file);
+                }
+
+                return new Promise(function(resolve) {
+                    const img = new Image();
+                    const objectUrl = URL.createObjectURL(file);
+
+                    img.onload = function() {
+                        URL.revokeObjectURL(objectUrl);
+
+                        let width = img.width;
+                        let height = img.height;
+                        const scale = Math.min(1, maxDim / Math.max(width, height));
+                        width = Math.round(width * scale);
+                        height = Math.round(height * scale);
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) {
+                            resolve(file);
+                            return;
+                        }
+
+                        ctx.drawImage(img, 0, 0, width, height);
+                        canvas.toBlob(function(blob) {
+                            if (!blob) {
+                                resolve(file);
+                                return;
+                            }
+                            const name = (file.name || 'photo.jpg').replace(/\.[^.]+$/, '') + '.jpg';
+                            resolve(new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() }));
+                        }, 'image/jpeg', quality);
+                    };
+
+                    img.onerror = function() {
+                        URL.revokeObjectURL(objectUrl);
+                        resolve(file);
+                    };
+
+                    img.src = objectUrl;
+                });
+            }
+
+            async function buildFormDataWithCompressedPhotos(sourceForm) {
+                const fd = new FormData(sourceForm);
+                const fileInputs = sourceForm.querySelectorAll('input[type="file"].file-input');
+
+                for (let i = 0; i < fileInputs.length; i++) {
+                    const input = fileInputs[i];
+                    if (input.files && input.files[0]) {
+                        const compressed = await compressImageFile(input.files[0]);
+                        fd.set(input.name, compressed, compressed.name);
+                    }
+                }
+
+                return fd;
+            }
+
+            function messageForHttpStatus(status) {
+                if (status === 419) {
+                    return 'Votre session a expiré. Rechargez la page, reconnectez-vous si besoin, puis réessayez.';
+                }
+                if (status === 413) {
+                    return 'Les photos sont trop volumineuses. Réduisez le nombre ou la taille des images (max 30 Mo par photo).';
+                }
+                if (status === 408 || status === 504) {
+                    return 'Le serveur met trop de temps à traiter les photos. Réessayez avec moins d\'images ou une meilleure connexion.';
+                }
+                if (status >= 500) {
+                    return 'Erreur serveur temporaire. Réessayez dans quelques instants.';
+                }
+                if (status === 0) {
+                    return 'Connexion interrompue. Vérifiez votre réseau mobile et réessayez.';
+                }
+                return 'Erreur lors de l\'envoi (code ' + status + '). Réessayez.';
+            }
+
+            async function parseArticleStoreResponse(response) {
+                const contentType = response.headers.get('content-type') || '';
+                let data = {};
+
+                if (contentType.includes('application/json')) {
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        data = {};
+                    }
+                }
+
+                if (!response.ok && !data.message && !data.errors) {
+                    data.message = messageForHttpStatus(response.status);
+                }
+
+                return { ok: response.ok, status: response.status, data: data };
+            }
+
+            async function submitArticleForm() {
+                clearAllErrors();
+                if (overlay) overlay.style.display = 'flex';
+                if (submitBtn) submitBtn.disabled = true;
+
+                const csrf = form.querySelector('input[name="_token"]');
+                const url = form.action;
+
+                try {
+                    const fd = await buildFormDataWithCompressedPhotos(form);
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': csrf?.value || csrfMeta?.content || ''
+                        }
+                    });
+
+                    const res = await parseArticleStoreResponse(response);
+
+                    if (overlay) overlay.style.display = 'none';
+                    if (submitBtn) submitBtn.disabled = false;
+
+                    if (res.ok && res.data && res.data.success && res.data.redirect) {
+                        window.location.href = res.data.redirect;
+                        return;
+                    }
+
+                    if (res.status === 422 && res.data && res.data.errors) {
+                        const err = res.data.errors;
+                        let first = null;
+                        if (err.photos && err.photos[0]) {
+                            const el = showFieldError('photos-error-container', err.photos[0]);
+                            if (el) first = first || el;
+                        }
+                        if (err.categorie && err.categorie[0]) {
+                            const el = showFieldError('categorie-error', err.categorie[0]);
+                            if (el) first = first || el;
+                        }
+                        if (err.sous_categorie_id && err.sous_categorie_id[0]) {
+                            const el = showFieldError('sous-categorie-error', err.sous_categorie_id[0]);
+                            if (el) first = first || el;
+                        }
+                        if (err.description && err.description[0]) {
+                            const el = showFieldError('description-error', err.description[0]);
+                            if (el) first = first || el;
+                        }
+                        if (err.general && err.general[0]) {
+                            showGeneralError(res.data.message || err.general[0], res.data.error_solutions);
+                            return;
+                        }
+                        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return;
+                    }
+
+                    showGeneralError(
+                        (res.data && res.data.message) ? res.data.message : messageForHttpStatus(res.status),
+                        res.data && res.data.error_solutions
+                    );
+                } catch (error) {
+                    if (overlay) overlay.style.display = 'none';
+                    if (submitBtn) submitBtn.disabled = false;
+                    showGeneralError(messageForHttpStatus(0), [
+                        'Vérifiez votre connexion Internet',
+                        'Réduisez le nombre ou la taille des photos',
+                        'Réessayez dans quelques instants'
+                    ]);
+                }
             }
 
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                let hasError = false;
                 const fileInputs = document.querySelectorAll('input[type="file"].file-input');
                 let hasFile = false;
                 for (let i = 0; i < fileInputs.length; i++) {
@@ -1578,7 +1760,6 @@
                     return;
                 }
                 const descriptionField = document.getElementById('description');
-                const descriptionError = document.getElementById('description-error');
                 const descVal = descriptionField ? descriptionField.value.trim() : '';
                 const minL = 20, maxL = 1500;
                 if (!descVal || descVal.length < minL) {
@@ -1595,63 +1776,7 @@
                     return;
                 }
 
-                clearAllErrors();
-                if (overlay) overlay.style.display = 'flex';
-                if (submitBtn) submitBtn.disabled = true;
-
-                const fd = new FormData(form);
-                const csrf = form.querySelector('input[name="_token"]');
-                const url = form.action;
-
-                fetch(url, {
-                    method: 'POST',
-                    body: fd,
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                }).then(function(r) {
-                    return r.json().then(function(data) { return { ok: r.ok, status: r.status, data: data }; });
-                }).catch(function() {
-                    return { ok: false, status: 0, data: { message: 'Erreur réseau ou serveur. Réessayez.' } };
-                }).then(function(res) {
-                    if (overlay) overlay.style.display = 'none';
-                    if (submitBtn) submitBtn.disabled = false;
-
-                    if (res.ok && res.data && res.data.success && res.data.redirect) {
-                        window.location.href = res.data.redirect;
-                        return;
-                    }
-                    if (res.status === 422 && res.data && res.data.errors) {
-                        const err = res.data.errors;
-                        let first = null;
-                        if (err.photos && err.photos[0]) {
-                            const el = showFieldError('photos-error-container', err.photos[0]);
-                            if (el) first = first || el;
-                        }
-                        if (err.categorie && err.categorie[0]) {
-                            const el = showFieldError('categorie-error', err.categorie[0]);
-                            if (el) first = first || el;
-                        }
-                        if (err.sous_categorie_id && err.sous_categorie_id[0]) {
-                            const el = showFieldError('sous-categorie-error', err.sous_categorie_id[0]);
-                            if (el) first = first || el;
-                        }
-                        if (err.description && err.description[0]) {
-                            const el = showFieldError('description-error', err.description[0]);
-                            if (el) first = first || el;
-                        }
-                        if (err.general && err.general[0]) {
-                            const el = showFieldError('general-error-ajax', err.general[0]);
-                            if (el) first = first || el;
-                        }
-                        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        return;
-                    }
-                    const msg = (res.data && res.data.message) ? res.data.message : 'Une erreur est survenue. Veuillez réessayer.';
-                    showFieldError('general-error-ajax', msg);
-                    document.getElementById('general-error-ajax').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                });
+                submitArticleForm();
             });
         })();
     </script>

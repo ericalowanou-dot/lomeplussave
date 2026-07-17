@@ -34,7 +34,11 @@
                id="search"
                placeholder="Rechercher..."
                value="{{ request()->q ?? ''}}"
-               data-context="{{ $contextPage ?? 'articles' }}">
+               data-context="{{ $contextPage ?? 'articles' }}"
+               autocomplete="off"
+               autocorrect="off"
+               autocapitalize="off"
+               spellcheck="false">
         <button type="submit" id="search-button" class="search-button-navigation">
             <img src="{{asset('images/search.png')}}" alt="Rechercher">
         </button>

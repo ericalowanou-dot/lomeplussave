@@ -21,8 +21,8 @@ use App\Http\Controllers\AboutController;
 use Illuminate\Http\Request; //test wireshark
 
 
-Route::post('/user/update', [UserController::class, 'updateAjax'])->name('user.update.ajax');
 Route::middleware(['auth', 'check.blocked'])->group(function(){
+    Route::post('/user/update', [UserController::class, 'updateAjax'])->name('user.update.ajax');
     Route::post('/user/boost/{article}', [UserController::class, 'spendCoinsForBoost'])->name('user.boost');
     Route::post('/user/certify', [UserController::class, 'spendCoinsForCertification'])->name('user.certify');
     Route::get('/user/my-articles', [UserController::class, 'myArticles'])->name('user.my-articles');
@@ -60,12 +60,18 @@ Route::middleware(['auth', 'check.blocked'])->group(function(){
     Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update'); // Pour modifier un commentaire
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy'); // Pour supprimer un commentaire
     Route::post('/comments/{comment}/report', [CommentController::class, 'report'])->name('comments.report'); // Pour signaler un commentaire
-    Route::get('/articles/{article}/comments/load-more', [CommentController::class, 'loadMore'])->name('comments.loadMore'); // Pour charger plus de commentaires
     Route::get('/mes-favoris', [AnnonceController::class, 'mesFavoris'])->name('mes_favoris'); // Pour voir les articles aimés par l'utilisateur
     Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create'); //pour afficher le formulaire de création d'article
     
     //Route::post('/articles', [ArticleController::class, 'store'])->name('articles.store'); //pour enregistrer un nouvel article dans la bdd
     Route::post('/annonce/sauvegarder', [ArticleController::class, 'store'])->name('articles.store');
+    Route::post('/send', [ArticleController::class, 'store'])->name('articles.send'); // Alias de création d'article
+
+    Route::get('/articles/{article}/edit', [ArticleController::class, 'edit'])->name('articles.edit');
+    Route::put('/articles/{article}', [ArticleController::class, 'update'])->name('articles.update');
+    Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])->name('articles.destroy');
+    Route::get('/articles/{article}/transfer', [ArticleController::class, 'transfer'])->name('articles.transfer');
+    Route::post('/articles/{article}/transfer', [ArticleController::class, 'doTransfer'])->name('articles.doTransfer');
     
     Route::get('/mes-annonces', [AnnonceController::class, 'index'])->name('mes_annonces'); // Pour qu'un vendeur voit ses annonces
     Route::get('/annonce/{id}', [AnnonceController::class, 'show'])->name('annonce.show');
@@ -87,43 +93,17 @@ Route::middleware(['auth', 'check.blocked'])->group(function () {
 
 
 
-// Route::get('/categorie/create',[CategorieController::class, 'create'])->name('Categorie.create');
-Route::post('/categorie/store',[CategorieController::class, 'index'])->name('Categorie.store');
-Route::get('/categories', [CategorieController::class, 'index'])->name('categories.index');
-Route::post('/categories', [CategorieController::class, 'store'])->name('categories.create');
-Route::post('/sous-categories', [SousCategorieController::class, 'store'])->name('sous_categories.store');
+// Gestion des catégories / sous-catégories (admin uniquement — routes legacy)
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::post('/categorie/store', [CategorieController::class, 'index'])->name('Categorie.store');
+    Route::post('/categories', [CategorieController::class, 'store'])->name('categories.create');
+    Route::post('/sous-categories', [SousCategorieController::class, 'store'])->name('sous_categories.store');
 
-
-
-
-
-
-
-
-
-
-// liste des categories pour la modification, suppression et ajout par l'administrateur
-
-Route::get('/category-list', [CategorieController::class, 'listes_categries'])->name('categories-liste');
-Route::post('/store-categorie', [CategorieController::class, 'store'])->name('categories.store');
-Route::get('/update-categorie/{id}', [CategorieController::class, 'update'])->name('categories.edit');
-Route::delete('/delete-categorie/{id}', [CategorieController::class, 'destroy'])->name('categories.destroy');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    Route::get('/category-list', [CategorieController::class, 'listes_categries'])->name('categories-liste');
+    Route::post('/store-categorie', [CategorieController::class, 'store'])->name('categories.store');
+    Route::get('/update-categorie/{id}', [CategorieController::class, 'update'])->name('categories.edit');
+    Route::delete('/delete-categorie/{id}', [CategorieController::class, 'destroy'])->name('categories.destroy');
+});
 
 // routes pour recuperer les categories et sous-categories dans le modal de creation d'article 
 Route::get('/categories', [CategorieController::class, 'getCategories']);
@@ -138,38 +118,9 @@ Route::get('/categories/{id}/subcategories', [CategorieController::class, 'getSu
 
 Route::get('/articlesParCategorie', [CategorieController::class, 'articleParSubcategorie'])->name('articles.sub'); //pour récupérer les articles par sous catégorie
 
-Route::post('/send', [ArticleController::class, 'store'])->name('articles.send'); // Ajouter un article
-// Route::put('/articles/{id}', [ArticleController::class, 'update'])->name('articles.update'); // Modifier un article
-Route::put('/articles/{article}', [ArticleController::class, 'update'])->name('articles.update');
-
-// Route::delete('/articles/{id}', [ArticleController::class, 'destroy'])->name('articles.destroy'); // Supprimer un article
-Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])->name('articles.destroy');
-
-// Route::get('/menu', [MenuController::class, 'index'])->name('menu');
-
 Route::get('/categories-list', [CategorieController::class, 'getCategories'])->name('categories.list');
 
-
-
 Route::get('/paginate', [AnnonceController::class, 'maPaginnation']);
-
-
-
-
-
-
-
-// modifier un article
-Route::get('/articles/{article}/edit', [ArticleController::class, 'edit'])->name('articles.edit');
-// Route::put('/articles/{article}', [ArticleController::class, 'update'])->name('articles.update');
-
-// supprimer un article
-// Route::delete('/articles/{article}', [ArticleController::class, 'destroy'])->name('articles.destroy');
-
-// transférer un article
-Route::get('/articles/{article}/transfer', [ArticleController::class, 'transfer'])->name('articles.transfer');
-Route::post('/articles/{article}/transfer', [ArticleController::class, 'doTransfer'])->name('articles.doTransfer');
-
 
 Route::get('/boutique/{user}', [UserShopController::class, 'show'])->name('boutique.show');
 

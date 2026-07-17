@@ -458,6 +458,33 @@ class ArticleController extends Controller
             return response()->json($payload, 422);
         };
 
+        try {
+            return $this->storeArticle($request, $wantsJson, $jsonError);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
+            if ($wantsJson) {
+                return response()->json([
+                    'message' => 'Une erreur serveur est survenue lors de la publication. Réessayez dans quelques instants.',
+                    'errors' => [
+                        'general' => ['Impossible de publier l\'annonce pour le moment.'],
+                    ],
+                    'error_solutions' => [
+                        'Vérifiez votre connexion Internet',
+                        'Réduisez le nombre ou la taille des photos',
+                        'Rechargez la page et réessayez',
+                    ],
+                ], 500);
+            }
+
+            throw $e;
+        }
+    }
+
+    protected function storeArticle(Request $request, bool $wantsJson, callable $jsonError)
+    {
         $photos = $request->file('photos');
 
         
@@ -935,7 +962,6 @@ class ArticleController extends Controller
         return redirect()->route('mes_annonces')->with('success', 'Article ajouté avec succès !'); 
 
     }
-
 
 
 
