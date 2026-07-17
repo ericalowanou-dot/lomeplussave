@@ -1546,13 +1546,14 @@
 
             function compressImageFile(file, maxDim, quality) {
                 maxDim = maxDim || 1280;
-                quality = quality || 0.82;
+                quality = quality || 0.75;
 
                 if (!file || !file.type || !file.type.startsWith('image/') || file.type === 'image/gif') {
                     return Promise.resolve(file);
                 }
 
-                if (file.size < 900 * 1024) {
+                // Même les ~1 Mo sont recompressés : limite hébergeurs souvent 2–8 Mo pour tout le POST
+                if (file.size < 350 * 1024 && maxDim >= 1280) {
                     return Promise.resolve(file);
                 }
 
@@ -1566,8 +1567,8 @@
                         let width = img.width;
                         let height = img.height;
                         const scale = Math.min(1, maxDim / Math.max(width, height));
-                        width = Math.round(width * scale);
-                        height = Math.round(height * scale);
+                        width = Math.max(1, Math.round(width * scale));
+                        height = Math.max(1, Math.round(height * scale));
 
                         const canvas = document.createElement('canvas');
                         canvas.width = width;
@@ -1581,6 +1582,10 @@
                         ctx.drawImage(img, 0, 0, width, height);
                         canvas.toBlob(function(blob) {
                             if (!blob) {
+                                resolve(file);
+                                return;
+                            }
+                            if (blob.size >= file.size && file.type === 'image/jpeg') {
                                 resolve(file);
                                 return;
                             }
@@ -1598,15 +1603,36 @@
                 });
             }
 
-            async function buildFormDataWithCompressedPhotos(sourceForm) {
+            async function compressImageAggressively(file) {
+                let out = await compressImageFile(file, 1280, 0.75);
+                if (out.size > 520 * 1024) {
+                    out = await compressImageFile(out, 1024, 0.65);
+                }
+                if (out.size > 400 * 1024) {
+                    out = await compressImageFile(out, 900, 0.58);
+                }
+                if (out.size > 320 * 1024) {
+                    out = await compressImageFile(out, 800, 0.52);
+                }
+                return out;
+            }
+
+            async function buildFormDataWithCompressedPhotos(sourceForm, aggressive) {
                 const fd = new FormData(sourceForm);
                 const fileInputs = sourceForm.querySelectorAll('input[type="file"].file-input');
+                const compress = aggressive ? compressImageAggressively : async function(f) {
+                    let out = await compressImageFile(f, 1280, 0.75);
+                    if (out.size > 520 * 1024) {
+                        out = await compressImageFile(out, 1024, 0.65);
+                    }
+                    return out;
+                };
 
                 for (let i = 0; i < fileInputs.length; i++) {
                     const input = fileInputs[i];
                     if (input.files && input.files[0]) {
-                        const compressed = await compressImageFile(input.files[0]);
-                        fd.set(input.name, compressed, compressed.name);
+                        const compressed = await compress(input.files[0]);
+                        fd.set(input.name, compressed, compressed.name || 'photo.jpg');
                     }
                 }
 
@@ -1618,7 +1644,7 @@
                     return 'Votre session a expiré. Rechargez la page, reconnectez-vous si besoin, puis réessayez.';
                 }
                 if (status === 413) {
-                    return 'Les photos sont trop volumineuses. Réduisez le nombre ou la taille des images (max 30 Mo par photo).';
+                    return 'Les photos sont trop volumineuses pour le serveur. Réessayez : compression renforcée.';
                 }
                 if (status === 408 || status === 504) {
                     return 'Le serveur met trop de temps à traiter les photos. Réessayez avec moins d\'images ou une meilleure connexion.';
@@ -1627,7 +1653,7 @@
                     return 'Erreur serveur temporaire. Réessayez dans quelques instants.';
                 }
                 if (status === 0) {
-                    return 'Connexion interrompue. Vérifiez votre réseau mobile et réessayez.';
+                    return 'Connexion interrompue pendant l\'envoi. Souvent dû à la taille des photos ou au réseau mobile.';
                 }
                 return 'Erreur lors de l\'envoi (code ' + status + '). Réessayez.';
             }
@@ -1651,6 +1677,27 @@
                 return { ok: response.ok, status: response.status, data: data };
             }
 
+            function postArticleFormData(url, fd, csrf) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(function() {
+                    controller.abort();
+                }, 90000);
+
+                return fetch(url, {
+                    method: 'POST',
+                    body: fd,
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrf?.value || csrfMeta?.content || ''
+                    }
+                }).finally(function() {
+                    clearTimeout(timeoutId);
+                });
+            }
+
             async function submitArticleForm() {
                 clearAllErrors();
                 if (overlay) overlay.style.display = 'flex';
@@ -1659,21 +1706,27 @@
                 const csrf = form.querySelector('input[name="_token"]');
                 const url = form.action;
 
+                async function attempt(aggressive) {
+                    const fd = await buildFormDataWithCompressedPhotos(form, aggressive);
+                    const response = await postArticleFormData(url, fd, csrf);
+                    return parseArticleStoreResponse(response);
+                }
+
                 try {
-                    const fd = await buildFormDataWithCompressedPhotos(form);
+                    let res;
+                    try {
+                        res = await attempt(false);
+                    } catch (firstErr) {
+                        res = await attempt(true);
+                    }
 
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        body: fd,
-                        credentials: 'same-origin',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': csrf?.value || csrfMeta?.content || ''
+                    if (!res.ok && (res.status === 413 || res.status === 0 || res.status === 408 || res.status === 504)) {
+                        try {
+                            res = await attempt(true);
+                        } catch (e) {
+                            throw e;
                         }
-                    });
-
-                    const res = await parseArticleStoreResponse(response);
+                    }
 
                     if (overlay) overlay.style.display = 'none';
                     if (submitBtn) submitBtn.disabled = false;
@@ -1703,10 +1756,11 @@
                             if (el) first = first || el;
                         }
                         if (err.general && err.general[0]) {
-                            showGeneralError(res.data.message || err.general[0], res.data.error_solutions);
+                            showGeneralError(err.general[0], res.data.error_solutions);
                             return;
                         }
                         if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        else if (res.data.message) showGeneralError(res.data.message, res.data.error_solutions);
                         return;
                     }
 
@@ -1724,7 +1778,6 @@
                     ]);
                 }
             }
-
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const fileInputs = document.querySelectorAll('input[type="file"].file-input');
