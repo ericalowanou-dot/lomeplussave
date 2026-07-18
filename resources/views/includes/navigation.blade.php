@@ -169,7 +169,7 @@
 <div class="overlay" id="overlay"></div>
 
         <!-- Conteneur pour afficher les sous-catégories -->
-        <div class="subcategories-container" style="display: none; text-align: center; margin-top: 45px;">
+        <div class="subcategories-container" style="display: none; text-align: center;">
           <div class="subcategories"></div>
         </div>
 
@@ -188,21 +188,28 @@
                   subcategoriesContainer.style.top = (rect.bottom + window.scrollY) + "px";
               } */
 
-              function positionSubcategoriesContainer(categoryBtn) {
-                  const rect = categoryBtn.getBoundingClientRect();
-                  
-                  // Le container prend toute la largeur
+              function positionSubcategoriesContainer() {
+                  const nav = document.querySelector(".navigation");
+                  const overlay = document.getElementById("overlay");
+                  const top = nav
+                      ? Math.round(nav.getBoundingClientRect().bottom) + 2
+                      : 147;
+
                   subcategoriesContainer.style.left = "0px";
                   subcategoriesContainer.style.width = "100%";
                   subcategoriesContainer.style.maxWidth = "100%";
-                  
-                  // On le met en dessous du bouton
-                  // subcategoriesContainer.style.top = (rect.bottom + window.scrollY) + "px";
+                  subcategoriesContainer.style.marginTop = "0";
+                  subcategoriesContainer.style.top = top + "px";
+
+                  if (overlay) {
+                      overlay.style.top = top + "px";
+                  }
               }
 
 
 
                 function showSubcategories() {
+                    positionSubcategoriesContainer();
                     document.getElementById("overlay").style.display = "block";
                     document.querySelector(".subcategories-container").style.display = "block";
                 }
@@ -245,7 +252,7 @@
                                   noSub.style.padding = "8px 16px";
                                   subcategoriesDiv.appendChild(noSub);
                               }
-                              positionSubcategoriesContainer(this);
+                              positionSubcategoriesContainer();
                               subcategoriesContainer.style.display = "block";
                               document.getElementById("overlay").style.display = "block"; // ✅ affiche overlay
                           });

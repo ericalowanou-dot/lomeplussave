@@ -4266,245 +4266,129 @@
 
 
                     <!-- Script pour le lightbox -->
-
                     <script>
-
-                        // Stocker les images dans un tableau global avec placeholder si nécessaire
-
                         @php
-
                             $lightboxImages = array_filter([
-
-                                $article->photo, 
-
-                                $article->photo1 ?? null, 
-
-                                $article->photo2 ?? null, 
-
+                                $article->photo,
+                                $article->photo1 ?? null,
+                                $article->photo2 ?? null,
                                 $article->photo3 ?? null,
-
-                                $article->photo4 ?? null, 
-
+                                $article->photo4 ?? null,
                                 $article->photo5 ?? null,
-
                                 $article->photo6 ?? null,
-
                             ]);
 
-                            // Si aucune image, utiliser le placeholder
-
                             if (empty($lightboxImages)) {
-
                                 $lightboxImages = ['images/placeholder.png'];
-
                             }
 
-                            // Convertir tous les chemins en URLs complètes
-
-                            $lightboxImages = array_map(function($img) {
-
+                            $lightboxImages = array_map(function ($img) {
                                 return $img ? asset($img) : asset('images/placeholder.png');
-
                             }, $lightboxImages);
-
                         @endphp
 
-                        const lightboxImages = @json($lightboxImages);
+                        (function () {
+                            window.__detailLightbox = window.__detailLightbox || {};
+                            window.__detailLightbox.images = @json($lightboxImages);
+                            window.__detailLightbox.index = 0;
+                            const placeholderUrl = @json(asset('images/placeholder.png'));
 
-                        let currentLightboxIndex = 0;
+                            window.openLightbox = function (index) {
+                                const images = window.__detailLightbox.images || [];
+                                if (!images.length) return;
 
+                                window.__detailLightbox.index = index;
+                                const modal = document.getElementById('lightboxModal');
+                                const lightboxImg = document.getElementById('lightboxImage');
+                                const prevBtn = document.querySelector('.lightbox-prev');
+                                const nextBtn = document.querySelector('.lightbox-next');
+                                if (!modal || !lightboxImg) return;
 
+                                if (images.length <= 1) {
+                                    if (prevBtn) prevBtn.style.display = 'none';
+                                    if (nextBtn) nextBtn.style.display = 'none';
+                                } else {
+                                    if (prevBtn) prevBtn.style.display = 'flex';
+                                    if (nextBtn) nextBtn.style.display = 'flex';
+                                }
 
-                        // Ouvrir le lightbox avec l'image cliquée
+                                if (!images[window.__detailLightbox.index]) return;
 
-                        document.addEventListener('DOMContentLoaded', function() {
+                                lightboxImg.src = images[window.__detailLightbox.index];
+                                lightboxImg.onerror = function () {
+                                    this.src = placeholderUrl;
+                                };
+                                modal.classList.add('active');
+                                document.body.classList.add('lightbox-open');
+                                document.body.style.overflow = 'hidden';
+                                document.documentElement.style.overflow = 'hidden';
+                            };
 
-                            const clickableImages = document.querySelectorAll('.image-clickable');
+                            window.closeLightbox = function () {
+                                const modal = document.getElementById('lightboxModal');
+                                if (!modal) return;
+                                modal.classList.remove('active');
+                                document.body.classList.remove('lightbox-open');
+                                document.body.style.overflow = '';
+                                document.documentElement.style.overflow = '';
+                            };
 
-                            
+                            window.changeLightboxImage = function (direction) {
+                                const images = window.__detailLightbox.images || [];
+                                if (images.length <= 1) return;
 
-                            clickableImages.forEach((img) => {
+                                let idx = window.__detailLightbox.index + direction;
+                                if (idx < 0) idx = images.length - 1;
+                                else if (idx >= images.length) idx = 0;
+                                window.__detailLightbox.index = idx;
 
-                                img.addEventListener('click', function(e) {
+                                const lightboxImg = document.getElementById('lightboxImage');
+                                if (!lightboxImg || !images[idx]) return;
+                                lightboxImg.src = images[idx];
+                                lightboxImg.onerror = function () {
+                                    this.src = placeholderUrl;
+                                };
+                            };
 
-                                    e.stopPropagation();
+                            // Une seule fois : marche aussi après navigation PJAX (DOMContentLoaded ne se relance pas)
+                            if (!window.__detailLightbox.bound) {
+                                window.__detailLightbox.bound = true;
 
-                                    const imageIndex = parseInt(this.getAttribute('data-image-index')) || 0;
+                                document.addEventListener('click', function (e) {
+                                    const img = e.target.closest('.image-clickable');
+                                    if (img) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const imageIndex = parseInt(img.getAttribute('data-image-index'), 10) || 0;
+                                        window.openLightbox(imageIndex);
+                                        return;
+                                    }
 
-                                    openLightbox(imageIndex);
-
+                                    const modal = document.getElementById('lightboxModal');
+                                    if (
+                                        modal &&
+                                        modal.classList.contains('active') &&
+                                        (e.target === modal || e.target.classList.contains('lightbox-content'))
+                                    ) {
+                                        window.closeLightbox();
+                                    }
                                 });
 
-                            });
+                                document.addEventListener('keydown', function (e) {
+                                    const modal = document.getElementById('lightboxModal');
+                                    if (!modal || !modal.classList.contains('active')) return;
 
-                        });
-
-
-
-                        function openLightbox(index) {
-
-                            if (!lightboxImages || lightboxImages.length === 0) return;
-
-                            
-
-                            currentLightboxIndex = index;
-
-                            const modal = document.getElementById('lightboxModal');
-
-                            const lightboxImg = document.getElementById('lightboxImage');
-
-                            const prevBtn = document.querySelector('.lightbox-prev');
-
-                            const nextBtn = document.querySelector('.lightbox-next');
-
-                            
-
-                            // Afficher/masquer les boutons de navigation selon le nombre d'images
-
-                            if (lightboxImages.length <= 1) {
-
-                                if (prevBtn) prevBtn.style.display = 'none';
-
-                                if (nextBtn) nextBtn.style.display = 'none';
-
-                            } else {
-
-                                if (prevBtn) prevBtn.style.display = 'flex';
-
-                                if (nextBtn) nextBtn.style.display = 'flex';
-
+                                    const images = window.__detailLightbox.images || [];
+                                    if (e.key === 'Escape') {
+                                        window.closeLightbox();
+                                    } else if (e.key === 'ArrowLeft' && images.length > 1) {
+                                        window.changeLightboxImage(-1);
+                                    } else if (e.key === 'ArrowRight' && images.length > 1) {
+                                        window.changeLightboxImage(1);
+                                    }
+                                });
                             }
-
-                            
-
-                            if (lightboxImages[currentLightboxIndex]) {
-
-                                lightboxImg.src = lightboxImages[currentLightboxIndex];
-
-                                lightboxImg.onerror = function() {
-
-                                    this.src = '{{ asset("images/placeholder.png") }}';
-
-                                };
-
-                                modal.classList.add('active');
-
-                                document.body.classList.add('lightbox-open');
-
-                                document.body.style.overflow = 'hidden'; // Empêcher le scroll de la page
-
-                                document.documentElement.style.overflow = 'hidden'; // Empêcher le scroll sur html aussi
-
-                            }
-
-                        }
-
-
-
-                        function closeLightbox() {
-
-                            const modal = document.getElementById('lightboxModal');
-
-                            modal.classList.remove('active');
-
-                            document.body.classList.remove('lightbox-open');
-
-                            document.body.style.overflow = ''; // Restaurer le scroll
-
-                            document.documentElement.style.overflow = ''; // Restaurer le scroll sur html aussi
-
-                        }
-
-
-
-                        function changeLightboxImage(direction) {
-
-                            if (!lightboxImages || lightboxImages.length <= 1) return;
-
-                            
-
-                            currentLightboxIndex += direction;
-
-                            
-
-                            // Gérer le dépassement des limites (boucle)
-
-                            if (currentLightboxIndex < 0) {
-
-                                currentLightboxIndex = lightboxImages.length - 1;
-
-                            } else if (currentLightboxIndex >= lightboxImages.length) {
-
-                                currentLightboxIndex = 0;
-
-                            }
-
-                            
-
-                            const lightboxImg = document.getElementById('lightboxImage');
-
-                            if (lightboxImages[currentLightboxIndex]) {
-
-                                lightboxImg.src = lightboxImages[currentLightboxIndex];
-
-                                lightboxImg.onerror = function() {
-
-                                    this.src = '{{ asset("images/placeholder.png") }}';
-
-                                };
-
-                            }
-
-                        }
-
-
-
-                        // Fermer le lightbox en cliquant sur le fond
-
-                        document.addEventListener('DOMContentLoaded', function() {
-
-                            const modal = document.getElementById('lightboxModal');
-
-                            modal.addEventListener('click', function(e) {
-
-                                if (e.target === modal || e.target.classList.contains('lightbox-content')) {
-
-                                    closeLightbox();
-
-                                }
-
-                            });
-
-                        });
-
-
-
-                        // Navigation au clavier
-
-                        document.addEventListener('keydown', function(e) {
-
-                            const modal = document.getElementById('lightboxModal');
-
-                            if (modal && modal.classList.contains('active')) {
-
-                                if (e.key === 'Escape') {
-
-                                    closeLightbox();
-
-                                } else if (e.key === 'ArrowLeft' && lightboxImages && lightboxImages.length > 1) {
-
-                                    changeLightboxImage(-1);
-
-                                } else if (e.key === 'ArrowRight' && lightboxImages && lightboxImages.length > 1) {
-
-                                    changeLightboxImage(1);
-
-                                }
-
-                            }
-
-                        });
-
+                        })();
                     </script>
 
         </div>{{-- fin .detail-container --}}
