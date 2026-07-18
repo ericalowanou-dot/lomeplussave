@@ -363,8 +363,9 @@
     border-top: 1px solid rgba(255, 255, 255); /* Bordure légère */
     left: 0;
     right: 0;
+    top: 100%; /* sous la barre orange (contexte transform) */
     width: 100%;
-    height: 100%;
+    height: 100vh;
     max-width: 100%;
     backdrop-filter: blur(8px); /* floute tout derrière */
     background: rgba(0, 0, 0, 0.2); /* assombrit légèrement */
@@ -380,15 +381,15 @@
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     padding: 8px 0;
     position: fixed;
-    /* Fallback : header 45px + hauteur nav ; JS ajuste au pixel près */
-    top: calc(45px + 100px);
-    margin-top: 0;
+    /* Relatif à .navigation (transform) → colle sous la barre */
+    top: 100%;
+    margin-top: -1px; /* chevauche légèrement pour toucher la barre */
     z-index: 100;
     min-width: 160px;
     border: 3px solid #FF6A00;
     width: 100%;
     z-index: 9999;
-    border-radius: 10px;
+    border-radius: 0 0 10px 10px; /* coins bas seulement, jointure nette avec la barre */
     left: 0;
 }
 

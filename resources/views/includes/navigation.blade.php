@@ -189,20 +189,20 @@
               } */
 
               function positionSubcategoriesContainer() {
-                  const nav = document.querySelector(".navigation");
                   const overlay = document.getElementById("overlay");
-                  const top = nav
-                      ? Math.round(nav.getBoundingClientRect().bottom) + 2
-                      : 147;
 
+                  // .navigation a un transform → position:fixed est relatif à la barre.
+                  // top:100% colle le panneau juste sous la barre orange (sans écart).
                   subcategoriesContainer.style.left = "0px";
                   subcategoriesContainer.style.width = "100%";
                   subcategoriesContainer.style.maxWidth = "100%";
-                  subcategoriesContainer.style.marginTop = "0";
-                  subcategoriesContainer.style.top = top + "px";
+                  subcategoriesContainer.style.marginTop = "-1px";
+                  subcategoriesContainer.style.top = "100%";
 
                   if (overlay) {
-                      overlay.style.top = top + "px";
+                      overlay.style.top = "100%";
+                      overlay.style.left = "0";
+                      overlay.style.width = "100%";
                   }
               }
 
