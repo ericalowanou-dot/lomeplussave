@@ -1,22 +1,44 @@
-/* Barre de navigation fixe en haut */
+/* Barre de navigation fixe en haut
+ * Largeurs alignées sur .homepage-container (filtre + articles),
+ * sans modifier le layout des articles.
+ */
   .navigation {
-    background-color: #f57c00; /* Couleur orange */
-    padding: 8px 0 6px;
+    background-color: #FF6A00; /* Orange vif (maquette) */
+    padding: 6px 0 2px;
     text-align: center;
     z-index: 160; /* Assure que la barre reste au-dessus du contenu */
-    box-shadow: 0 0 5px rgb(255, 255, 255); /* Ombre légère */
     top: 45px; /* Sous le header fixe (45px) */
     position: fixed;
-    width: 100%; /* Occupe toute la largeur */
+    width: min(980px, calc(100% - 2rem));
     height: auto;
     min-height: 0;
-    left: 0;
-    right: 0; 
+    left: 50%;
+    right: auto;
     border-bottom: 1px solid rgba(255, 255, 255); /* Bordure légère */
-    border-radius: 0 0 8px 8px; /* Coins arrondis */
+    border-radius: 12px; /* Coins arrondis partout */
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3); /* Ombre légère */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
+    transform: translateX(-50%) translateZ(0);
+    -webkit-transform: translateX(-50%) translateZ(0);
+    box-sizing: border-box;
+  }
+
+  @media (min-width: 768px) {
+    .navigation {
+      width: min(960px, calc(100% - 8rem));
+      padding: 6px 0 1px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .navigation {
+      width: min(940px, calc(100% - 14rem));
+    }
+  }
+
+  @media (min-width: 1600px) {
+    .navigation {
+      width: min(920px, calc(100% - 20rem));
+    }
   }
 
 
@@ -36,7 +58,7 @@
   right: 0;
   width: 50px;
   height: 100%;
-  background: linear-gradient(to left, #f57c00 0%, transparent 100%);
+  background: linear-gradient(to left, #FF6A00 0%, transparent 100%);
   pointer-events: none;
 } */
 
@@ -56,7 +78,7 @@
     white-space: nowrap; /* Empêche les éléments de passer à la ligne */
     scroll-behavior: smooth; /* Défilement fluide */
     scrollbar-width: thin; /* Firefox */
-    scrollbar-color: #f57c00 transparent; /* Couleur orange */
+    scrollbar-color: #FF6A00 transparent; /* Couleur orange */
     -ms-overflow-style: auto; /* IE et Edge */
   }
 
@@ -70,12 +92,12 @@
   }
 
   .categories-container-navigation::-webkit-scrollbar-thumb {
-    background-color: #f57c00; /* Orange identique */
+    background-color: #FF6A00; /* Orange identique */
     border-radius: 999px;
   }
 
   .categories-container-navigation::-webkit-scrollbar-thumb:hover {
-    background-color: #d46600;
+    background-color: #E05E00;
   }
 
   @media (max-width: 768px) {
@@ -97,10 +119,10 @@
   /* Conteneur des catégories défilantes */
   .categories-navigation {
     display: flex;
-    padding: 5px 0; /* Espace en haut et en bas */ 
+    padding: 2px 0 0; /* Peu d'espace sous les catégories */
     gap: 10px; /* Espacement entre les éléments */
-    margin-top: 5px;
-
+    margin-top: 2px;
+    margin-bottom: 0;
   }
 
   .categories-container-navigation::-webkit-scrollbar {
@@ -140,7 +162,7 @@
 
   /* Style des images des catégories */
   .categories-item-navigation img {
-    margin-top: 5px;
+    margin-top: 2px;
     width: 26px;
     height: 26px;
     text-align: center;
@@ -154,6 +176,7 @@
     font-family: 'Montserrat', sans-serif;
     color: rgb(255, 255, 255); /* Couleur du texte */
     margin-top: 2px; /* Espace entre l'image et le texte */
+    margin-bottom: 0;
     text-align: center; /* Centre le texte sous l'image */
     align-items: center;
     justify-content: center;
@@ -235,7 +258,7 @@
 
   /* Style des boutons de défilement gauche et droite */
   .scroll-button {
-    background: rgba(245, 124, 0, 0.9); /* Couleur orange */
+    background: rgba(255, 106, 0, 0.9); /* Couleur orange */
     border: none;
     font-size: 20px;
     cursor: pointer;
@@ -362,7 +385,7 @@
     margin-top: 0;
     z-index: 100;
     min-width: 160px;
-    border: 3px solid #f57c00;
+    border: 3px solid #FF6A00;
     width: 100%;
     z-index: 9999;
     border-radius: 10px;

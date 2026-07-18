@@ -7,7 +7,9 @@
 }
 
 .homepage-layout .homepage-container {
-    max-width: 980px;
+    /* !important : app2 force .container { max-width: 100% } */
+    max-width: min(980px, calc(100% - 2rem)) !important;
+    width: 100%;
     margin-left: auto;
     margin-right: auto;
 }
@@ -173,9 +175,9 @@
     }
 
     .homepage-layout .homepage-container {
-        max-width: min(960px, calc(100% - 5rem));
-        padding-left: 2.5rem;
-        padding-right: 2.5rem;
+        max-width: min(960px, calc(100% - 8rem)) !important;
+        padding-left: 0;
+        padding-right: 0;
         overflow: visible !important;
     }
 
@@ -279,17 +281,13 @@
 
 @media (min-width: 1200px) {
     .homepage-layout .homepage-container {
-        max-width: min(940px, calc(100% - 10rem));
-        padding-left: 4rem;
-        padding-right: 4rem;
+        max-width: min(940px, calc(100% - 14rem)) !important;
     }
 }
 
 @media (min-width: 1600px) {
     .homepage-layout .homepage-container {
-        max-width: min(920px, calc(100% - 16rem));
-        padding-left: 5rem;
-        padding-right: 5rem;
+        max-width: min(920px, calc(100% - 20rem)) !important;
     }
 }
 

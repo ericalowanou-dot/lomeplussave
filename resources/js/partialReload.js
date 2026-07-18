@@ -317,9 +317,17 @@ function hideSubcategoriesUi() {
     if (overlay) overlay.style.display = 'none';
 }
 
+function isHomeListingPath(pathname = window.location.pathname) {
+    return pathname === '/' || pathname === '';
+}
+
+function getArticlesResultsEl() {
+    return document.querySelector('main #articles-results[data-context]');
+}
+
 function initAjaxCategories() {
-    const listEl = document.querySelector('main #articles-results[data-context]');
-    if (!listEl) return;
+    // Handlers toujours actifs (pas seulement si #articles-results existe au chargement),
+    // pour rester fiables après navigation PJAX / depuis n'importe quelle page.
 
     // Sur desktop (pointeur fin), cliquer une catégorie filtre directement.
     // Sur mobile (pointer coarse), on garde le comportement existant (tap = ouvrir sous-catégories).
@@ -331,26 +339,32 @@ function initAjaxCategories() {
             const btn = e.target.closest?.('.categories-item-navigation');
             if (!btn) return;
 
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
             const categoryId = btn.getAttribute('data-id');
             if (!categoryId) return;
 
-            const url = new URL(window.location.href);
-            url.searchParams.set('categorie', categoryId);
-            url.searchParams.delete('sous_categorie');
-            url.searchParams.delete('page');
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            hideSubcategoriesUi();
 
-            try {
-                const data = await fetchArticlesPartial(url.toString());
-                replaceArticlesDom(data);
-                window.history.pushState({ partial: true }, '', url.toString());
-                hideSubcategoriesUi();
-                scrollToResults(listEl);
-            } catch {
-                window.location.href = url.toString();
+            const listEl = getArticlesResultsEl();
+            if (listEl && isHomeListingPath()) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('categorie', categoryId);
+                url.searchParams.delete('sous_categorie');
+                url.searchParams.delete('page');
+
+                try {
+                    const data = await fetchArticlesPartial(url.toString());
+                    replaceArticlesDom(data);
+                    window.history.pushState({ partial: true }, '', url.toString());
+                    scrollToResults(listEl);
+                    return;
+                } catch {
+                    // fallback navigation complète
+                }
             }
+
+            window.location.href = `/?categorie=${encodeURIComponent(categoryId)}`;
         },
         true,
     );
@@ -363,27 +377,35 @@ function initAjaxCategories() {
             const btn = e.target.closest?.('.subcategory-item');
             if (!btn) return;
 
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
             const subcategoryId = btn.getAttribute('data-id');
             if (!subcategoryId) return;
 
-            const url = new URL(window.location.href);
-            url.searchParams.set('sous_categorie', subcategoryId);
-            url.searchParams.delete('categorie');
-            url.searchParams.delete('page');
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            hideSubcategoriesUi();
 
-            // Conserver une éventuelle recherche q + autres filtres déjà dans l’URL
-            try {
-                const data = await fetchArticlesPartial(url.toString());
-                replaceArticlesDom(data);
-                window.history.pushState({ partial: true }, '', url.toString());
-                hideSubcategoriesUi();
-                scrollToResults(listEl);
-            } catch {
-                window.location.href = url.toString();
+            const listEl = getArticlesResultsEl();
+
+            // Filtrage AJAX uniquement sur l'accueil (seul endpoint qui renvoie le JSON partial).
+            if (listEl && isHomeListingPath()) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('sous_categorie', subcategoryId);
+                url.searchParams.delete('categorie');
+                url.searchParams.delete('page');
+
+                try {
+                    const data = await fetchArticlesPartial(url.toString());
+                    replaceArticlesDom(data);
+                    window.history.pushState({ partial: true }, '', url.toString());
+                    scrollToResults(listEl);
+                    return;
+                } catch {
+                    // fallback page dédiée
+                }
             }
+
+            // Depuis toute autre page (détail, favoris, /articlesParCategorie, etc.)
+            window.location.href = `/articlesParCategorie?subcategory=${encodeURIComponent(subcategoryId)}`;
         },
         true,
     );
