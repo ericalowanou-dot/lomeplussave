@@ -60,7 +60,8 @@ function scrollToResults(listEl, { delay = 0, dismissKeyboard = false, instant =
     const shouldBlur =
         dismissKeyboard && isMobile && searchInput && document.activeElement === searchInput;
 
-    const effectiveDelay = shouldBlur ? Math.max(delay, 550) : delay;
+    // Après blur : laisser iOS terminer l'animation du clavier avant le scroll
+    const effectiveDelay = shouldBlur ? Math.max(delay, 700) : delay;
     const useInstant = instant || (shouldBlur && isMobile);
 
     if (shouldBlur) {
@@ -273,7 +274,12 @@ function initAjaxSearch() {
         document.getElementById('filterForm')?.getAttribute('action') ||
         window.location.pathname;
 
-    const runSearch = async () => {
+    /**
+     * @param {{ dismissKeyboard?: boolean }} [options]
+     * - saisie live : résultats sans fermer le clavier ni scroller
+     * - submit : laisse voir les résultats, puis ferme le clavier et scroll
+     */
+    const runSearch = async ({ dismissKeyboard = false } = {}) => {
         const q = (input.value || '').trim();
 
         const url = new URL(window.location.href);
@@ -292,7 +298,16 @@ function initAjaxSearch() {
             const data = await fetchArticlesPartial(url.toString());
             replaceArticlesDom(data);
             window.history.pushState({ partial: true }, '', url.toString());
-            scrollToResults(listEl, { delay: 520, dismissKeyboard: true, instant: false });
+
+            if (!dismissKeyboard) {
+                // Frappe en cours : garder le clavier ouvert pour continuer la saisie
+                return;
+            }
+
+            // Submit : laisser le temps de voir les résultats avant de fermer le clavier
+            window.setTimeout(() => {
+                scrollToResults(listEl, { delay: 700, dismissKeyboard: true, instant: false });
+            }, 800);
         } catch {
             window.location.href = url.toString();
         }
@@ -302,12 +317,15 @@ function initAjaxSearch() {
         'submit',
         (e) => {
             e.preventDefault();
-            runSearch();
+            runSearch({ dismissKeyboard: true });
         },
         true,
     );
 
-    input.addEventListener('input', debounce(runSearch, 300));
+    input.addEventListener(
+        'input',
+        debounce(() => runSearch({ dismissKeyboard: false }), 300),
+    );
 }
 
 function hideSubcategoriesUi() {
