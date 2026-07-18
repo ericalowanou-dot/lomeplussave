@@ -360,18 +360,21 @@
 
   .overlay {
     position: fixed;
-    border-top: 1px solid rgba(255, 255, 255); /* Bordure légère */
+    /* Attaché à body (JS) → vrai viewport, toute la largeur */
     left: 0;
     right: 0;
-    top: 100%; /* sous la barre orange (contexte transform) */
+    top: 0; /* JS : sous la barre orange */
     width: 100%;
     height: 100vh;
-    max-width: 100%;
-    backdrop-filter: blur(8px); /* floute tout derrière */
-    background: rgba(0, 0, 0, 0.2); /* assombrit légèrement */
-    z-index: 999; 
-    display: none; /* caché par défaut */
-    overflow-x: hidden;
+    max-width: none;
+    border: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 150; /* sous .navigation (160) pour garder les sous-catégories au-dessus */
+    display: none;
+    overflow: hidden;
+    pointer-events: auto;
 }
 
 .subcategories-container {

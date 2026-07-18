@@ -189,20 +189,27 @@
               } */
 
               function positionSubcategoriesContainer() {
+                  const nav = document.querySelector(".navigation");
                   const overlay = document.getElementById("overlay");
 
-                  // .navigation a un transform → position:fixed est relatif à la barre.
-                  // top:100% colle le panneau juste sous la barre orange (sans écart).
+                  // Sous-catégories : restent dans la barre (transform) → collées sous l'orange
                   subcategoriesContainer.style.left = "0px";
                   subcategoriesContainer.style.width = "100%";
                   subcategoriesContainer.style.maxWidth = "100%";
                   subcategoriesContainer.style.marginTop = "-1px";
                   subcategoriesContainer.style.top = "100%";
 
-                  if (overlay) {
-                      overlay.style.top = "100%";
+                  // Overlay : sur <body> pour couvrir toute la largeur de l'écran
+                  if (overlay && nav) {
+                      if (overlay.parentElement !== document.body) {
+                          document.body.appendChild(overlay);
+                      }
+                      const top = Math.round(nav.getBoundingClientRect().bottom);
+                      overlay.style.top = top + "px";
                       overlay.style.left = "0";
+                      overlay.style.right = "0";
                       overlay.style.width = "100%";
+                      overlay.style.height = `calc(100vh - ${top}px)`;
                   }
               }
 
