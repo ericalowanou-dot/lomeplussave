@@ -9,24 +9,7 @@
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/homepage-layout.css') }}">
 <main>
-    <!-- Conteneur de publicité -->
-    <div class="haut-publicite" id="hautPublicite">
-        <a href="https://abonnements.lomeplus.com" class="gauche">
-            <img src="{{ asset('images/true-logo.png') }}" alt="image-publicité">    
-            cadeau  
-        </a>
-        @if(auth()->check())
-        <a href="https://youtube.com/@lomeplus" class="droite">
-            <i class="bi bi-youtube" aria-hidden="true"></i>
-            Nous suivre
-        </a>
-        @else
-        <a href="https://whatsapp.com/channel/0029VatlBs06GcG5owxIlF0T" target="_blank"  class="droite">
-            <img src="{{ asset('images/whatsapp_icon.png') }}" alt="WhatsApp" width="20"> 
-            WhatsApp
-        </a>
-        @endif
-    </div>
+    {{-- Boutons pub haut (cadeau / WhatsApp) retirés — espace libéré sous la barre orange --}}
 
     <style>
         /* Pour Chrome, Safari et Opera */
@@ -1067,7 +1050,7 @@
             filterBtn.style.display = "none";
 
             let btnOriginalTop = filterBtn.getBoundingClientRect().top + window.scrollY;
-            const fixedTop = 180;
+            const fixedTop = 172;
             let isCurrentlyFixed = false;
             let isAnimating = false;
             let animationTimeout = null;
