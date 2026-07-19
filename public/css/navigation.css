@@ -339,6 +339,37 @@
 
   }
 
+  /*
+   * Mobile : floute les gouttières gauche/droite entre la barre orange
+   * et les bords de l'écran, pour masquer les articles qui défilent derrière.
+   */
+  .nav-side-blur {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .nav-side-blur {
+      display: block;
+      position: fixed;
+      top: 45px; /* sous le header */
+      width: calc(1rem + 14px); /* gouttière (~1rem) + léger chevauchement coins arrondis */
+      height: 130px; /* recalculé en JS selon la hauteur réelle de la barre */
+      z-index: 155; /* sous la barre orange (160), au-dessus des articles */
+      pointer-events: none;
+      backdrop-filter: blur(18px) saturate(1.05);
+      -webkit-backdrop-filter: blur(18px) saturate(1.05);
+      background: rgba(245, 245, 245, 0.72);
+    }
+
+    .nav-side-blur--left {
+      left: 0;
+    }
+
+    .nav-side-blur--right {
+      right: 0;
+    }
+  }
+
 
 
 

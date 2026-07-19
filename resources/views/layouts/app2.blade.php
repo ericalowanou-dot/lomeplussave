@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/articles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/publicites.css') }}">
     <link rel="stylesheet" href="{{ asset('css/article-horizontale.css') }}">
     <link rel="stylesheet" href="{{asset('css/detail_article.css')}}"> 
     <link rel="stylesheet" href="{{asset('css/all.min.css')}}" crossorigin="anonymous" referrerpolicy="no-referrer"> 
@@ -410,6 +411,7 @@
 
         <!-- Inclusion du pied de page -->
 
+        @include('partials.publicites', ['position' => 'footer'])
         @include('includes.footer')
     </div>
 

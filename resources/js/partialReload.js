@@ -382,6 +382,7 @@ function initAjaxCategories() {
                 }
             }
 
+            window.showPageLoader?.('Chargement...');
             window.location.href = `/?categorie=${encodeURIComponent(categoryId)}`;
         },
         true,
@@ -423,6 +424,7 @@ function initAjaxCategories() {
             }
 
             // Depuis toute autre page (détail, favoris, /articlesParCategorie, etc.)
+            window.showPageLoader?.('Chargement...');
             window.location.href = `/articlesParCategorie?subcategory=${encodeURIComponent(subcategoryId)}`;
         },
         true,
@@ -562,6 +564,8 @@ function initPartialDetailNavigation() {
                 accountModal.style.display = 'none';
             }
 
+            window.showPageLoader?.('Chargement...');
+
             try {
                 const html = await fetchPageHtml(targetUrl.toString());
                 const replaced = await replaceMainFromHtml(html, { resetScroll: true });
@@ -572,6 +576,7 @@ function initPartialDetailNavigation() {
 
                 window.history.pushState({ pjax: true }, '', targetUrl.toString());
                 window.dispatchEvent(new CustomEvent('app:page-changed'));
+                window.hidePageLoader?.();
             } catch {
                 window.location.href = targetUrl.toString();
             }
@@ -583,6 +588,8 @@ function initPartialDetailNavigation() {
         const url = new URL(window.location.href);
         if (!isAppShellPartialPath(url.pathname)) return;
 
+        window.showPageLoader?.('Chargement...');
+
         try {
             const html = await fetchPageHtml(url.toString());
             const replaced = await replaceMainFromHtml(html, { resetScroll: true });
@@ -591,6 +598,7 @@ function initPartialDetailNavigation() {
                 return;
             }
             window.dispatchEvent(new CustomEvent('app:page-changed'));
+            window.hidePageLoader?.();
         } catch {
             window.location.reload();
         }

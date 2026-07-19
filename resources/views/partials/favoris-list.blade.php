@@ -54,7 +54,7 @@
                         </div>
 
                         <!-- ligne horizontale qui sépare la photo et les autres elements  -->
-                        <hr style="border-top: 3px solid #000000;  width: 100%; margin-bottom: 5px; margin-top: 5px;">
+                        <hr style="border-top: 2px solid #000; width: 100%; margin: 3px 0;">
 
                         <div class="d-flex justify-content-between align-items-center profil-certification">
                             @if($article->isBoosted())

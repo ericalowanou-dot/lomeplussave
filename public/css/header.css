@@ -18,8 +18,8 @@ header {
     align-items: center; /* Centre verticalement les éléments */
     border-bottom: 1px solid #ddd; /* Ajoute une bordure inférieure grise */
     z-index: 500; /* Assure que l'en-tête reste au-dessus des autres éléments */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
+    /* Pas de transform ici : il créerait un containing block et
+       piégerait les modals en position:fixed (ex. menu compte). */
 }
 
         /* Logo */

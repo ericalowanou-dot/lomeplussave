@@ -360,6 +360,35 @@
 
         }
 
+        /* Modal compte : hors du header, plein viewport (évite conflit Bootstrap / layout boutique) */
+        #accountModal.modal,
+        #modal-auth.modal {
+            position: fixed !important;
+            inset: 0 !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            z-index: 10050 !important;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        #accountModal.modal[style*="display: flex"],
+        #accountModal.modal[style*="display:flex"] {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+        }
+
     </style>
 
         
@@ -436,15 +465,11 @@
 
                 <div class="modal-body-content">
 
-                    <!-- Bouton modifier infos -->
-
-                    <button class="open-modal-btn">
-
+                    <!-- Accès page profil complète -->
+                    <a href="{{ route('profile.edit') }}" class="open-modal-btn profile-edit-link">
                         <span class="btn-icon">✏️</span>
-
-                        <span class="btn-text">Modifier mes infos</span>
-
-                    </button>
+                        <span class="btn-text">Modifier mon profil</span>
+                    </a>
 
 
 
@@ -683,7 +708,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const modal = document.getElementById('editUserModal');
 
-  const openBtn = document.querySelector('.open-modal-btn');
+  // Ancien modal d'édition : seulement un <button>, pas le lien vers /profile
+  const openBtn = document.querySelector('button.open-modal-btn');
 
   const closeBtn = document.getElementById('editUserCloseBtn');
 
@@ -1867,6 +1893,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         flex: 1;
 
+    }
+
+    a.open-modal-btn.profile-edit-link {
+        text-decoration: none;
+        color: #fff;
+        box-sizing: border-box;
     }
 
 </style>
@@ -3173,13 +3205,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
             document.addEventListener('DOMContentLoaded', function() {
 
+                // Déplace les modals hors du <header> (transform / hauteur 45px
+                // sinon cassent position:fixed — visible surtout sans barre nav, ex. boutique)
+                function ensureModalOnBody(el) {
+                    if (el && el.parentElement !== document.body) {
+                        document.body.appendChild(el);
+                    }
+                    return el;
+                }
+
+                ['accountModal', 'modal-auth', 'editUserModal'].forEach(function (id) {
+                    ensureModalOnBody(document.getElementById(id));
+                });
+
                 const openAccountBtn = document.getElementById('openAccountModal');
 
                 if (openAccountBtn) {
 
                     openAccountBtn.addEventListener('click', function () {
 
-                        const accountModal = document.getElementById('accountModal');
+                        const accountModal = ensureModalOnBody(document.getElementById('accountModal'));
 
                         if (accountModal) {
 

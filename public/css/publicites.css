@@ -1,0 +1,218 @@
+/**
+ * Bannières publicitaires — adaptation par position + écran
+ * Positions: header, sidebar, footer, entre_articles, homepage_top, homepage_bottom
+ */
+
+.publicites-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0.85rem 0;
+    padding: 0;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+}
+
+.publicite-item {
+    width: 100%;
+    margin: 0 0 0.75rem;
+    position: relative;
+    text-align: center;
+}
+
+.publicite-item:last-child {
+    margin-bottom: 0;
+}
+
+.publicite-link {
+    display: block;
+    width: 100%;
+    text-decoration: none;
+    line-height: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.publicite-link:hover {
+    opacity: 0.96;
+}
+
+.publicite-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    margin: 0 auto;
+    border-radius: 12px;
+    background: #f1f5f9;
+    object-fit: cover;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+/* ——— Header (bandeau au-dessus des annonces) ——— */
+.publicites-header {
+    margin: 0.5rem 0 1rem;
+}
+
+.publicites-header .publicite-image {
+    aspect-ratio: 16 / 5;
+    max-height: 180px;
+    width: 100%;
+    object-fit: cover;
+}
+
+/* ——— Homepage haut (bandeau principal accueil) ——— */
+.publicites-homepage_top {
+    margin: 0.35rem 0 1rem;
+}
+
+.publicites-homepage_top .publicite-image {
+    aspect-ratio: 16 / 5;
+    max-height: 200px;
+    width: 100%;
+    object-fit: cover;
+}
+
+/* ——— Homepage bas ——— */
+.publicites-homepage_bottom {
+    margin: 1.25rem 0 0.5rem;
+}
+
+.publicites-homepage_bottom .publicite-image {
+    aspect-ratio: 16 / 5;
+    max-height: 200px;
+    width: 100%;
+    object-fit: cover;
+}
+
+/* ——— Entre articles ——— */
+.publicites-entre_articles {
+    margin: 1.25rem 0;
+}
+
+.publicites-entre_articles .publicite-image {
+    aspect-ratio: 16 / 6;
+    max-height: 220px;
+    width: 100%;
+    object-fit: cover;
+}
+
+/* ——— Sidebar (format plus vertical / compact) ——— */
+.publicites-sidebar {
+    margin: 0.75rem 0 0;
+    position: sticky;
+    top: 165px;
+}
+
+.publicites-sidebar .publicite-image {
+    aspect-ratio: 4 / 5;
+    max-height: 280px;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* Dans la colonne filtres (homepage) */
+.homepage-sidebar-ads .publicites-container {
+    margin: 0.5rem 0 0;
+}
+
+.homepage-sidebar-ads .publicite-image {
+    aspect-ratio: 4 / 5;
+    max-height: 260px;
+    border-radius: 10px;
+}
+
+/* ——— Footer ——— */
+.publicites-footer {
+    max-width: 1200px;
+    margin: 1.25rem auto;
+    padding: 0 0.75rem;
+}
+
+.publicites-footer .publicite-image {
+    aspect-ratio: 16 / 5;
+    max-height: 180px;
+    width: 100%;
+    object-fit: cover;
+}
+
+/* ——— Tablette ——— */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .publicites-header .publicite-image,
+    .publicites-homepage_top .publicite-image,
+    .publicites-homepage_bottom .publicite-image {
+        max-height: 160px;
+        aspect-ratio: 16 / 4.5;
+    }
+
+    .publicites-entre_articles .publicite-image {
+        max-height: 180px;
+    }
+
+    .publicites-sidebar .publicite-image,
+    .homepage-sidebar-ads .publicite-image {
+        max-height: 240px;
+    }
+}
+
+/* ——— Desktop large ——— */
+@media (min-width: 1200px) {
+    .publicites-header .publicite-image,
+    .publicites-homepage_top .publicite-image,
+    .publicites-homepage_bottom .publicite-image {
+        max-height: 220px;
+        aspect-ratio: 21 / 6;
+    }
+
+    .publicites-entre_articles .publicite-image {
+        max-height: 240px;
+    }
+
+    .publicites-footer .publicite-image {
+        max-height: 200px;
+    }
+}
+
+/* ——— Mobile ——— */
+@media (max-width: 767.98px) {
+    .publicites-container {
+        margin: 0.65rem 0;
+    }
+
+    .publicite-image {
+        border-radius: 8px;
+        box-shadow: none;
+    }
+
+    .publicites-header,
+    .publicites-homepage_top,
+    .publicites-homepage_bottom,
+    .publicites-entre_articles {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .publicites-header .publicite-image,
+    .publicites-homepage_top .publicite-image,
+    .publicites-homepage_bottom .publicite-image,
+    .publicites-entre_articles .publicite-image,
+    .publicites-footer .publicite-image {
+        aspect-ratio: 16 / 7;
+        max-height: 150px;
+        width: 100%;
+        object-fit: cover;
+    }
+
+    .publicites-sidebar {
+        position: relative;
+        top: auto;
+    }
+
+    .publicites-sidebar .publicite-image,
+    .homepage-sidebar-ads .publicite-image {
+        aspect-ratio: 16 / 7;
+        max-height: 140px;
+    }
+}

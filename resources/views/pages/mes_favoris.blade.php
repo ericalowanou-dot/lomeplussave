@@ -96,50 +96,10 @@
                     }
 
                     .mes-favoris-header__subtitle {
-                        margin: 0 0 16px 0;
+                        margin: 0;
                         color: #6b7280;
                         font-size: 0.95rem;
                         line-height: 1.6;
-                    }
-
-                    .mes-favoris-header__features {
-                        list-style: none;
-                        padding: 0;
-                        margin: 0;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 12px;
-                    }
-
-                    .mes-favoris-header__features li {
-                        display: flex;
-                        align-items: flex-start;
-                        gap: 10px;
-                        color: #475569;
-                        font-size: 0.9rem;
-                        line-height: 1.6;
-                    }
-
-                    .mes-favoris-header__features li i {
-                        color: #515ffb;
-                        font-size: 1rem;
-                        margin-top: 2px;
-                        flex-shrink: 0;
-                    }
-
-                    .mes-favoris-header__features li strong {
-                        color: #1f2937;
-                        font-weight: 600;
-                    }
-
-                    @media (max-width: 768px) {
-                        .mes-favoris-header__features {
-                            gap: 10px;
-                        }
-
-                        .mes-favoris-header__features li {
-                            font-size: 0.85rem;
-                        }
                     }
 
                     /* Statistiques */
@@ -347,14 +307,8 @@
                                 <div class="mes-favoris-header__title">
                                     <h2><i class="bi bi-heart-fill"></i> Mes Favoris</h2>
                                     <p class="mes-favoris-header__subtitle">
-                                        Retrouve facilement tous tes articles likés. Les favoris te permettent de :
+                                        Retrouve facilement tous tes articles likés.
                                     </p>
-                                    <ul class="mes-favoris-header__features">
-                                        <li><i class="bi bi-check-circle-fill"></i> <strong>Retrouver rapidement</strong> les articles qui t'ont plu</li>
-                                        <li><i class="bi bi-check-circle-fill"></i> <strong>Contacter le vendeur</strong> à tout moment depuis tes favoris</li>
-                                        <li><i class="bi bi-check-circle-fill"></i> <strong>Comparer les prix</strong> et faire ton choix en toute sérénité</li>
-                                        <li><i class="bi bi-check-circle-fill"></i> <strong>Accéder facilement</strong> aux détails de tes articles préférés</li>
-                                    </ul>
                                 </div>
                             </div>
                             

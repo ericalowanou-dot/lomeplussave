@@ -1067,85 +1067,57 @@
 
     <!-- Section Informations du Vendeur -->
 
+    @php
+        $seller = $article->user;
+        $sellerArticlesCount = $seller
+            ? $seller->articles()->where('status', 'approved')->count()
+            : 0;
+    @endphp
+
+    @if($seller)
     <div class="seller-info mt-4">
+        <div class="seller-boutique-card">
+            <div class="seller-boutique-content">
+                <img src="{{ $seller->getProfilPhotoUrl() }}"
+                     alt="Photo de {{ $seller->name }}"
+                     class="seller-boutique-avatar"
+                     loading="lazy"
+                     onerror="this.src='{{ asset('images/user_default.png') }}';">
 
-        <div class="card shadow-sm p-3">
+                <div class="seller-boutique-info">
+                    <h6 class="seller-boutique-name">{{ $seller->name }}</h6>
 
-            <div class="d-flex align-items-center">
-
-                <!-- Photo de profil du vendeur (optionnelle) -->
-
-                <img src="{{ $article->user->getProfilPhotoUrl() }}"
-
-                    alt="Photo vendeur"
-
-                    class="rounded-circle me-3 flex-shrink-0"
-
-                    width="40"
-
-                    height="40"
-
-                    loading="lazy"
-
-                    onerror="this.src='{{ asset('images/user_default.png') }}';">
-
-
-
-                <div>
-
-                    <h6 class="mb-1"><strong>{{ $article->user->name }}</strong></h6>
-
-
-
-                    <!-- Date d’inscription -->
-
-                    <p class="mb-0 text-muted" style="font-size: 12px;">
-
-                        </p>
-
-
-
-                    <!-- Nombre d’articles publiés -->
-
-                    <p class="mb-0 text-muted" style="font-size: 12px;">
-
-                        📝 Articles publiés : <strong>{{ $article->user->articles()->count() }}</strong>
-
+                    <p class="seller-boutique-count">
+                        <i class="bi bi-box-seam"></i>
+                        {{ $sellerArticlesCount }} article(s) publié(s)
+                    </p>
+                    <p class="seller-boutique-count">
+                        <i class="bi bi-heart-fill"></i>
+                        {{ (int) ($sellerTotalLikes ?? 0) }} like(s) au total
                     </p>
 
+                    <div class="seller-boutique-meta">
+                        <div class="seller-meta-item">
+                            <i class="bi bi-calendar3"></i>
+                            <span>Membre depuis {{ $seller->created_at->format('d/m/Y') }}</span>
+                        </div>
+                    </div>
 
-
-                    <!-- Likes totaux -->
-
-                    <p class="mb-0 text-muted" style="font-size: 12px;">
-
-                        ❤️ Likes totaux : 
-
-                        <strong>{{ $sellerTotalLikes }}</strong>
-
-                    </p>
-
-
-
-                    <!-- Email -->
-
-                    <!-- <p class="mb-0 text-muted">📧 {{ $article->user->email }}</p> -->
-
-                    <a href="{{ route('boutique.show', $article->user->id) }}" class="btn-boutique">
-
-                        Voir la boutique
-
-                    </a>
-
-
-
+                    @if($seller->estCertifie())
+                    <div class="seller-certification-badge">
+                        <i class="bi bi-patch-check-fill"></i>
+                        <span>Boutique certifiée</span>
+                    </div>
+                    @endif
                 </div>
-
             </div>
 
+            <a href="{{ route('boutique.show', $seller->id) }}" class="btn-boutique">
+                Voir la boutique
+            </a>
         </div>
-
     </div>
+    @endif
 
 
 
@@ -1199,105 +1171,158 @@
 
 
 
-        .seller-info{
-
+        .seller-info {
             position: relative;
-
         }
 
+        .seller-boutique-card {
+            position: relative;
+            background: #fff;
+            border-radius: 12px;
+            padding: 0.75rem 0.875rem 2.35rem;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+        }
 
+        .seller-boutique-content {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .seller-boutique-avatar {
+            width: 48px;
+            height: 48px;
+            max-width: none;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #FF9900;
+            flex-shrink: 0;
+            aspect-ratio: 1;
+            padding: 0;
+        }
+
+        .seller-boutique-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .seller-boutique-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+            line-height: 1.25;
+        }
+
+        .seller-boutique-count {
+            font-size: 0.78rem;
+            color: #666;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            line-height: 1.25;
+        }
+
+        .seller-boutique-count i {
+            color: #FF9900;
+            font-size: 0.8rem;
+        }
+
+        .seller-boutique-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-top: 0.15rem;
+            flex-wrap: wrap;
+        }
+
+        .seller-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.75rem;
+            color: #888;
+            line-height: 1.2;
+        }
+
+        .seller-meta-item i {
+            font-size: 0.8rem;
+            color: #FF9900;
+        }
+
+        .seller-certification-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: #fff;
+            padding: 0.2rem 0.55rem;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-top: 0.2rem;
+            width: fit-content;
+        }
 
         .btn-boutique {
-
             position: absolute;
-
             right: 10px;
-
-            bottom: 10px;
-
+            bottom: 8px;
             display: inline-block;
-
-            background-color: #007bff; /* bleu */
-
+            background-color: #007bff;
             color: #fff;
-
-            padding: 6px 12px;
-
+            padding: 5px 10px;
             border-radius: 6px;
-
             text-decoration: none;
-
-            font-size: 12px;
-
+            font-size: 11px;
             font-weight: bold;
-
             transition: background-color 0.3s ease;
-
+            z-index: 2;
+            line-height: 1.2;
         }
 
         .btn-boutique:hover {
-
-            background-color: #0056b3; /* plus foncé au survol */
-
+            background-color: #0056b3;
+            color: #fff;
         }
 
+        @media (max-width: 768px) {
+            .seller-boutique-card {
+                padding: 0.65rem 0.75rem 2.2rem;
+                border-radius: 8px;
+            }
 
+            .seller-boutique-content {
+                gap: 0.55rem;
+            }
 
-        .seller-info .card {
+            .seller-boutique-avatar {
+                width: 44px;
+                height: 44px;
+                border-width: 2px;
+            }
 
-            border-radius: 14px;
+            .seller-boutique-name {
+                font-size: 0.95rem;
+            }
 
-            background: #fff;
+            .seller-boutique-count {
+                font-size: 0.74rem;
+            }
 
-            border: 1px solid #eee;
+            .seller-boutique-meta {
+                gap: 0.5rem;
+                margin-top: 0.1rem;
+            }
 
-        }
-
-        .seller-info h6 {
-
-            font-weight: bold;
-
-            color: #333;
-
-        }
-
-        /* Carré strict + cover : évite l’ovale (img { height: auto } dans fix-stability.css) */
-        .seller-info img {
-
-            width: 40px;
-
-            height: 40px;
-
-            max-width: none;
-
-            object-fit: cover;
-
-            flex-shrink: 0;
-
-            aspect-ratio: 1;
-
-            border: 2px solid #ddd;
-
-            padding: 2px;
-
-        }
-
-        .seller-info .btn {
-
-            border-radius: 10px;
-
-            font-weight: 500;
-
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-
-            transition: transform 0.2s;
-
-        }
-
-        .seller-info .btn:hover {
-
-            transform: translateY(-2px);
-
+            .seller-meta-item {
+                font-size: 0.7rem;
+            }
         }
 
         /* Desktop layout enhancements */
@@ -4616,7 +4641,7 @@
 
                             <!-- Séparateur -->
 
-                            <hr style="border-top: 3px solid #000000; width: 100%; margin-bottom: 2px; margin-top: 10px;">
+                            <hr style="border-top: 2px solid #000; width: 100%; margin: 3px 0;">
 
 
 

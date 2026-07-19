@@ -46,7 +46,7 @@ body {
 }
 
 .card-body{
-    padding: 12px 10px 3px 10px !important; /* Padding professionnel */
+    padding: 6px 8px 4px 8px !important;
 }
 /* .articles{
     padding: 0 5px; 
@@ -60,8 +60,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 2px 2px 10px 0;
-    gap: 8px;
+    margin: 0 0 4px 0;
+    gap: 6px;
 }
 
 /* Style pour le prix */
@@ -82,7 +82,7 @@ body {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    gap: 4px;
+    gap: 1px;
     flex-shrink: 0; /* Empêche le conteneur de like de rétrécir */
 }
 
@@ -91,7 +91,7 @@ body {
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    gap: 4px;
+    gap: 1px;
     margin: 0;
     padding: 0;
 }
@@ -103,8 +103,8 @@ body {
     cursor: pointer;
     outline: none;
     padding: 0;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -153,49 +153,60 @@ body {
 
 /* Responsive mobile */
 @media (max-width: 575px) {
+    .card-body {
+        padding: 5px 6px 3px 6px !important;
+    }
+
     .article-price-wrapper {
-        gap: 6px;
-        margin: 2px 2px 8px 0;
+        gap: 4px;
+        margin: 0 0 3px 0;
     }
     
     .article-price {
-        font-size: 13px;
+        font-size: 12px;
     }
     
     .like-container-inline {
-        gap: 3px;
+        gap: 0;
     }
     
     .like-container-inline form {
-        gap: 3px;
+        gap: 0;
     }
     
     .like-button-inline {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
     }
     
     .like-icon-inline {
-        font-size: 16px;
+        font-size: 15px;
     }
     
     .like-count-inline,
     .like-count-inline .like-number {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
+    }
+
+    .article-title {
+        margin: 0 0 3px 0;
+        font-size: 11px;
+        height: 2.4em;
+        max-height: 2.4em;
     }
 }
 
 /* Style pour le titre */
 .article-title {
-        margin: 0 0 10px 0;
+        margin: 0 0 4px 0;
         color: #2c3e50; /* Couleur sombre professionnelle */
         font-weight: 600; /* Texte en semi-gras */
         overflow: hidden; /* Cache le texte qui dépasse */
         text-overflow: ellipsis; /* Ajoute des points de suspension si le texte est trop long */
-        font-size: 13px; /* Taille de la police augmentée */
-        line-height: 1.4; /* Ajuste l'espacement entre les lignes */
-        height: 2.8em; /* Hauteur totale */
-        max-height: 2.8em; /* Limite la hauteur */
+        font-size: 12px;
+        line-height: 1.25;
+        height: 2.5em;
+        max-height: 2.5em;
         max-width: 100%; /* Largeur complète */
         display: -webkit-box; /* Nécessaire pour le texte tronqué */
         -webkit-box-orient: vertical; /* Orientation verticale pour le texte */
@@ -228,21 +239,21 @@ body {
     display: flex; 
     justify-content: space-between; /*elements aux 2 bordures*/
     align-items: center;
-    margin: 5px 0 0 0;
+    margin: 2px 0 0 0;
     padding: 0;
-    min-height: 30px;
-    gap: 8px;
+    min-height: 22px;
+    gap: 6px;
 }
 
 .certification {
     display: flex;
     align-items: center;
     margin: 0;
-    padding: 4px 8px; 
+    padding: 2px 6px; 
     background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    gap: 4px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    gap: 3px;
     border: 1px solid rgba(40, 167, 69, 0.2);
 }
 
@@ -323,11 +334,11 @@ body {
 
 /* Conteneur de la localisation */
 .article-localisation {
-    margin: 0 0 8px 0;
+    margin: 0 0 2px 0;
     padding: 0;
     display: flex; /* Alignement horizontal */
     align-items: center; /* Centrer verticalement */
-    gap: 4px; /* Espacement entre l'icône et le texte */
+    gap: 3px; /* Espacement entre l'icône et le texte */
 }
 
 /* Icône de localisation */

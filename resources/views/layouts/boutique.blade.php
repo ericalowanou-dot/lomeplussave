@@ -138,6 +138,15 @@
             padding: 20px;
             margin-bottom: 30px;
         }
+
+        /* Modal menu compte : plein écran au-dessus du contenu boutique */
+        #accountModal.modal {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 10050 !important;
+        }
     </style>
 
      <!-- pour le icons boostrap -->
@@ -182,9 +191,7 @@
 <body>
     <!-- Page Loader -->
     @include('components.page-loader')
-    <div>
-        @include('includes.header')
-    </div>
+    @include('includes.header')
     <div class="container">
         <div class="boutique-header" style="margin-top: 4.5rem;">
             @yield('boutique-header')

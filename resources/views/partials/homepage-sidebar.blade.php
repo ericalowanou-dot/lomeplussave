@@ -79,7 +79,8 @@
     </form>
 
     <div class="homepage-sidebar-ads">
-        @include('partials.publicites', ['position' => 'homepage_top'])
+        {{-- Format vertical / compact (desktop) — position admin "Sidebar" --}}
+        @include('partials.publicites', ['position' => 'sidebar'])
         <div class="homepage-sidebar-ads-placeholder d-none">
             Espace publicitaire
         </div>

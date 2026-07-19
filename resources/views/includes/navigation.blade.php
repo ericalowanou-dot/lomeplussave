@@ -249,6 +249,7 @@
                                       subcategoriesDiv.appendChild(subcategoryBtn);
           
                                       subcategoryBtn.addEventListener("click", function () {
+                                          if (window.showPageLoader) window.showPageLoader('Chargement...');
                                           window.location.href = `/articlesParCategorie?subcategory=${subcategory.id}`;
                                       });
                                   });
@@ -304,6 +305,28 @@
       </div>
       
   </nav>
+
+  {{-- Flou des marges gauche/droite (mobile) : masque les articles derrière la barre --}}
+  <div class="nav-side-blur nav-side-blur--left" aria-hidden="true"></div>
+  <div class="nav-side-blur nav-side-blur--right" aria-hidden="true"></div>
+  <script>
+    (function () {
+      function syncNavSideBlur() {
+        if (!window.matchMedia('(max-width: 768px)').matches) return;
+        const nav = document.querySelector('.navigation');
+        const blurs = document.querySelectorAll('.nav-side-blur');
+        if (!nav || !blurs.length) return;
+        const rect = nav.getBoundingClientRect();
+        blurs.forEach(function (el) {
+          el.style.top = Math.round(rect.top) + 'px';
+          el.style.height = Math.round(rect.height) + 'px';
+        });
+      }
+      document.addEventListener('DOMContentLoaded', syncNavSideBlur);
+      window.addEventListener('resize', syncNavSideBlur);
+      window.addEventListener('scroll', syncNavSideBlur, { passive: true });
+    })();
+  </script>
 
   <!-- script pour le scroll horizontal-->
   <!-- <script>
@@ -362,7 +385,7 @@
                 // Ajouter un événement de clic pour filtrer
                 subcategoryButton.addEventListener("click", function () {
                               const subcategoryId = this.getAttribute("data-id");
-                              // Rediriger vers une route Laravel avec le filtre
+                              if (window.showPageLoader) window.showPageLoader('Chargement...');
                               window.location.href = `/articlesParCategorie?subcategory=${subcategoryId}`;
                           });
               });

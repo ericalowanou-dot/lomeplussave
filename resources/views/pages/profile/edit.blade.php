@@ -178,16 +178,26 @@
         font-size: 0.95rem !important;
         position: relative;
         z-index: 1;
+        /* Ne pas forcer padding-left : intl-tel-input le calcule (drapeau + indicatif) */
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+        padding-right: 14px !important;
     }
 
     .profile-field .iti--separate-dial-code .phone-input {
-        padding-left: 8px !important;
+        /* Espace min. pour drapeau + code pays (ex. +228) — évite la superposition */
+        padding-left: 98px !important;
     }
 
     .profile-field .iti--separate-dial-code .iti__selected-dial-code {
-        padding-left: 8px;
-        padding-right: 4px;
+        padding-left: 6px;
+        padding-right: 6px;
         line-height: 44px;
+        font-size: 0.9rem;
+    }
+
+    .profile-field .iti__flag-container {
+        width: auto;
     }
 
     .profile-field .phone-input:focus {
@@ -243,7 +253,7 @@
         color: #374151;
     }
 
-    .profile-field .form-control {
+    .profile-field .form-control:not(.phone-input) {
         border-radius: 10px;
         border: 1px solid #d1d5db;
         padding: 10px 14px;

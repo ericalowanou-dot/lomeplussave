@@ -174,13 +174,25 @@
 // Script qui s'exécute immédiatement - pas besoin d'attendre DOMContentLoaded
 (function() {
     'use strict';
-    
+
     function hideLoader() {
         var loader = document.getElementById('pageLoader');
         if (loader) {
             loader.classList.add('hidden');
         }
     }
+
+    function showLoader(message) {
+        var loader = document.getElementById('pageLoader');
+        if (!loader) return;
+        var text = loader.querySelector('.loader-text');
+        if (text && message) text.textContent = message;
+        loader.classList.remove('hidden');
+    }
+
+    // API globale (aussi enrichie par resources/js/navigationFeedback.js)
+    window.hidePageLoader = hideLoader;
+    window.showPageLoader = showLoader;
     
     // Vérifier l'état de chargement immédiatement
     if (document.readyState === 'loading') {
@@ -199,10 +211,10 @@
         setTimeout(hideLoader, 300);
     });
     
-    // Fallback de sécurité après 3 secondes maximum
+    // Fallback de sécurité après 3 secondes maximum (premier chargement seulement)
     setTimeout(function() {
         var loader = document.getElementById('pageLoader');
-        if (loader && !loader.classList.contains('hidden')) {
+        if (loader && !loader.classList.contains('hidden') && !loader.dataset.navPending) {
             hideLoader();
         }
     }, 3000);

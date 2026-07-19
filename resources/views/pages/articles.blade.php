@@ -1020,6 +1020,8 @@
                 </div>
                 <div class="col-12 homepage-main-col">
                     <div class="homepage-articles-panel">
+                        {{-- Bandeau haut : visible mobile + PC --}}
+                        @include('partials.publicites', ['position' => 'homepage_top'])
                         <h4><i class="bi bi-grid me-2"></i>Annonces</h4>
                         @include('partials.publicites', ['position' => 'header'])
                         <div id="articles-results" data-context="articles">

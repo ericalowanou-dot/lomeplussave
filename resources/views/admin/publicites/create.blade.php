@@ -149,12 +149,13 @@
                     <div class="card bg-light p-3">
                         <h6 class="card-title">Aperçu des positions</h6>
                         <small class="text-muted">
-                            <strong>Header:</strong> En haut de page<br>
-                            <strong>Sidebar:</strong> Barre latérale<br>
-                            <strong>Footer:</strong> Bas de page<br>
-                            <strong>Entre articles:</strong> Entre les articles dans les listes<br>
-                            <strong>Homepage Top:</strong> En haut de la page d'accueil<br>
-                            <strong>Homepage Bottom:</strong> En bas de la page d'accueil
+                            <strong>Header:</strong> Bandeau sous le titre Annonces (format paysage)<br>
+                            <strong>Sidebar:</strong> Colonne filtres desktop (format portrait / carré)<br>
+                            <strong>Footer:</strong> Pied de page (toutes pages)<br>
+                            <strong>Entre articles:</strong> Pages listes / sous-catégories (paysage)<br>
+                            <strong>Homepage Top:</strong> Tout en haut de l’accueil, mobile + PC (paysage)<br>
+                            <strong>Homepage Bottom:</strong> Bas de la liste d’annonces (paysage)<br>
+                            <em>Astuce : paysage ~16:5 pour les bandeaux, ~4:5 pour la sidebar.</em>
                         </small>
                     </div>
                 </div>

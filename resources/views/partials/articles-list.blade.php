@@ -63,7 +63,7 @@
                             </div>
 
                             <!-- Séparateur -->
-                            <hr style="border-top: 3px solid #000000; width: 100%; margin-bottom: 2px; margin-top: 10px;">
+                            <hr style="border-top: 2px solid #000; width: 100%; margin: 3px 0;">
 
                             <!-- Profil / Pro -->
                             <div class="profil-certification">
