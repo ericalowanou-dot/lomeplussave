@@ -16,14 +16,7 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
-        // Si l'utilisateur est admin, utiliser la vue admin
-        if ($request->user()->isAdmin()) {
-            return view('admin.profile.edit', [
-                'user' => $request->user(),
-            ]);
-        }
-        
-        // Sinon, utiliser la vue normale
+        // Même page Lome+ pour admin et utilisateurs (tous les champs + même style)
         return view('pages.profile.edit', [
             'user' => $request->user(),
         ]);

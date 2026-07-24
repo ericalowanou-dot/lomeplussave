@@ -46,7 +46,7 @@ body {
 }
 
 .card-body{
-    padding: 6px 8px 4px 8px !important;
+    padding: 7px 8px 6px 8px !important;
 }
 /* .articles{
     padding: 0 5px; 
@@ -60,7 +60,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 0 0 4px 0;
+    margin: 0 0 8px 0; /* un peu plus d'air avant le titre */
     gap: 6px;
 }
 
@@ -189,16 +189,20 @@ body {
     }
 
     .article-title {
-        margin: 0 0 3px 0;
+        margin: 0 0 5px 0;
         font-size: 11px;
         height: 2.4em;
         max-height: 2.4em;
+    }
+
+    .article-price-wrapper {
+        margin: 0 0 7px 0;
     }
 }
 
 /* Style pour le titre */
 .article-title {
-        margin: 0 0 4px 0;
+        margin: 0 0 6px 0;
         color: #2c3e50; /* Couleur sombre professionnelle */
         font-weight: 600; /* Texte en semi-gras */
         overflow: hidden; /* Cache le texte qui dépasse */
@@ -239,7 +243,7 @@ body {
     display: flex; 
     justify-content: space-between; /*elements aux 2 bordures*/
     align-items: center;
-    margin: 2px 0 0 0;
+    margin: 4px 0 0 0;
     padding: 0;
     min-height: 22px;
     gap: 6px;
@@ -334,7 +338,7 @@ body {
 
 /* Conteneur de la localisation */
 .article-localisation {
-    margin: 0 0 2px 0;
+    margin: 0 0 4px 0;
     padding: 0;
     display: flex; /* Alignement horizontal */
     align-items: center; /* Centrer verticalement */

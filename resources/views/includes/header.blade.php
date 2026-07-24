@@ -360,7 +360,7 @@
 
         }
 
-        /* Modal compte : hors du header, plein viewport (évite conflit Bootstrap / layout boutique) */
+        /* Empilement modals (menu + sous-modals) — au-dessus header/nav */
         #accountModal.modal,
         #modal-auth.modal {
             position: fixed !important;
@@ -380,6 +380,18 @@
             background: rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+        }
+
+        #editUserModal.edit-user-modal {
+            z-index: 10080 !important;
+        }
+
+        #coinsRequestModal.secondary-modal,
+        #proModal.secondary-modal,
+        #certifierModal.secondary-modal,
+        #boosterModal.secondary-modal,
+        #signalerModal.secondary-modal {
+            z-index: 10100 !important;
         }
 
         #accountModal.modal[style*="display: flex"],
@@ -1074,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         justify-content: center;
 
-        z-index: 1400;
+        z-index: 10080;
 
         animation: fadeInModal 0.3s ease;
 
@@ -2161,21 +2173,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 justify-content: center; /* Centre le contenu du modal horizontalement */
 
-                z-index: 1300; /* Place le modal au premier plan par rapport aux autres éléments */
+                z-index: 10050; /* Aligné sur #accountModal (évite conflit avec sous-modals) */
 
             }
 
 
 
-            /* Modals secondaires (ouverts depuis accountModal) - doivent être au-dessus */
+            /* Modals secondaires (ouverts depuis accountModal) - au-dessus du menu */
 
             #certifierModal,
 
             #boosterModal,
 
-            #signalerModal {
+            #signalerModal,
 
-                z-index: 1500 !important; /* Au-dessus du modal accountModal (1300) et editUserModal (1400) */
+            #coinsRequestModal,
+
+            #proModal {
+
+                z-index: 10100 !important;
 
             }
 
@@ -3214,7 +3230,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     return el;
                 }
 
-                ['accountModal', 'modal-auth', 'editUserModal'].forEach(function (id) {
+                [
+                    'accountModal',
+                    'modal-auth',
+                    'editUserModal',
+                    'coinsRequestModal',
+                    'proModal',
+                    'certifierModal',
+                    'boosterModal',
+                    'signalerModal',
+                ].forEach(function (id) {
                     ensureModalOnBody(document.getElementById(id));
                 });
 
@@ -3864,7 +3889,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         justify-content: center;
 
-        z-index: 1500;
+        z-index: 10100;
 
         animation: fadeInModal 0.3s ease;
 
@@ -4728,13 +4753,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (modal) {
 
+            if (modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+
             modal.style.display = 'flex';
 
-            // S'assurer que le z-index est correct pour les modals secondaires
+            // Sous-modals au-dessus du menu compte (10050)
+            if (['boosterModal', 'certifierModal', 'signalerModal', 'coinsRequestModal', 'proModal', 'editUserModal'].includes(modalId)) {
 
-            if (['boosterModal', 'certifierModal', 'signalerModal'].includes(modalId)) {
-
-                modal.style.zIndex = '1500';
+                modal.style.zIndex = '10100';
 
             }
 

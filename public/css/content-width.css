@@ -1,0 +1,48 @@
+/**
+ * Largeur de contenu alignée sur la barre orange (.navigation)
+ * — Accueil, favoris, boutique, détail, profil, etc.
+ */
+
+.container:not(.container-fluid),
+.detail-container,
+.page-content-width {
+    width: 100%;
+    max-width: min(980px, calc(100% - 2rem)) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+@media (min-width: 768px) {
+    .container:not(.container-fluid),
+    .detail-container,
+    .page-content-width {
+        max-width: min(960px, calc(100% - 8rem)) !important;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container:not(.container-fluid),
+    .detail-container,
+    .page-content-width {
+        max-width: min(940px, calc(100% - 14rem)) !important;
+    }
+}
+
+@media (min-width: 1600px) {
+    .container:not(.container-fluid),
+    .detail-container,
+    .page-content-width {
+        max-width: min(920px, calc(100% - 20rem)) !important;
+    }
+}
+
+/* Mobile : même retrait latéral que la barre orange (6px de chaque côté) */
+@media (max-width: 767.98px) {
+    .container:not(.container-fluid),
+    .detail-container,
+    .page-content-width {
+        max-width: calc(100% - 12px) !important;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+    }
+}

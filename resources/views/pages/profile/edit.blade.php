@@ -333,6 +333,13 @@
         <div>
             <h1 class="profile-page__title">Mon profil</h1>
             <p class="profile-page__subtitle">Gérez vos informations personnelles et votre sécurité</p>
+            @if(auth()->user()?->isAdmin())
+                <p class="profile-page__subtitle" style="margin-top: 8px;">
+                    <a href="{{ route('admin.dashboard') }}" style="color: #ff9900; font-weight: 600; text-decoration: none;">
+                        <i class="bi bi-speedometer2"></i> Retour au panneau admin
+                    </a>
+                </p>
+            @endif
         </div>
     </div>
 

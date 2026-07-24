@@ -180,6 +180,7 @@
     <link rel="stylesheet" href="{{ asset('css/article-horizontale.css') }}">
     <!-- <link rel="stylesheet" href="{{ asset('css/background-articles.css') }}"> -->
     <link rel="stylesheet" href="{{ asset('css/detail_article.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/content-width.css') }}">
     <!-- Police professionnelle uniforme -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

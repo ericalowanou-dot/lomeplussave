@@ -1,3 +1,6 @@
+/* Largeur contenu = barre orange (favoris, boutique, détail, etc.) */
+@import url("content-width.css");
+
 /* Barre de navigation fixe en haut
  * Largeurs alignées sur .homepage-container (filtre + articles),
  * sans modifier le layout des articles.
@@ -38,6 +41,26 @@
   @media (min-width: 1600px) {
     .navigation {
       width: min(920px, calc(100% - 20rem));
+    }
+  }
+
+  /* Téléphone : pleine largeur, effets du bas conservés (arrondis + ombre) */
+  @media (max-width: 767.98px) {
+    .navigation {
+      width: 100%;
+      max-width: 100%;
+      left: 0;
+      right: 0;
+      margin-left: 0;
+      margin-right: 0;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      border-radius: 0 0 10px 10px; /* arrondis en bas uniquement */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+    }
+
+    .nav-side-blur {
+      display: none !important;
     }
   }
 

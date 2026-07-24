@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/articles.css') }}">
     <link rel="stylesheet" href="{{ asset('css/publicites.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/content-width.css') }}">
     <link rel="stylesheet" href="{{ asset('css/article-horizontale.css') }}">
     <link rel="stylesheet" href="{{asset('css/detail_article.css')}}"> 
     <link rel="stylesheet" href="{{asset('css/all.min.css')}}" crossorigin="anonymous" referrerpolicy="no-referrer"> 
@@ -355,9 +356,8 @@
                 max-width: 100%;
             }
             
-            /* Empêcher tout débordement horizontal */
+            /* Largeur gérée par content-width.css (alignée sur la barre orange) */
             .container {
-                max-width: 100%;
                 overflow-x: hidden;
             }
             
