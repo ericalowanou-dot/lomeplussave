@@ -13,7 +13,7 @@ class UserShopController extends Controller
             ->where('status', 'approved')
             ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
             ->withLikeCounts(auth()->id())
-            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
             ->latest()
             ->paginate(24);
         return view('pages.boutique.show', compact('user', 'articles'));

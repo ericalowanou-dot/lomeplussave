@@ -2,24 +2,61 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Article;
-use App\Models\User;
-use App\Models\Categorie;
-use App\Models\SousCategorie;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class DetailArticleController extends Controller
 {
-    public function show($id)
+    /**
+     * Nouvelle URL SEO :
+     * /annonce/{categorie}/{sousCategorie}/{slug}-{id}
+     */
+    public function show(string $categorie, string $sousCategorie, string $slugId): View|RedirectResponse
     {
-        $article = Article::with(['user:id,name,email,telephone,whatsapp,photo_profil,certifie,certifie_until,created_at', 'sousCategorie'])
+        if (! preg_match('/-(\d+)$/', $slugId, $matches)) {
+            abort(404);
+        }
+
+        $article = $this->loadArticle((int) $matches[1]);
+
+        // Canonical : redirige si catégorie / slug obsolètes
+        $params = $article->routeParameters();
+        if (
+            $categorie !== $params['categorie']
+            || $sousCategorie !== $params['sousCategorie']
+            || $slugId !== $params['slugId']
+        ) {
+            return redirect()->route('article.details', $params, 301);
+        }
+
+        return $this->render($article);
+    }
+
+    /**
+     * Ancienne URL /article/{id} → redirection 301 vers l'URL SEO.
+     */
+    public function showLegacy(int $id): RedirectResponse
+    {
+        $article = Article::with(['sousCategorie.categorie'])->findOrFail($id);
+
+        return redirect($article->url(), 301);
+    }
+
+    protected function loadArticle(int $id): Article
+    {
+        return Article::with([
+            'user:id,name,email,telephone,whatsapp,photo_profil,certifie,certifie_until,created_at',
+            'sousCategorie.categorie',
+        ])
             ->withCount('comments')
             ->withLikeCounts(auth()->id())
             ->findOrFail($id);
+    }
 
+    protected function render(Article $article): View
+    {
         $comments = $article->comments()
             ->with('user:id,name,photo_profil,certifie')
             ->orderBy('created_at', 'desc')
@@ -32,11 +69,11 @@ class DetailArticleController extends Controller
             ->where('status', 'approved')
             ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'created_at')
             ->withLikeCounts(auth()->id())
-            ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom'])
+            ->with(['user:id,name,photo_profil,certifie', 'sousCategorie.categorie'])
             ->take(5)
             ->get();
 
-        if ($articlesParCategorie->isEmpty()) {
+        if ($articlesParCategorie->isEmpty() && $article->sousCategorie) {
             $articlesParCategorie = Article::whereHas('sousCategorie', function ($query) use ($article) {
                 $query->where('categorie_id', $article->sousCategorie->categorie_id);
             })
@@ -44,7 +81,7 @@ class DetailArticleController extends Controller
                 ->where('status', 'approved')
                 ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'created_at')
                 ->withLikeCounts(auth()->id())
-                ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom'])
+                ->with(['user:id,name,photo_profil,certifie', 'sousCategorie.categorie'])
                 ->take(5)
                 ->get();
         }
@@ -54,6 +91,12 @@ class DetailArticleController extends Controller
             ->where('articles.user_id', $article->user_id)
             ->count();
 
-        return view('pages.detail_article', compact('article', 'articlesParCategorie', 'comments', 'commentsTotal', 'sellerTotalLikes'));
+        return view('pages.detail_article', compact(
+            'article',
+            'articlesParCategorie',
+            'comments',
+            'commentsTotal',
+            'sellerTotalLikes'
+        ));
     }
 }

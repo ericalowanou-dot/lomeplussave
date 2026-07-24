@@ -21,7 +21,7 @@
                         <a href="{{ route('boutique.show', $article->user->id) }}" class="btn btn-outline-primary btn-sm">Voir la boutique</a>
                     @endif
                     <hr class="my-3">
-                    <a href="{{ route('article.details', ['id' => $article->id]) }}" class="btn btn-primary">Voir la fiche complète</a>
+                    <a href="{{ $article->url }}" class="btn btn-primary">Voir la fiche complète</a>
                 </div>
             </div>
         </div>

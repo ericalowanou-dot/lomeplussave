@@ -57,7 +57,7 @@
                     </div>
 
                     <!-- Image de l'article -->
-                    <a href="{{ route('article.details', ['id' => $article->id]) }}" style="text-decoration: none; color: inherit; border-bottom: 1px solid;">
+                    <a href="{{ $article->url }}" style="text-decoration: none; color: inherit; border-bottom: 1px solid;">
                         <img class="card-img-top rounded-top-4 article-img-fixed" 
                              src="{{ $article->photo_url }}" 
                              width="100%" 
@@ -119,7 +119,7 @@
                                 </form>
 
                                 <!-- Transférer -->
-                                <button onclick="openShareModal('{{ route('article.details', $article->id) }}')" type="button" class="action-btn transfer" title="Partager">
+                                <button onclick="openShareModal('{{ $article->url }}')" type="button" class="action-btn transfer" title="Partager">
                                     <i class="bi bi-arrow-left-right"></i>
                                 </button>
                             </div> <!-- fin action-buttons -->

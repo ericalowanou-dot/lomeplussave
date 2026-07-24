@@ -254,4 +254,36 @@ class Article extends Model
 
             return asset('images/placeholder.png');
         }
+
+        /**
+         * Paramètres de route SEO :
+         * /annonce/{categorie}/{sousCategorie}/{slug}-{id}
+         */
+        public function routeParameters(): array
+        {
+            $this->loadMissing(['sousCategorie.categorie']);
+
+            $categorieNom = $this->sousCategorie?->categorie?->nom ?: 'annonces';
+            $sousNom = $this->sousCategorie?->nom ?: 'divers';
+            $titreSlug = Str::slug(Str::limit($this->titre ?? '', 80, '')) ?: 'article';
+
+            return [
+                'categorie' => Str::slug($categorieNom) ?: 'annonces',
+                'sousCategorie' => Str::slug($sousNom) ?: 'divers',
+                'slugId' => $titreSlug . '-' . $this->id,
+            ];
+        }
+
+        /**
+         * URL publique SEO de l'annonce.
+         */
+        public function url(): string
+        {
+            return route('article.details', $this->routeParameters());
+        }
+
+        public function getUrlAttribute(): string
+        {
+            return $this->url();
+        }
 }

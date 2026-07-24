@@ -462,7 +462,7 @@
 
                                         </div>
 
-                                        <a href="{{ route('article.details', ['id' => $article->id]) }}" style="text-decoration: none; color: inherit; border-bottom: 1px solid;">
+                                        <a href="{{ $article->url }}" style="text-decoration: none; color: inherit; border-bottom: 1px solid;">
                                             <!-- partie image de l'article -->
                                             <img class="card-img-top rounded-top-4 article-img-fixed" src="{{ asset('storage/'.$article->photo) }}" width="100%" height="150" alt="Card image cap" style="object-fit: cover;" > 
                                             <!--supprimer style="object-fit: cover;" si l'affichage de l'image n'est pas correct-->                                   

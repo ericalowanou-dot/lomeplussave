@@ -82,7 +82,7 @@ public function index(Request $request)
     $articles = $query
         ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
         ->withLikeCounts(Auth::id())
-        ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id'])
+        ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
         ->orderBy('created_at', 'desc')
         ->paginate(30);
 
@@ -145,7 +145,7 @@ public function index(Request $request)
         $favoris = Auth::user()->favoris()
             ->select('articles.id', 'articles.user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'articles.created_at', 'neuf', 'livraison')
             ->withLikeCounts(Auth::id())
-            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
             ->orderBy('articles.created_at', 'desc')
             ->paginate(30);
     
@@ -179,7 +179,7 @@ public function index(Request $request)
         })
         ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
         ->withLikeCounts(Auth::id())
-        ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+        ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
         ->orderBy('created_at', 'desc')
         ->paginate(30);
 
@@ -195,7 +195,7 @@ public function index(Request $request)
         ->where('titre', 'like', "%$q%")
         ->select('articles.id', 'articles.user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'articles.created_at', 'neuf', 'livraison')
         ->withLikeCounts(Auth::id())
-        ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+        ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
         ->orderBy('articles.created_at', 'desc')
         ->paginate(30);
 
@@ -211,7 +211,7 @@ public function searchMesAnnonces(Request $request)
         ->where('titre', 'like', "%$q%")
         ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
         ->withLikeCounts(Auth::id())
-        ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id'])
+        ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
         ->orderBy('created_at', 'desc')
         ->paginate(30);
 

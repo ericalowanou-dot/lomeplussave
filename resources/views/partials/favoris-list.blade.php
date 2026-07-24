@@ -15,7 +15,7 @@
                             <strong>{{ intval($article->created_at->diffInDays()) }}</strong> jour{{ intval($article->created_at->diffInDays()) > 1 ? 's' : '' }}
                         </p>
                     </div>
-                    <a href="{{ route('article.details', ['id' => $article->id]) }}" style="text-decoration: none; color: inherit; border-bottom: 1px solid;">
+                    <a href="{{ $article->url }}" style="text-decoration: none; color: inherit; border-bottom: 1px solid;">
                         <img class="card-img-top rounded-top-4 article-img-fixed" 
                              src="{{ $article->photo_url }}" 
                              width="100%" 

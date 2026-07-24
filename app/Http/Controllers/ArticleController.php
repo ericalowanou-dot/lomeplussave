@@ -155,7 +155,7 @@ class ArticleController extends Controller
 
             ->withLikeCounts(auth()->id())
 
-            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
 
             ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > NOW()) DESC')
 
@@ -370,7 +370,7 @@ class ArticleController extends Controller
 
             ->withLikeCounts(auth()->id())
 
-            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id'])
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
 
             ->paginate($perPage)
 

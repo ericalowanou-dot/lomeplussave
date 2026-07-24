@@ -42,8 +42,22 @@ Route::post('/publicite/{publicite}/click', [AdminController::class, 'trackPubli
 
 
 // pour les articles
-Route::get('/', [ArticleController::class, 'index'])->name('articles.index'); // Lister tous les articles sur la page d'accueil 
-Route::get('/article/{id}', [DetailArticleController::class, 'show'])->name('article.details'); // Voir un article spécifique
+Route::get('/', [ArticleController::class, 'index'])->name('articles.index'); // Lister tous les articles sur la page d'accueil
+
+// URL SEO professionnelle des annonces
+Route::get('/annonce/{categorie}/{sousCategorie}/{slugId}', [DetailArticleController::class, 'show'])
+    ->name('article.details')
+    ->where([
+        'categorie' => '[a-z0-9\-]+',
+        'sousCategorie' => '[a-z0-9\-]+',
+        'slugId' => '[a-z0-9\-]+\-\d+',
+    ]);
+
+// Ancienne URL /article/{id} → redirection 301 vers l'URL SEO
+Route::get('/article/{id}', [DetailArticleController::class, 'showLegacy'])
+    ->name('article.details.legacy')
+    ->whereNumber('id');
+
 Route::get('/search', [ArticleController::class, 'search'])->name('article.search'); // Pour la recherche d'articles
 
 

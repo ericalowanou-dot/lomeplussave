@@ -158,7 +158,7 @@
                         <button type="button" class="btn btn-danger" onclick="deleteArticle({{ $article->id }}, '{{ addslashes($article->titre) }}')">
                             <i class="fas fa-trash me-2"></i> Supprimer l'article
                         </button>
-                        <a href="{{ route('article.details', ['id' => $article->id]) }}" class="btn btn-outline-primary" target="_blank">
+                        <a href="{{ $article->url }}" class="btn btn-outline-primary" target="_blank">
                             <i class="fas fa-external-link-alt me-2"></i> Voir sur le site
                         </a>
                     </div>
