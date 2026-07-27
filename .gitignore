@@ -43,6 +43,13 @@ config/mail.php
 /public/js*
 /public/images*
 
+# Anciennes copies de backup (css1, build2, images1, etc.)
+/public/css[0-9]/
+/public/build[0-9]/
+/public/images[0-9]/
+/public/articles[0-9]/
+/public/js[0-9]/
+
 # Bootstrap Icons : css + polices uniquement (pas les milliers de .svg)
 /public/css/bootstrap-icons/*.svg
 /public/css/*.zip
