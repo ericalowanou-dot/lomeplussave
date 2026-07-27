@@ -161,7 +161,7 @@ class ArticleController extends Controller
 
             ->orderBy('created_at', 'desc')
 
-            ->paginate(40);
+            ->paginate(120);
 
 
 
@@ -352,13 +352,13 @@ class ArticleController extends Controller
         // 🔹 Nombre d'articles par page
         // Défaut initial du projet.
 
-        $perPage = $request->get('per_page', 40);
+        $perPage = $request->get('per_page', 120);
 
-        $allowedPerPage = [12, 24, 40, 48, 80, 96];
+        $allowedPerPage = [12, 24, 40, 48, 80, 96, 120];
 
         if (!in_array((int)$perPage, $allowedPerPage)) {
 
-            $perPage = 40;
+            $perPage = 120;
 
         }
 

@@ -369,6 +369,7 @@
                     'user_registered': 'fa-user-plus',
                     'article_pending': 'fa-clock',
                     'problem_report': 'fa-flag',
+                    'user_report': 'fa-store-slash',
                 };
                 return icons[type] || 'fa-bell';
             }
@@ -379,6 +380,7 @@
                     'user_registered': 'success',
                     'article_pending': 'warning',
                     'problem_report': 'danger',
+                    'user_report': 'danger',
                 };
                 return colors[type] || 'primary';
             }

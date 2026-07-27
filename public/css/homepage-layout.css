@@ -52,7 +52,8 @@
     font-size: 1.15rem;
     font-weight: 600;
     color: #333;
-    margin-bottom: 1rem;
+    /* Même écart qu’entre la bannière header et les articles */
+    margin-bottom: 0.7rem;
 }
 
 .homepage-sidebar-form .filter-field {
@@ -339,6 +340,7 @@
 
     .homepage-articles-panel h4 {
         margin-top: 0.25rem;
+        margin-bottom: 0.65rem;
         padding-left: 2px;
     }
 

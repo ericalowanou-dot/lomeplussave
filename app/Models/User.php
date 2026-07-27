@@ -133,6 +133,16 @@ public function favoris()
                 ->withTimestamps();
 }
 
+public function reportsReceived()
+{
+    return $this->hasMany(UserReport::class, 'reported_user_id');
+}
+
+public function reportsMade()
+{
+    return $this->hasMany(UserReport::class, 'reporter_id');
+}
+
 // Méthodes pour l'administration
 public function isAdmin()
 {

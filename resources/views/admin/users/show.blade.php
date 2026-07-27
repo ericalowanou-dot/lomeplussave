@@ -144,6 +144,8 @@
                 $pendingCount = $user->articles->where('status', 'pending')->count();
                 $approvedCount = $user->articles->where('status', 'approved')->count();
                 $blockedCount = $user->articles->where('status', 'blocked')->count();
+                $reportsTotal = $user->reports_received_count ?? ($userReports->count() ?? 0);
+                $reportsOpen = $user->open_reports_received_count ?? ($userReports->where('status', 'open')->count() ?? 0);
             @endphp
             <div class="admin-card mb-4">
                 <div class="admin-card-body">
@@ -169,11 +171,76 @@
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="stat-mini-card text-center p-3 rounded">
-                                <div class="h4 mb-0 text-danger fw-bold">{{ $blockedCount }}</div>
-                                <small class="text-muted">Bloqués</small>
+                                <div class="h4 mb-0 text-danger fw-bold">{{ $reportsTotal }}</div>
+                                <small class="text-muted">Signalements @if($reportsOpen > 0)<span class="d-block">({{ $reportsOpen }} ouverts)</span>@endif</small>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {{-- Signalements boutique --}}
+            <div class="admin-card mb-4" id="user-reports">
+                <div class="admin-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="admin-card-title mb-0">
+                        <i class="fas fa-flag me-2 text-danger"></i>
+                        Signalements boutique
+                        <span class="badge bg-danger">{{ $reportsTotal }}</span>
+                    </h5>
+                </div>
+                <div class="admin-card-body">
+                    @if(($userReports ?? collect())->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Signaleur</th>
+                                        <th>Motif</th>
+                                        <th>Message</th>
+                                        <th>Date</th>
+                                        <th>Statut</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($userReports as $report)
+                                        <tr>
+                                            <td>
+                                                <strong>{{ $report->reporter?->name ?? '—' }}</strong>
+                                                @if($report->reporter?->email)
+                                                    <small class="text-muted d-block">{{ $report->reporter->email }}</small>
+                                                @endif
+                                            </td>
+                                            <td>{{ $report->reasonLabel() }}</td>
+                                            <td class="small">{{ $report->message ? Str::limit($report->message, 80) : '—' }}</td>
+                                            <td class="small">{{ $report->created_at?->format('d/m/Y H:i') }}</td>
+                                            <td>
+                                                @if($report->status === 'open')
+                                                    <span class="badge bg-warning text-dark">Ouvert</span>
+                                                @else
+                                                    <span class="badge bg-secondary">Fermé</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end">
+                                                <form method="POST" action="{{ route('admin.user-reports.update-status', $report) }}" class="d-inline">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="{{ $report->status === 'open' ? 'closed' : 'open' }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                        {{ $report->status === 'open' ? 'Marquer clos' : 'Rouvrir' }}
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-muted small mt-3 mb-0">
+                            Astuce : utilisez <strong>Bloquer</strong> pour couper l’accès, ou <strong>Supprimer</strong> pour retirer le compte et ses articles.
+                        </p>
+                    @else
+                        <p class="text-muted mb-0">Aucun signalement pour cette boutique.</p>
+                    @endif
                 </div>
             </div>
 

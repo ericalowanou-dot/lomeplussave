@@ -19,6 +19,15 @@
                     <option value="">Tous</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Actifs</option>
                     <option value="blocked" {{ request('status') === 'blocked' ? 'selected' : '' }}>Bloqués</option>
+                    <option value="reported" {{ request('status') === 'reported' ? 'selected' : '' }}>Signalés</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="sort" class="form-label">Trier</label>
+                <select name="sort" id="sort" class="form-control">
+                    <option value="">Plus récents</option>
+                    <option value="reports" {{ request('sort') === 'reports' ? 'selected' : '' }}>Plus signalés</option>
                 </select>
             </div>
             
@@ -53,6 +62,7 @@
                             <th>Contact</th>
                             <th>Téléphone</th>
                             <th>Articles</th>
+                            <th>Signalements</th>
                             <th>Statut</th>
                             <th>Inscription</th>
                             <th>Actions</th>
@@ -90,7 +100,19 @@
                             </td>
                             <td>{{ $user->telephone ?? 'N/A' }}</td>
                             <td>
-                                <span class="badge bg-primary">{{ $user->articles->count() }}</span>
+                                <span class="badge bg-primary">{{ $user->articles_count ?? $user->articles->count() }}</span>
+                            </td>
+                            <td>
+                                @if(($user->reports_received_count ?? 0) > 0)
+                                    <a href="{{ route('admin.users.show', $user) }}#user-reports" class="badge bg-danger text-decoration-none" title="{{ $user->open_reports_received_count ?? 0 }} ouvert(s)">
+                                        {{ $user->reports_received_count }}
+                                        @if(($user->open_reports_received_count ?? 0) > 0)
+                                            <span class="ms-1">({{ $user->open_reports_received_count }} ouverts)</span>
+                                        @endif
+                                    </a>
+                                @else
+                                    <span class="text-muted">0</span>
+                                @endif
                             </td>
                             <td>
                                 @if($user->is_blocked)
@@ -201,15 +223,23 @@
                         </div>
                         
                         <div class="row text-center">
-                            <div class="col-4">
+                            <div class="col-3">
                                 <small class="text-muted d-block">Téléphone</small>
                                 <small>{{ $user->telephone ?? 'N/A' }}</small>
                             </div>
-                            <div class="col-4">
+                            <div class="col-3">
                                 <small class="text-muted d-block">Articles</small>
-                                <span class="badge bg-primary">{{ $user->articles->count() }}</span>
+                                <span class="badge bg-primary">{{ $user->articles_count ?? $user->articles->count() }}</span>
                             </div>
-                            <div class="col-4">
+                            <div class="col-3">
+                                <small class="text-muted d-block">Signalements</small>
+                                @if(($user->reports_received_count ?? 0) > 0)
+                                    <span class="badge bg-danger">{{ $user->reports_received_count }}</span>
+                                @else
+                                    <span class="text-muted">0</span>
+                                @endif
+                            </div>
+                            <div class="col-3">
                                 <small class="text-muted d-block">Statut</small>
                                 @if($user->is_blocked)
                                     <span class="status-badge blocked">Bloqué</span>

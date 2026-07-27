@@ -194,4 +194,36 @@ class AdminNotification extends Model
 
         return $notifications;
     }
+
+    /**
+     * Notification admin : signalement d'un vendeur / boutique.
+     */
+    public static function createForUserReport(UserReport $report)
+    {
+        $admins = static::getAdmins();
+        $notifications = [];
+        $reporterName = $report->reporter?->name ?? 'Utilisateur';
+        $reportedName = $report->reportedUser?->name ?? 'Vendeur';
+
+        if ($admins->isEmpty()) {
+            \Illuminate\Support\Facades\Log::warning('AdminNotification: Aucun admin trouvé pour le signalement vendeur #' . $report->id);
+            return $notifications;
+        }
+
+        foreach ($admins as $admin) {
+            $notifications[] = static::create([
+                'admin_id' => $admin->id,
+                'type' => 'user_report',
+                'title' => 'Signalement vendeur',
+                'message' => "{$reporterName} a signalé la boutique de {$reportedName} ({$report->reasonLabel()}).",
+                'icon' => 'fa-flag',
+                'color' => 'danger',
+                'url' => route('admin.users.show', $report->reported_user_id) . '#user-reports',
+                'related_id' => $report->id,
+                'related_type' => UserReport::class,
+            ]);
+        }
+
+        return $notifications;
+    }
 }

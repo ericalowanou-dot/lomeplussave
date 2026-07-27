@@ -87,6 +87,9 @@ function shouldSkipForm(form) {
         'search-form',
         'editUserForm',
         'logoutForm',
+        'shopReportForm',
+        'reportForm',
+        'commentForm',
     ]);
     if (form.id && ajaxIds.has(form.id)) return true;
 

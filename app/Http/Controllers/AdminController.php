@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Article;
 use App\Models\Publicite;
 use App\Models\Message;
+use App\Models\UserReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +75,14 @@ class AdminController extends Controller
      */
     public function users(Request $request)
     {
-        $query = User::query();
+        $query = User::query()
+            ->withCount([
+                'articles',
+                'reportsReceived',
+                'reportsReceived as open_reports_received_count' => function ($q) {
+                    $q->where('status', 'open');
+                },
+            ]);
 
         // Filtrage par statut
         if ($request->has('status')) {
@@ -82,6 +90,8 @@ class AdminController extends Controller
                 $query->where('is_blocked', true);
             } elseif ($request->status === 'active') {
                 $query->where('is_blocked', false);
+            } elseif ($request->status === 'reported') {
+                $query->has('reportsReceived');
             }
         }
 
@@ -94,7 +104,13 @@ class AdminController extends Controller
             });
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(15);
+        if ($request->get('sort') === 'reports') {
+            $query->orderByDesc('reports_received_count')->orderByDesc('created_at');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $users = $query->paginate(15)->withQueryString();
 
         return view('admin.users.index', compact('users'));
     }
@@ -247,11 +263,41 @@ class AdminController extends Controller
      */
     public function showUser(User $user)
     {
-        $user->load(['articles' => function($query) {
+        $user->load(['articles' => function ($query) {
             $query->orderBy('created_at', 'desc');
         }]);
 
-        return view('admin.users.show', compact('user'));
+        $user->loadCount([
+            'reportsReceived',
+            'reportsReceived as open_reports_received_count' => function ($q) {
+                $q->where('status', 'open');
+            },
+        ]);
+
+        $userReports = $user->reportsReceived()
+            ->with('reporter:id,name,email,telephone')
+            ->orderByRaw("CASE WHEN status = 'open' THEN 0 ELSE 1 END")
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('admin.users.show', compact('user', 'userReports'));
+    }
+
+    /**
+     * Mettre à jour le statut d'un signalement vendeur.
+     */
+    public function updateUserReportStatus(Request $request, UserReport $report)
+    {
+        $request->validate([
+            'status' => 'required|in:open,closed',
+        ]);
+
+        $report->status = $request->status;
+        $report->save();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Statut du signalement mis à jour.');
     }
 
     /**

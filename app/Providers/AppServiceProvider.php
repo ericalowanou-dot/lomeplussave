@@ -12,9 +12,11 @@ use App\Models\Article;
 use App\Events\UserRegistered;
 use App\Events\ArticlePending;
 use App\Events\ProblemReportCreated;
+use App\Events\UserReportCreated;
 use App\Listeners\CreateAdminNotification;
 use App\Listeners\CreateAdminNotificationForArticle;
 use App\Listeners\CreateAdminNotificationForReport;
+use App\Listeners\CreateAdminNotificationForUserReport;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Pagination\Paginator;
 
@@ -78,5 +80,6 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(UserRegistered::class, CreateAdminNotification::class);
         Event::listen(ArticlePending::class, CreateAdminNotificationForArticle::class);
         Event::listen(ProblemReportCreated::class, CreateAdminNotificationForReport::class);
+        Event::listen(UserReportCreated::class, CreateAdminNotificationForUserReport::class);
     }
 }

@@ -10,7 +10,26 @@
          onerror="this.src='{{ asset('images/user_default.png') }}';">
     
     <div class="profile-info">
-        <h1 class="profile-name">{{ $user->name }}</h1>
+        <div class="boutique-header-top">
+            <h1 class="profile-name">{{ $user->name }}</h1>
+            @unless(auth()->check() && auth()->id() === $user->id)
+                @auth
+                    @if($hasReportedShop ?? false)
+                        <span class="boutique-report-done" title="Vous avez déjà signalé cette boutique">
+                            <i class="bi bi-flag-fill"></i> Déjà signalé
+                        </span>
+                    @else
+                        <button type="button" class="boutique-report-btn" id="openShopReportModal" aria-label="Signaler cette boutique">
+                            <i class="bi bi-flag"></i> Signaler
+                        </button>
+                    @endif
+                @else
+                    <a href="{{ route('login', ['redirect' => urlencode(request()->fullUrl())]) }}" class="boutique-report-btn boutique-report-btn--link">
+                        <i class="bi bi-flag"></i> Signaler
+                    </a>
+                @endauth
+            @endunless
+        </div>
         <p class="profile-email">
             <i class="bi bi-box-seam me-1"></i>
             {{ $user->articles()->where('status', 'approved')->count() }} article(s) publié(s)
@@ -41,6 +60,185 @@
 
 @section('head')
 <style>
+    .boutique-header-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .boutique-report-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: #fff;
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .boutique-report-btn:hover {
+        color: #b91c1c;
+        border-color: rgba(185, 28, 28, 0.35);
+        background: #fef2f2;
+    }
+
+    .boutique-report-btn--link:hover {
+        color: #b91c1c;
+    }
+
+    .boutique-report-done {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        white-space: nowrap;
+    }
+
+    .shop-report-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 10060;
+        background: rgba(15, 23, 42, 0.45);
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .shop-report-modal.is-open {
+        display: flex;
+    }
+
+    .shop-report-modal__dialog {
+        width: 100%;
+        max-width: 420px;
+        background: #fff;
+        border-radius: 14px;
+        padding: 1.25rem 1.35rem;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
+        position: relative;
+    }
+
+    .shop-report-modal__close {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.75rem;
+        border: 0;
+        background: transparent;
+        font-size: 1.5rem;
+        line-height: 1;
+        color: #64748b;
+        cursor: pointer;
+    }
+
+    .shop-report-modal__title {
+        margin: 0 0 0.35rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .shop-report-modal__hint {
+        margin: 0 0 1rem;
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .shop-report-modal label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        color: #334155;
+    }
+
+    .shop-report-modal select,
+    .shop-report-modal textarea {
+        width: 100%;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.65rem 0.75rem;
+        font-size: 0.9rem;
+        margin-bottom: 0.9rem;
+        box-sizing: border-box;
+    }
+
+    .shop-report-modal textarea {
+        min-height: 90px;
+        resize: vertical;
+    }
+
+    .shop-report-modal__actions {
+        display: flex;
+        gap: 0.6rem;
+        justify-content: flex-end;
+    }
+
+    .shop-report-modal__actions button {
+        border-radius: 10px;
+        padding: 0.55rem 0.95rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+    }
+
+    .shop-report-modal__cancel {
+        background: #f1f5f9;
+        color: #475569;
+        border-color: #e2e8f0;
+    }
+
+    .shop-report-modal__submit {
+        background: #dc2626;
+        color: #fff;
+    }
+
+    .shop-report-modal__submit:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    .shop-report-modal__error {
+        display: none;
+        color: #b91c1c;
+        font-size: 0.85rem;
+        margin: -0.4rem 0 0.8rem;
+    }
+
+    .shop-report-toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #0f172a;
+        color: #fff;
+        padding: 0.75rem 1.1rem;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        z-index: 10070;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        max-width: min(90vw, 360px);
+        text-align: center;
+    }
+
+    .shop-report-toast.is-visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
     .detail-home {
         position: fixed;
         bottom: 20px;
@@ -366,5 +564,114 @@
         {{ $articles->links() }}
     </div>
 
+    @auth
+        @unless(auth()->id() === $user->id || ($hasReportedShop ?? false))
+        <div class="shop-report-modal" id="shopReportModal" role="dialog" aria-modal="true" aria-labelledby="shopReportTitle" hidden>
+            <div class="shop-report-modal__dialog">
+                <button type="button" class="shop-report-modal__close" id="closeShopReportModal" aria-label="Fermer">&times;</button>
+                <h2 class="shop-report-modal__title" id="shopReportTitle">Signaler cette boutique</h2>
+                <p class="shop-report-modal__hint">Décrivez le problème. Notre équipe examinera le signalement.</p>
+                <form id="shopReportForm" data-no-loader="1">
+                    @csrf
+                    <label for="shopReportReason">Motif</label>
+                    <select name="reason" id="shopReportReason" required>
+                        <option value="">Choisir un motif…</option>
+                        @foreach(($reportReasons ?? []) as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <label for="shopReportMessage">Précisions (optionnel)</label>
+                    <textarea name="message" id="shopReportMessage" maxlength="500" placeholder="Ajoutez des détails si besoin…"></textarea>
+                    <p class="shop-report-modal__error" id="shopReportError"></p>
+                    <div class="shop-report-modal__actions">
+                        <button type="button" class="shop-report-modal__cancel" id="cancelShopReport">Annuler</button>
+                        <button type="submit" class="shop-report-modal__submit" id="submitShopReport">Envoyer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="shop-report-toast" id="shopReportToast" role="status"></div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const modal = document.getElementById('shopReportModal');
+                const openBtn = document.getElementById('openShopReportModal');
+                const form = document.getElementById('shopReportForm');
+                const errorEl = document.getElementById('shopReportError');
+                const toast = document.getElementById('shopReportToast');
+                const submitBtn = document.getElementById('submitShopReport');
+                if (!modal || !openBtn || !form) return;
+
+                const closeModal = () => {
+                    modal.classList.remove('is-open');
+                    modal.hidden = true;
+                    errorEl.style.display = 'none';
+                    errorEl.textContent = '';
+                };
+
+                const openModal = () => {
+                    modal.hidden = false;
+                    modal.classList.add('is-open');
+                };
+
+                const showToast = (message) => {
+                    toast.textContent = message;
+                    toast.classList.add('is-visible');
+                    setTimeout(() => toast.classList.remove('is-visible'), 3200);
+                };
+
+                openBtn.addEventListener('click', openModal);
+                document.getElementById('closeShopReportModal')?.addEventListener('click', closeModal);
+                document.getElementById('cancelShopReport')?.addEventListener('click', closeModal);
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) closeModal();
+                });
+
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    errorEl.style.display = 'none';
+                    submitBtn.disabled = true;
+                    window.hidePageLoader?.();
+
+                    const body = new FormData(form);
+                    try {
+                        const response = await fetch(@json(route('boutique.report', $user)), {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body,
+                        });
+                        const data = await response.json().catch(() => ({}));
+                        window.hidePageLoader?.();
+
+                        if (!response.ok || !data.success) {
+                            const firstError = data.errors
+                                ? Object.values(data.errors).flat()[0]
+                                : null;
+                            errorEl.textContent = firstError || data.message || 'Impossible d\'envoyer le signalement.';
+                            errorEl.style.display = 'block';
+                            submitBtn.disabled = false;
+                            return;
+                        }
+
+                        closeModal();
+                        showToast(data.message || 'Signalement envoyé.');
+                        const done = document.createElement('span');
+                        done.className = 'boutique-report-done';
+                        done.innerHTML = '<i class="bi bi-flag-fill"></i> Déjà signalé';
+                        openBtn.replaceWith(done);
+                    } catch (err) {
+                        window.hidePageLoader?.();
+                        errorEl.textContent = 'Erreur réseau. Réessayez.';
+                        errorEl.style.display = 'block';
+                        submitBtn.disabled = false;
+                    }
+                });
+            });
+        </script>
+        @endunless
+    @endauth
 
 @endsection

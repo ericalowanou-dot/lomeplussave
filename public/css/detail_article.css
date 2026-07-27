@@ -156,6 +156,11 @@ h3.text-danger {
 
 
 
+/*
+ * TEMPORAIRE — Styles section Avis : HTML désactivé pour le lancement
+ * (voir @if(false) dans detail_article.blade.php).
+ * Conservés pour réactivation future — ne pas supprimer.
+ */
 .ecrire-voir-commentaire {
     margin-top: 30px;
     padding: 20px;

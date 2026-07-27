@@ -28,6 +28,7 @@ Route::middleware(['auth', 'check.blocked'])->group(function(){
     Route::get('/user/my-articles', [UserController::class, 'myArticles'])->name('user.my-articles');
     Route::get('/user/info', [UserController::class, 'getUserInfo'])->name('user.info');
     Route::post('/report', [ReportController::class, 'store'])->name('report.store');
+    Route::post('/boutique/{user}/signaler', [UserShopController::class, 'report'])->name('boutique.report');
     // messages
     Route::get('/messages', [MessageController::class, 'inbox'])->name('messages.inbox');
     Route::get('/messages/compose', [MessageController::class, 'compose'])->name('messages.compose');
@@ -193,6 +194,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
     Route::post('/articles/bulk-approve', [AdminController::class, 'bulkApproveArticles'])->name('articles.bulk-approve');
     Route::post('/articles/bulk-block', [AdminController::class, 'bulkBlockArticles'])->name('articles.bulk-block');
     Route::post('/users/{user}/coins', [AdminController::class, 'addCoins'])->name('users.add-coins');
+    Route::post('/user-reports/{report}/status', [AdminController::class, 'updateUserReportStatus'])->name('user-reports.update-status');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('/reports/{report}/status', [ReportController::class, 'updateStatus'])->name('reports.update-status');
     // admin messaging

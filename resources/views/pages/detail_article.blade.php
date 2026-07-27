@@ -733,6 +733,12 @@
 
                             </div> 
 
+{{-- =====================================================================
+     TEMPORAIRE — Section Avis / commentaires désactivée pour le lancement.
+     Raison : reportée volontairement au démarrage du site ; à réactiver plus tard.
+     Pour réactiver : passer @if(false) → @if(true), ou supprimer le @if/@endif.
+     ===================================================================== --}}
+@if(false)
                         <!-- Section Avis Professionnelle -->
 
                         <div class="ecrire-voir-commentaire">
@@ -996,6 +1002,7 @@
                             </form>
 
                         </div>
+@endif
 
                     </div>
 
@@ -1013,7 +1020,7 @@
 
                                 <h5 style="font-weight: bold;">Vous devez être connecté</h5>
 
-                                <p style="font-size: 14px; color: #6b7280; margin: 10px 0 20px;">Connectez-vous pour laisser votre avis</p>
+                                <p style="font-size: 14px; color: #6b7280; margin: 10px 0 20px;">Connectez-vous pour continuer</p>
 
                                 <div style="display: flex; text-align: center; align-items: center; justify-content: center; margin: 20px 0; gap: 10px;">
 
@@ -2674,6 +2681,12 @@
 
 
 
+{{-- =====================================================================
+     TEMPORAIRE — Section Avis / commentaires désactivée pour le lancement.
+     Raison : reportée volontairement au démarrage du site ; à réactiver plus tard.
+     Pour réactiver : passer @if(false) → @if(true), ou supprimer le @if/@endif.
+     ===================================================================== --}}
+@if(false)
                     <!-- Script pour le système de commentaires professionnel -->
 
                     <script>
@@ -4041,6 +4054,7 @@
                         }
 
                     </script>
+@endif
 
 
 

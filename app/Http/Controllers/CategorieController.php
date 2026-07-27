@@ -413,7 +413,7 @@ public function getSubcategories($id)
             ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom'])
             ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > NOW()) DESC')
             ->orderBy('created_at', 'desc')
-            ->paginate(40)
+            ->paginate(120)
             ->withQueryString();
 
         // Retourner la vue avec les articles

@@ -542,7 +542,11 @@
         }
 
         function isDetailsPage() {
-            return /^\/article\/[^/]+$/.test(currentPath());
+            const path = currentPath();
+            // Ancienne URL /article/{id} + nouvelle URL SEO /annonce/{cat}/{sous}/{slug-id}
+            return /^\/article\/\d+$/.test(path)
+                || /^\/annonce\/[^/]+\/[^/]+\/[^/]+-\d+$/.test(path)
+                || !!document.getElementById('articles-similaires');
         }
 
         function isMesAnnoncesPage() {

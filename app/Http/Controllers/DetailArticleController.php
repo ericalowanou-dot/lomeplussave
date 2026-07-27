@@ -57,12 +57,16 @@ class DetailArticleController extends Controller
 
     protected function render(Article $article): View
     {
-        $comments = $article->comments()
-            ->with('user:id,name,photo_profil,certifie')
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
-        $commentsTotal = $article->comments_count;
+        // TEMPORAIRE — Avis désactivés pour le lancement (section masquée dans detail_article.blade.php).
+        // Pour réactiver : décommenter le chargement ci-dessous et activer le @if(false) → true dans la vue.
+        $comments = collect();
+        $commentsTotal = 0;
+        // $comments = $article->comments()
+        //     ->with('user:id,name,photo_profil,certifie')
+        //     ->orderBy('created_at', 'desc')
+        //     ->limit(10)
+        //     ->get();
+        // $commentsTotal = $article->comments_count;
 
         $articlesParCategorie = Article::where('sous_categorie_id', $article->sous_categorie_id)
             ->where('id', '!=', $article->id)
