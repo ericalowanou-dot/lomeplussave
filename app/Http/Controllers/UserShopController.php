@@ -6,6 +6,7 @@ use App\Events\UserReportCreated;
 use App\Models\User;
 use App\Models\UserReport;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class UserShopController extends Controller
@@ -20,10 +21,12 @@ class UserShopController extends Controller
             ->latest()
             ->paginate(24);
 
-        $hasReportedShop = auth()->check()
-            && UserReport::where('reporter_id', auth()->id())
+        $hasReportedShop = false;
+        if (auth()->check() && Schema::hasTable('user_reports')) {
+            $hasReportedShop = UserReport::where('reporter_id', auth()->id())
                 ->where('reported_user_id', $user->id)
                 ->exists();
+        }
 
         $reportReasons = UserReport::REASONS;
 
@@ -35,6 +38,13 @@ class UserShopController extends Controller
      */
     public function report(Request $request, User $user)
     {
+        if (! Schema::hasTable('user_reports')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le signalement n\'est pas encore disponible. Réessayez plus tard.',
+            ], 503);
+        }
+
         $reporter = $request->user();
 
         if ($reporter->id === $user->id) {
