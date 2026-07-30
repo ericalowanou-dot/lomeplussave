@@ -28,7 +28,9 @@ Route::middleware(['auth', 'check.blocked'])->group(function(){
     Route::get('/user/my-articles', [UserController::class, 'myArticles'])->name('user.my-articles');
     Route::get('/user/info', [UserController::class, 'getUserInfo'])->name('user.info');
     Route::post('/report', [ReportController::class, 'store'])->name('report.store');
-    Route::post('/boutique/{user}/signaler', [UserShopController::class, 'report'])->name('boutique.report');
+    Route::post('/boutique/{user}/signaler', [UserShopController::class, 'report'])
+        ->name('boutique.report')
+        ->whereNumber('user');
     // messages
     Route::get('/messages', [MessageController::class, 'inbox'])->name('messages.inbox');
     Route::get('/messages/compose', [MessageController::class, 'compose'])->name('messages.compose');
@@ -63,8 +65,6 @@ Route::get('/search', [ArticleController::class, 'search'])->name('article.searc
 
 
 Route::get('/search/articles', [AnnonceController::class, 'searchArticles'])->name('search.articles');
-Route::get('/search/favoris', [AnnonceController::class, 'searchFavoris'])->name('search.favoris');
-Route::get('/search/mesannonces', [AnnonceController::class, 'searchMesAnnonces'])->name('search.mesannonces');
 
 
 
@@ -76,6 +76,8 @@ Route::middleware(['auth', 'check.blocked'])->group(function(){
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy'); // Pour supprimer un commentaire
     Route::post('/comments/{comment}/report', [CommentController::class, 'report'])->name('comments.report'); // Pour signaler un commentaire
     Route::get('/mes-favoris', [AnnonceController::class, 'mesFavoris'])->name('mes_favoris'); // Pour voir les articles aimés par l'utilisateur
+    Route::get('/search/favoris', [AnnonceController::class, 'searchFavoris'])->name('search.favoris');
+    Route::get('/search/mesannonces', [AnnonceController::class, 'searchMesAnnonces'])->name('search.mesannonces');
     Route::get('/articles/create', [ArticleController::class, 'create'])->name('articles.create'); //pour afficher le formulaire de création d'article
     
     //Route::post('/articles', [ArticleController::class, 'store'])->name('articles.store'); //pour enregistrer un nouvel article dans la bdd
@@ -137,7 +139,15 @@ Route::get('/categories-list', [CategorieController::class, 'getCategories'])->n
 
 Route::get('/paginate', [AnnonceController::class, 'maPaginnation']);
 
-Route::get('/boutique/{user}', [UserShopController::class, 'show'])->name('boutique.show');
+// URL SEO boutique : /boutique/{slug-nom}-{id}
+Route::get('/boutique/{slugId}', [UserShopController::class, 'show'])
+    ->name('boutique.show')
+    ->where('slugId', '[a-z0-9\-]+\-\d+');
+
+// Ancienne URL /boutique/{id} → redirection 301
+Route::get('/boutique/{id}', [UserShopController::class, 'showLegacy'])
+    ->name('boutique.show.legacy')
+    ->whereNumber('id');
 
 Route::get('/modal', function(){
     return view('modale');

@@ -308,14 +308,14 @@
         background: #f5f5f5;
     }
 
-    /* Marges latérales = articles similaires (detail-container : 20px) */
+    /* Marges latérales = articles similaires (content-width / detail-container : 6px) */
     .homepage-layout .homepage-container {
         max-width: calc(100% - 12px) !important;
         width: 100% !important;
         margin-left: auto !important;
         margin-right: auto !important;
-        padding-left: 20px !important;
-        padding-right: 20px !important;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
     }
 
     body.is-search-active .homepage-layout {
@@ -344,8 +344,9 @@
         padding-left: 2px;
     }
 
-    /* Même écart que les articles similaires (Bootstrap g-3 = 1rem) */
-    .homepage-layout #articles-results .row {
+    /* Écarts entre cartes = Bootstrap g-3 (identique articles similaires) */
+    .homepage-layout #articles-results .row,
+    #articles-similaires .row {
         --bs-gutter-x: 1rem;
         --bs-gutter-y: 1rem;
     }
@@ -407,11 +408,11 @@
     }
 }
 
-/* Très petits écrans : même padding que detail-container (articles similaires) */
+/* Très petits écrans : garder le même retrait que articles similaires */
 @media (max-width: 480px) {
     .homepage-layout .homepage-container {
-        padding-left: 15px !important;
-        padding-right: 15px !important;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
     }
 }
 

@@ -136,6 +136,50 @@ function replaceArticlesDom({ list, pagination }) {
     }
 }
 
+function getSearchContext() {
+    return document.getElementById('search')?.dataset?.context || 'articles';
+}
+
+function getSearchResultsEl(context = getSearchContext()) {
+    if (context === 'favoris') {
+        return document.querySelector('main #favoris-results[data-context="favoris"]');
+    }
+    if (context === 'mesannonces') {
+        return document.querySelector('main #mesannonces-results[data-context="mesannonces"]');
+    }
+    return document.querySelector('main #articles-results[data-context]');
+}
+
+function replaceSearchResultsDom(context, { list, pagination }) {
+    const listEl = getSearchResultsEl(context);
+    if (listEl && typeof list === 'string') {
+        listEl.innerHTML = list;
+        initGuestBannerRotation(listEl);
+    }
+
+    if (context === 'mesannonces') {
+        const mesPagination = document.querySelector('.mes-annonces-pagination');
+        if (mesPagination && typeof pagination === 'string') {
+            mesPagination.innerHTML = pagination;
+        }
+    } else if (context === 'articles') {
+        const paginationEl = document.getElementById('pagination-wrapper');
+        if (paginationEl && typeof pagination === 'string') {
+            paginationEl.innerHTML = pagination;
+        }
+    }
+}
+
+function isLocalSearchContext(context = getSearchContext()) {
+    return context === 'favoris' || context === 'mesannonces';
+}
+
+function localSearchEndpoint(context) {
+    if (context === 'favoris') return '/search/favoris';
+    if (context === 'mesannonces') return '/search/mesannonces';
+    return null;
+}
+
 function closeFilterModalIfOpen() {
     const modal = document.getElementById('filterModal');
     if (!modal) return;
@@ -263,68 +307,164 @@ function debounce(fn, waitMs = 300) {
 }
 
 function initAjaxSearch() {
-    const listEl = document.querySelector('main #articles-results[data-context]');
-    if (!listEl) return;
-
     const form = document.getElementById('search-form');
     const input = document.getElementById('search');
     if (!form || !input) return;
 
-    const baseAction =
-        document.getElementById('filterForm')?.getAttribute('action') ||
-        window.location.pathname;
+    /**
+     * Recherche locale (favoris / mes annonces) via endpoints dédiés.
+     * q vide => liste complète (reset).
+     */
+    const runLocalSearch = async ({ dismissKeyboard = false } = {}) => {
+        const context = getSearchContext();
+        const listEl = getSearchResultsEl(context);
+        const endpoint = localSearchEndpoint(context);
+        if (!listEl || !endpoint) return;
+
+        const q = (input.value || '').trim();
+        const url = new URL(endpoint, window.location.origin);
+
+        if (q.length >= 1) {
+            url.searchParams.set('q', q);
+        }
+
+        // Conserver d'éventuels filtres sur Mes annonces
+        if (context === 'mesannonces') {
+            const current = new URL(window.location.href);
+            ['status', 'boosted', 'categorie', 'date_filter', 'date_from', 'date_to'].forEach((key) => {
+                const value = current.searchParams.get(key);
+                if (value) url.searchParams.set(key, value);
+            });
+        }
+
+        try {
+            const data = await fetchArticlesPartial(url.toString());
+            replaceSearchResultsDom(context, data);
+
+            const historyUrl = new URL(window.location.href);
+            if (q.length >= 1) historyUrl.searchParams.set('q', q);
+            else historyUrl.searchParams.delete('q');
+            window.history.replaceState({ partial: true }, '', historyUrl.toString());
+
+            if (dismissKeyboard) {
+                window.setTimeout(() => {
+                    scrollToResults(listEl, { delay: 400, dismissKeyboard: true, instant: false });
+                }, 300);
+            }
+        } catch {
+            window.location.href = url.toString();
+        }
+    };
 
     /**
-     * @param {{ dismissKeyboard?: boolean }} [options]
-     * - saisie live : résultats sans fermer le clavier ni scroller
-     * - submit : laisse voir les résultats, puis ferme le clavier et scroll
+     * Accueil / page /search : filtre live sur #articles-results.
      */
-    const runSearch = async ({ dismissKeyboard = false } = {}) => {
+    const runArticlesSearch = async ({ dismissKeyboard = false } = {}) => {
+        const listEl = getSearchResultsEl('articles');
+        if (!listEl) return;
+
         const q = (input.value || '').trim();
+        const isSearchPage = window.location.pathname.replace(/\/+$/, '') === '/search';
 
         const url = new URL(window.location.href);
-        url.pathname = new URL(baseAction, window.location.origin).pathname;
+        if (isSearchPage) {
+            url.pathname = '/search';
+        } else {
+            const baseAction =
+                document.getElementById('filterForm')?.getAttribute('action') ||
+                window.location.pathname;
+            url.pathname = new URL(baseAction, window.location.origin).pathname;
+        }
 
         if (q.length >= 3) {
             url.searchParams.set('q', q);
         } else {
             url.searchParams.delete('q');
+            // Sur /search, moins de 3 caractères => revenir à l'accueil
+            if (isSearchPage && dismissKeyboard) {
+                window.location.href = '/';
+                return;
+            }
+            if (isSearchPage && !dismissKeyboard) {
+                return;
+            }
         }
 
-        // Nouvelle recherche => page 1
         url.searchParams.delete('page');
 
         try {
+            // Sur /search avec q, le contrôleur search gère l'AJAX.
+            // Sur l'accueil, index() gère l'AJAX avec le param q éventuel.
             const data = await fetchArticlesPartial(url.toString());
-            replaceArticlesDom(data);
+            replaceSearchResultsDom('articles', data);
             window.history.pushState({ partial: true }, '', url.toString());
 
-            if (!dismissKeyboard) {
-                // Frappe en cours : garder le clavier ouvert pour continuer la saisie
-                return;
-            }
+            if (!dismissKeyboard) return;
 
-            // Submit : laisser le temps de voir les résultats avant de fermer le clavier
             window.setTimeout(() => {
                 scrollToResults(listEl, { delay: 700, dismissKeyboard: true, instant: false });
             }, 800);
         } catch {
-            window.location.href = url.toString();
+            if (q.length >= 3) {
+                window.location.href = `/search?q=${encodeURIComponent(q)}`;
+            } else {
+                window.location.href = url.toString();
+            }
         }
+    };
+
+    /** Autres pages : navigation vers la recherche globale. */
+    const runGlobalNavigate = () => {
+        const q = (input.value || '').trim();
+        if (q.length < 3) {
+            input.focus();
+            input.setCustomValidity('Saisissez au moins 3 caractères.');
+            input.reportValidity();
+            input.setCustomValidity('');
+            return;
+        }
+        window.showPageLoader?.('Chargement...');
+        window.location.href = `/search?q=${encodeURIComponent(q)}`;
     };
 
     form.addEventListener(
         'submit',
         (e) => {
             e.preventDefault();
-            runSearch({ dismissKeyboard: true });
+            const context = getSearchContext();
+            const listEl = getSearchResultsEl(context);
+
+            if (isLocalSearchContext(context) && listEl) {
+                runLocalSearch({ dismissKeyboard: true });
+                return;
+            }
+
+            if (context === 'articles' && listEl) {
+                runArticlesSearch({ dismissKeyboard: true });
+                return;
+            }
+
+            runGlobalNavigate();
         },
         true,
     );
 
     input.addEventListener(
         'input',
-        debounce(() => runSearch({ dismissKeyboard: false }), 300),
+        debounce(() => {
+            const context = getSearchContext();
+            const listEl = getSearchResultsEl(context);
+
+            if (isLocalSearchContext(context) && listEl) {
+                runLocalSearch({ dismissKeyboard: false });
+                return;
+            }
+
+            if (context === 'articles' && listEl) {
+                runArticlesSearch({ dismissKeyboard: false });
+            }
+            // Pas de live sur les autres pages : submit uniquement
+        }, 300),
     );
 }
 

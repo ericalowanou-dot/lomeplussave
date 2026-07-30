@@ -89,94 +89,72 @@ class ArticleController extends Controller
 
     public function search(Request $request){
 
-        // Validation
+        // Validation (assouplie en AJAX live : q optionnel si on nettoie)
+        $isAjax = $request->ajax() || $request->wantsJson();
 
-        $request->validate([
+        if (!$isAjax) {
+            $request->validate([
+                'q' => 'required|min:3|string|max:255'
+            ]);
+        } else {
+            $request->validate([
+                'q' => 'nullable|string|max:255'
+            ]);
+        }
 
-            'q' => 'required|min:3|string|max:255'
-
-        ]);
-
-
-
-        $q = $request->input('q');
-
-
+        $q = trim((string) $request->input('q', ''));
 
         // Recherche optimisée avec eager loading
+        $articlesQuery = Article::where('status', 'approved');
 
-        $articles = Article::where('status', 'approved') // Seulement les articles approuvés
-
-            ->where(function($query) use ($q) {
-
-                // Recherche dans le titre
-
+        if ($q !== '') {
+            $articlesQuery->where(function($query) use ($q) {
                 $query->where('titre', 'like', "%$q%")
-
-                      // Recherche dans la description
-
                       ->orWhere('description', 'like', "%$q%")
-
-                      // Recherche dans le lieu
-
                       ->orWhere('lieu', 'like', "%$q%")
-
-                      // Recherche dans le nom de l'utilisateur (optimisé avec join)
-
                       ->orWhereHas('user', function ($userQuery) use ($q) {
-
                           $userQuery->where('name', 'like', "%$q%")
-
                                     ->orWhere('email', 'like', "%$q%")
-
                                     ->orWhere('ville', 'like', "%$q%");
-
                       })
-
-                      // Recherche dans le nom de la sous-catégorie
-
                       ->orWhereHas('sousCategorie', function ($subQuery) use ($q) {
-
                           $subQuery->where('nom', 'like', "%$q%")
-
-                                   // Recherche dans le nom de la catégorie parente
-
                                    ->orWhereHas('categorie', function ($catQuery) use ($q) {
-
                                        $catQuery->where('nom', 'like', "%$q%");
-
                                    });
-
                       });
+            });
+        }
 
-            })
-
+        $articles = $articlesQuery
             ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
-
             ->withLikeCounts(auth()->id())
-
             ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
-
             ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > NOW()) DESC')
-
             ->orderBy('created_at', 'desc')
-
-            ->paginate(120);
-
-
+            ->paginate(120)
+            ->appends($request->query());
 
         // Récupérer les catégories pour la navigation (avec cache)
-
         $categories = \Cache::remember('categories_with_souscategories', 3600, function () {
-
             return \App\Models\Categorie::with('sousCategories')->get();
-
         });
 
+        if ($isAjax) {
+            return response()->json([
+                'list' => view('partials.articles-list', ['articles' => $articles])->render(),
+                'pagination' => (string) $articles->links(),
+                'total' => $articles->total(),
+                'q' => $q,
+            ]);
+        }
 
-
-        return view('products.search', compact('articles', 'q', 'categories'));
-
+        return view('products.search', [
+            'articles' => $articles,
+            'q' => $q,
+            'categories' => $categories,
+            'contextPage' => 'articles',
+        ]);
     }
 
 

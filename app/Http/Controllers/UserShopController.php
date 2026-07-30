@@ -5,13 +5,44 @@ namespace App\Http\Controllers;
 use App\Events\UserReportCreated;
 use App\Models\User;
 use App\Models\UserReport;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class UserShopController extends Controller
 {
-    public function show(User $user)
+    /**
+     * URL SEO : /boutique/{slug-nom}-{id}
+     */
+    public function show(string $slugId): View|RedirectResponse
+    {
+        if (! preg_match('/-(\d+)$/', $slugId, $matches)) {
+            abort(404);
+        }
+
+        $user = User::findOrFail((int) $matches[1]);
+
+        $canonical = $user->shopRouteParameters()['slugId'];
+        if ($slugId !== $canonical) {
+            return redirect()->route('boutique.show', ['slugId' => $canonical], 301);
+        }
+
+        return $this->renderShop($user);
+    }
+
+    /**
+     * Ancienne URL /boutique/{id} → redirection 301.
+     */
+    public function showLegacy(int $id): RedirectResponse
+    {
+        $user = User::findOrFail($id);
+
+        return redirect($user->shopUrl(), 301);
+    }
+
+    protected function renderShop(User $user): View
     {
         $articles = $user->articles()
             ->where('status', 'approved')

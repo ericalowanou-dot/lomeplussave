@@ -7,6 +7,7 @@ use App\Models\Article;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 
 class User extends Authenticatable
@@ -23,7 +24,7 @@ class User extends Authenticatable
             // Sinon, on adapte les anciens chemins
             return asset('users/profil/' . basename($this->photo_profil));
         }
-        return asset('images/user_default.png');
+        return asset('images/user_default.svg');
     }
 
     public function estCertifie()
@@ -141,6 +142,32 @@ public function reportsReceived()
 public function reportsMade()
 {
     return $this->hasMany(UserReport::class, 'reporter_id');
+}
+
+/**
+ * Paramètres de route SEO boutique :
+ * /boutique/{slug-nom}-{id}
+ */
+public function shopRouteParameters(): array
+{
+    $slug = Str::slug(Str::limit($this->name ?? '', 60, '')) ?: 'boutique';
+
+    return [
+        'slugId' => $slug . '-' . $this->id,
+    ];
+}
+
+/**
+ * URL publique SEO de la boutique.
+ */
+public function shopUrl(): string
+{
+    return route('boutique.show', $this->shopRouteParameters());
+}
+
+public function getShopUrlAttribute(): string
+{
+    return $this->shopUrl();
 }
 
 // Méthodes pour l'administration

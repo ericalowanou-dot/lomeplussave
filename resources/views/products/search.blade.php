@@ -277,6 +277,7 @@
   </div>
   @endif
 
+  <div id="articles-results" data-context="articles">
   @if($articles->isEmpty())
     <div class="no-results-container" style="max-width: 600px; margin: 60px auto; padding: 40px 20px; text-align: center;">
       <!-- Icône de recherche -->
@@ -432,11 +433,11 @@
                                 @else
                                     @if($article->user)
                                         <div class="user-info">
-                                            <a href="{{ route('boutique.show', $article->user->id) }}" style="display: flex; align-items: center; text-decoration: none;">
+                                            <a href="{{ $article->user->shop_url }}" style="display: flex; align-items: center; text-decoration: none;">
                                                 <img src="{{ $article->user->getProfilPhotoUrl() }}" 
                                                      alt="Profil de {{ $article->user->name }}" 
                                                      class="profile-picture"
-                                                     onerror="this.src='{{ asset('images/user_default.png') }}';">
+                                                     onerror="this.src='{{ asset('images/user_default.svg') }}';">
                                                 <p class="text-muted user-name mb-0{{ $article->user->estCertifie() ? '' : ' not-certified' }}">
                                                     {{ $article->user->name ?? 'nom non spécifiée' }}
                                                 </p>
@@ -545,6 +546,7 @@
         @endforeach 
     </div> <!-- fin row -->
 @endif
+  </div><!-- /#articles-results -->
 
             </div>
   
@@ -559,7 +561,7 @@
 
         
         <!-- Pagination -->
-        <div class="d-flex justify-content-center mt-4">
+        <div class="d-flex justify-content-center mt-4" id="pagination-wrapper">
             {{ $articles->links() }}
         </div>
 

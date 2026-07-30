@@ -1119,7 +1119,7 @@
                 </div>
             </div>
 
-            <a href="{{ route('boutique.show', $seller->id) }}" class="btn-boutique">
+            <a href="{{ $seller->shop_url }}" class="btn-boutique">
                 Voir la boutique
             </a>
         </div>

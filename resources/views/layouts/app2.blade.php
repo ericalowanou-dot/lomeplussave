@@ -447,7 +447,7 @@
         gap: 8px;
         background: #ff7b00;
         color: #fff;
-        padding: 10px 14px;
+        padding: 10px 16px;
         border-radius: 9999px;
         box-shadow: 0 6px 10px rgba(0, 0, 0, 0.5);
         cursor: pointer;
@@ -455,6 +455,8 @@
         z-index: 100;
         opacity: 1;
         pointer-events: auto;
+        max-width: calc(100vw - 24px);
+        box-sizing: border-box;
         will-change: opacity, transform, left, padding;
         transition:
             opacity 0.45s ease,
@@ -473,11 +475,29 @@
 
     #megaphone-button span {
         display: inline-block;
-        max-width: 160px;
+        max-width: 20em; /* assez large même avec zoom accessibilité */
         opacity: 1;
         transform: translateX(0);
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: clip;
+        font-size: 14px;
+        line-height: 1.25;
+        letter-spacing: 0.01em;
+        flex: 1 1 auto;
+        min-width: 0;
         transition: opacity 0.35s ease, max-width 0.35s ease, transform 0.35s ease;
+    }
+
+    @media (max-width: 360px) {
+        #megaphone-button {
+            padding: 9px 12px;
+            gap: 6px;
+        }
+
+        #megaphone-button span {
+            font-size: 13px;
+        }
     }
 
     /* Caché par défaut sur la page détails (jusqu'aux articles similaires) */

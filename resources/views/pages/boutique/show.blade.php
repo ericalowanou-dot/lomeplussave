@@ -7,7 +7,7 @@
     <img src="{{ $user->getProfilPhotoUrl() }}" 
          alt="Photo de profil de {{ $user->name }}"
          class="profile-avatar"
-         onerror="this.src='{{ asset('images/user_default.png') }}';">
+         onerror="this.src='{{ asset('images/user_default.svg') }}';">
     
     <div class="profile-info">
         <div class="boutique-header-top">
@@ -40,12 +40,6 @@
                 <i class="bi bi-calendar3"></i>
                 <span>Membre depuis {{ $user->created_at->format('d/m/Y') }}</span>
             </div>
-            @if($user->telephone)
-            <div class="meta-item">
-                <i class="bi bi-telephone"></i>
-                <span>{{ $user->telephone }}</span>
-            </div>
-            @endif
         </div>
         
         @if($user->estCertifie())
@@ -72,27 +66,30 @@
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
-        border: 1px solid rgba(15, 23, 42, 0.12);
-        background: #fff;
-        color: #64748b;
+        border: 1px solid #dc2626;
+        background: #dc2626;
+        color: #fff;
         font-size: 0.8rem;
-        font-weight: 500;
-        padding: 0.35rem 0.7rem;
+        font-weight: 600;
+        padding: 0.4rem 0.85rem;
         border-radius: 999px;
         cursor: pointer;
         text-decoration: none;
         white-space: nowrap;
-        transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
     }
 
     .boutique-report-btn:hover {
-        color: #b91c1c;
-        border-color: rgba(185, 28, 28, 0.35);
-        background: #fef2f2;
+        color: #fff;
+        background: #b91c1c;
+        border-color: #b91c1c;
+        box-shadow: 0 4px 12px rgba(185, 28, 28, 0.45);
+        transform: translateY(-1px);
     }
 
     .boutique-report-btn--link:hover {
-        color: #b91c1c;
+        color: #fff;
     }
 
     .boutique-report-done {
@@ -312,11 +309,38 @@
     .call-buttons .btn-warning {
         background: linear-gradient(135deg, #FF9900 0%, #E68900 100%);
         color: #fff;
+        box-shadow: 0 3px 10px rgba(255, 153, 0, 0.35);
     }
     
-    .call-buttons .btn-success {
-        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    .call-buttons .btn-whatsapp {
+        background: #25D366;
         color: #fff;
+        box-shadow: 0 3px 12px rgba(37, 211, 102, 0.45);
+    }
+
+    .call-buttons .btn-whatsapp:hover {
+        background: #1ebe57;
+        color: #fff;
+        box-shadow: 0 5px 16px rgba(37, 211, 102, 0.55);
+    }
+
+    .call-buttons .btn-whatsapp i {
+        font-size: 1.15em;
+        line-height: 1;
+    }
+
+    .call-buttons .btn-share {
+        background: #fff;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.18);
+    }
+
+    .call-buttons .btn-share:hover {
+        background: #f8fafc;
+        color: #0f172a;
+        border-color: #94a3b8;
+        box-shadow: 0 5px 16px rgba(15, 23, 42, 0.25);
     }
     
     @media (max-width: 768px) {
@@ -330,6 +354,26 @@
         .boutique-sidebar {
             position: relative;
             top: 0;
+        }
+
+        .call-buttons {
+            flex-direction: row;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+
+        .call-buttons .btn {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 0.65rem 0.4rem;
+            font-size: 0.75rem;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .call-buttons .btn img {
+            width: 18px;
+            height: 18px;
         }
     }
 </style>
@@ -355,13 +399,14 @@
         @if($user->whatsapp)
         <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $user->whatsapp) }}" 
            target="_blank" 
-           class="btn btn-success">
-            <img src="{{ asset('images/whatsapp_icon.png') }}" alt="WhatsApp" width="20" height="20" style="filter: brightness(0) invert(1);"> 
+           rel="noopener noreferrer"
+           class="btn btn-whatsapp">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i>
             <span>WhatsApp</span>
         </a>
         @endif
         
-        <button class="btn btn-outline-secondary" onclick="shareShop()">
+        <button type="button" class="btn btn-share" onclick="shareShop()">
             <i class="bi bi-share-fill"></i>
             <span>Partager</span>
         </button>
@@ -444,12 +489,12 @@
                                 @else
                                     @if($article->user)
                                         <div class="user-info">
-                                            <a href="{{ route('boutique.show', $article->user->id) }}" style="display: flex; align-items: center; text-decoration: none;">
+                                            <a href="{{ $article->user->shop_url }}" style="display: flex; align-items: center; text-decoration: none;">
                                                 <img src="{{ $article->user->getProfilPhotoUrl() }}" 
                                                      alt="Profil de {{ $article->user->name }}" 
                                                      class="profile-picture"
                                                      loading="lazy"
-                                                     onerror="this.src='{{ asset('images/user_default.png') }}';">
+                                                     onerror="this.src='{{ asset('images/user_default.svg') }}';">
                                                 <p class="text-muted user-name mb-0{{ $article->user->estCertifie() ? '' : ' not-certified' }}">
                                                     {{ $article->user->name ?? 'nom non spécifiée' }}
                                                 </p>

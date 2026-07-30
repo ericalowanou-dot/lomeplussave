@@ -200,32 +200,47 @@
 
         @else
 
-            <button id="ouvrirModalConnexion" style="background: none; border: none; cursor: pointer; box-shadow: 0 0 4px rgba(0, 0, 0, 0.2); border-radius: 50%;">
-
-                <img src="{{ asset('images/user_default.png') }}" alt="connexion">
-
+            <button id="ouvrirModalConnexion" type="button" aria-label="Connexion">
+                <img src="{{ asset('images/user_default.svg') }}" alt="connexion">
             </button>
 
             <style>
-
                 #ouvrirModalConnexion {
-
-                    width: 35px;
-
-                    height: 35px;
-
+                    width: 36px;
+                    height: 36px;
+                    padding: 0;
                     display: flex;
-
                     justify-content: center;
-
                     align-items: center;
-
-              
-
+                    background: #fff;
+                    border: 1px solid #94a3b8;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    overflow: hidden;
+                    box-shadow:
+                        0 2px 6px rgba(0, 0, 0, 0.22),
+                        0 6px 14px rgba(0, 0, 0, 0.16);
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
                 }
 
+                #ouvrirModalConnexion img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: block;
+                    border-radius: 50%;
+                }
 
+                #ouvrirModalConnexion:hover {
+                    transform: translateY(-1px);
+                    box-shadow:
+                        0 4px 10px rgba(0, 0, 0, 0.28),
+                        0 8px 18px rgba(0, 0, 0, 0.18);
+                }
 
+                #ouvrirModalConnexion:active {
+                    transform: translateY(0);
+                }
             </style>
 
         @endif

@@ -18,7 +18,7 @@
                         <p class="mb-1"><strong>Membre depuis :</strong> {{ $membreDepuis ?? '—' }}</p>
                         <p class="mb-1"><strong>Articles publiés :</strong> {{ $nbArticles ?? 0 }}</p>
                         <p class="mb-3"><strong>Total likes :</strong> {{ $totalLikes ?? 0 }}</p>
-                        <a href="{{ route('boutique.show', $article->user->id) }}" class="btn btn-outline-primary btn-sm">Voir la boutique</a>
+                        <a href="{{ $article->user->shop_url }}" class="btn btn-outline-primary btn-sm">Voir la boutique</a>
                     @endif
                     <hr class="my-3">
                     <a href="{{ $article->url }}" class="btn btn-primary">Voir la fiche complète</a>

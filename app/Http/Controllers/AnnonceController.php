@@ -168,55 +168,107 @@ public function index(Request $request)
 
 
     public function searchArticles(Request $request)
-{
-    $q = $request->input('q');
+    {
+        $q = trim((string) $request->input('q', ''));
 
-    $articles = Article::query()
-        ->where('status', 'approved')
-        ->where(function ($query) use ($q) {
-            $query->where('titre', 'like', "%$q%")
-                ->orWhere('description', 'like', "%$q%");
-        })
-        ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
-        ->withLikeCounts(Auth::id())
-        ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
-        ->orderBy('created_at', 'desc')
-        ->paginate(30);
+        $articles = Article::query()
+            ->where('status', 'approved')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('titre', 'like', "%{$q}%")
+                        ->orWhere('description', 'like', "%{$q}%")
+                        ->orWhere('lieu', 'like', "%{$q}%");
+                });
+            })
+            ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
+            ->withLikeCounts(Auth::id())
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(30);
 
-    return view('partials.articles-list', compact('articles'));
-}
+        if ($request->ajax()) {
+            return response()->json([
+                'list' => view('partials.articles-list', compact('articles'))->render(),
+                'pagination' => (string) $articles->links(),
+                'total' => $articles->total(),
+            ]);
+        }
 
+        return view('partials.articles-list', compact('articles'));
+    }
 
-        public function searchFavoris(Request $request)
-{
-    $q = $request->input('q');
+    public function searchFavoris(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
 
-    $favoris = Auth::user()->favoris()
-        ->where('titre', 'like', "%$q%")
-        ->select('articles.id', 'articles.user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'articles.created_at', 'neuf', 'livraison')
-        ->withLikeCounts(Auth::id())
-        ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
-        ->orderBy('articles.created_at', 'desc')
-        ->paginate(30);
+        $favoris = Auth::user()->favoris()
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('titre', 'like', "%{$q}%")
+                        ->orWhere('description', 'like', "%{$q}%")
+                        ->orWhere('lieu', 'like', "%{$q}%");
+                });
+            })
+            ->select('articles.id', 'articles.user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'articles.created_at', 'neuf', 'livraison')
+            ->withLikeCounts(Auth::id())
+            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
+            ->orderBy('articles.created_at', 'desc')
+            ->paginate(30);
 
-    return view('partials.favoris-list', compact('favoris'));
-}
+        if ($request->ajax()) {
+            return response()->json([
+                'list' => view('partials.favoris-list', compact('favoris'))->render(),
+                'pagination' => '',
+                'total' => $favoris->total(),
+            ]);
+        }
 
+        return view('partials.favoris-list', compact('favoris'));
+    }
 
-public function searchMesAnnonces(Request $request)
-{
-    $q = $request->input('q');
+    public function searchMesAnnonces(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
 
-    $articles = Article::where('user_id', Auth::id())
-        ->where('titre', 'like', "%$q%")
-        ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
-        ->withLikeCounts(Auth::id())
-        ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
-        ->orderBy('created_at', 'desc')
-        ->paginate(30);
+        $articlesQuery = Article::where('user_id', Auth::id())
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('titre', 'like', "%{$q}%")
+                        ->orWhere('description', 'like', "%{$q}%")
+                        ->orWhere('lieu', 'like', "%{$q}%");
+                });
+            });
 
-    return view('partials.annonces-list', compact('articles'));
-}
+        // Conserver les filtres éventuels de la page Mes annonces
+        if ($request->filled('status')) {
+            $articlesQuery->where('status', $request->status);
+        }
+        if ($request->filled('boosted')) {
+            if ($request->boosted == '1') {
+                $articlesQuery->whereNotNull('boosted_until')->where('boosted_until', '>', now());
+            } else {
+                $articlesQuery->where(function ($q2) {
+                    $q2->whereNull('boosted_until')->orWhere('boosted_until', '<=', now());
+                });
+            }
+        }
 
-  
+        $articles = $articlesQuery
+            ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
+            ->withLikeCounts(Auth::id())
+            ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(30)
+            ->appends($request->query());
+
+        if ($request->ajax()) {
+            return response()->json([
+                'list' => view('partials.annonces-list', compact('articles'))->render(),
+                'pagination' => (string) $articles->links(),
+                'total' => $articles->total(),
+            ]);
+        }
+
+        return view('partials.annonces-list', compact('articles'));
+    }
 }
