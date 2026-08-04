@@ -1,6 +1,9 @@
 @if($articles->isEmpty())
     <p class="text-center" style="color: red; font-weight: bold;">Aucun résultat trouvé.</p>
 @else
+    @php
+        $pubsParSlot = $pubsParSlot ?? \App\Models\Publicite::activeSlotsEntreArticles();
+    @endphp
     <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
         @foreach($articles as $article)
             <div class="col">
@@ -95,6 +98,8 @@
                     </div> <!-- fin card-body -->
                 </div> <!-- fin card -->
             </div> <!-- fin col -->
+
+            @include('partials.publicite-slot', ['after' => $loop->iteration, 'pubsParSlot' => $pubsParSlot])
 
             @if($loop->iteration == 4)
                 @guest

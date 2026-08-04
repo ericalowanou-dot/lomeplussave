@@ -307,9 +307,6 @@
             </div>
         </div>
 
-        <!-- Publicités -->
-        @include('partials.publicites', ['position' => 'entre_articles'])
-
         <!-- Résultats -->
         <div class="results-section">
             @if($articles->isEmpty())

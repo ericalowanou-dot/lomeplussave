@@ -13,6 +13,7 @@ class Publicite extends Model
         'image',
         'lien_url',
         'position',
+        'apres_n_articles',
         'date_debut',
         'date_fin',
         'is_active',
@@ -29,7 +30,45 @@ class Publicite extends Model
         'clics' => 'integer',
         'affichages' => 'integer',
         'ordre' => 'integer',
+        'apres_n_articles' => 'integer',
     ];
+
+    /**
+     * Labels des positions d'affichage.
+     */
+    public static function positions(): array
+    {
+        return [
+            'header' => 'Header (sous le titre Annonces)',
+            'sidebar' => 'Sidebar (barre latérale)',
+            'footer' => 'Footer (pied de page)',
+            'entre_articles' => 'Entre les articles (slot précis)',
+            'homepage_top' => 'Page d\'accueil - Haut',
+            'homepage_bottom' => 'Page d\'accueil - Bas',
+        ];
+    }
+
+    /**
+     * Publicités actives « entre articles », groupées par numéro d'article.
+     * Clé = apres_n_articles (ex: 2, 5, 9).
+     */
+    public static function activeSlotsEntreArticles(): \Illuminate\Support\Collection
+    {
+        try {
+            return static::active()
+                ->byPosition('entre_articles')
+                ->whereNotNull('apres_n_articles')
+                ->where('apres_n_articles', '>', 0)
+                ->orderBy('apres_n_articles')
+                ->orderBy('ordre')
+                ->orderByDesc('created_at')
+                ->get()
+                ->groupBy('apres_n_articles');
+        } catch (\Throwable $e) {
+            \Log::error('Erreur slots publicités entre articles: ' . $e->getMessage());
+            return collect();
+        }
+    }
 
     /**
      * Vérifier si la publicité est actuellement active

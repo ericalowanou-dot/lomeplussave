@@ -91,6 +91,9 @@
                                 <small class="text-muted">
                                     <i class="fas fa-map-marker-alt"></i> 
                                     {{ ucfirst(str_replace('_', ' ', $publicite->position)) }}
+                                    @if($publicite->position === 'entre_articles' && $publicite->apres_n_articles)
+                                        | Après {{ $publicite->apres_n_articles }} article{{ $publicite->apres_n_articles > 1 ? 's' : '' }}
+                                    @endif
                                     @if($publicite->ordre)
                                         | Ordre: {{ $publicite->ordre }}
                                     @endif

@@ -445,6 +445,7 @@ class AdminController extends Controller
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // Max 5MB
                 'lien_url' => 'nullable|url|max:500',
                 'position' => 'required|in:header,sidebar,footer,entre_articles,homepage_top,homepage_bottom',
+                'apres_n_articles' => 'nullable|integer|min:1|max:100|required_if:position,entre_articles',
                 'date_debut' => 'nullable|date',
                 'date_fin' => 'nullable|date|after_or_equal:date_debut',
                 'is_active' => 'boolean',
@@ -456,6 +457,8 @@ class AdminController extends Controller
                 'image.mimes' => 'L\'image doit être au format : jpeg, png, jpg, gif ou webp.',
                 'image.max' => 'L\'image ne doit pas dépasser 5MB.',
                 'position.required' => 'Veuillez sélectionner une position.',
+                'apres_n_articles.required_if' => 'Indiquez après combien d\'articles afficher cette publicité.',
+                'apres_n_articles.min' => 'Le nombre d\'articles doit être au moins 1.',
                 'lien_url.url' => 'L\'URL n\'est pas valide.',
             ]);
 
@@ -486,6 +489,9 @@ class AdminController extends Controller
                 'image' => $imagePath,
                 'lien_url' => $request->lien_url ?? null,
                 'position' => $request->position,
+                'apres_n_articles' => $request->position === 'entre_articles'
+                    ? (int) $request->apres_n_articles
+                    : null,
                 'date_debut' => $request->date_debut ?? null,
                 'date_fin' => $request->date_fin ?? null,
                 'is_active' => $isActive,
@@ -554,6 +560,7 @@ class AdminController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
                 'lien_url' => 'nullable|url|max:500',
                 'position' => 'required|in:header,sidebar,footer,entre_articles,homepage_top,homepage_bottom',
+                'apres_n_articles' => 'nullable|integer|min:1|max:100|required_if:position,entre_articles',
                 'date_debut' => 'nullable|date',
                 'date_fin' => 'nullable|date|after_or_equal:date_debut',
                 'is_active' => 'boolean',
@@ -566,6 +573,8 @@ class AdminController extends Controller
                 'image.max' => 'L\'image ne doit pas dépasser 5 Mo.',
                 'lien_url.url' => 'L\'URL n\'est pas valide.',
                 'position.required' => 'Veuillez sélectionner une position.',
+                'apres_n_articles.required_if' => 'Indiquez après combien d\'articles afficher cette publicité.',
+                'apres_n_articles.min' => 'Le nombre d\'articles doit être au moins 1.',
                 'date_fin.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -586,6 +595,9 @@ class AdminController extends Controller
                 'titre' => $request->titre,
                 'lien_url' => $request->lien_url,
                 'position' => $request->position,
+                'apres_n_articles' => $request->position === 'entre_articles'
+                    ? (int) $request->apres_n_articles
+                    : null,
                 'date_debut' => $request->date_debut,
                 'date_fin' => $request->date_fin,
                 'is_active' => $request->has('is_active') ? true : false,

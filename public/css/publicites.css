@@ -109,6 +109,10 @@
     margin: 1.25rem 0;
 }
 
+.publicites-slot-wrap {
+    width: 100%;
+}
+
 .publicites-entre_articles .publicite-image {
     aspect-ratio: 16 / 6;
     max-height: 220px;
