@@ -204,6 +204,8 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
     Route::post('/articles/bulk-approve', [AdminController::class, 'bulkApproveArticles'])->name('articles.bulk-approve');
     Route::post('/articles/bulk-block', [AdminController::class, 'bulkBlockArticles'])->name('articles.bulk-block');
     Route::post('/users/{user}/coins', [AdminController::class, 'addCoins'])->name('users.add-coins');
+    Route::post('/users/{user}/certify', [AdminController::class, 'certifyUser'])->name('users.certify');
+    Route::post('/users/{user}/uncertify', [AdminController::class, 'uncertifyUser'])->name('users.uncertify');
     Route::post('/user-reports/{report}/status', [AdminController::class, 'updateUserReportStatus'])->name('user-reports.update-status');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('/reports/{report}/status', [ReportController::class, 'updateStatus'])->name('reports.update-status');

@@ -156,6 +156,69 @@ class AdminController extends Controller
     }
 
     /**
+     * Certifier un utilisateur (côté admin) avec dates de début et de fin.
+     */
+    public function certifyUser(Request $request, User $user)
+    {
+        $request->validate([
+            'certifie_from' => 'required|date',
+            'certifie_until' => 'required|date|after:certifie_from',
+        ], [
+            'certifie_from.required' => 'La date de début est obligatoire.',
+            'certifie_until.required' => 'La date de fin est obligatoire.',
+            'certifie_until.after' => 'La date de fin doit être postérieure à la date de début.',
+        ]);
+
+        $from = \Carbon\Carbon::parse($request->certifie_from)->startOfDay();
+        $until = \Carbon\Carbon::parse($request->certifie_until)->endOfDay();
+
+        $user->certifie = 1;
+        $user->certifie_from = $from;
+        $user->certifie_until = $until;
+        $user->save();
+
+        $fromLabel = $from->format('d/m/Y');
+        $untilLabel = $until->format('d/m/Y');
+
+        $body = "Bonjour {$user->name},\n\n"
+            . "🎉 Bonne nouvelle !\n\n"
+            . "LomePlus a le plaisir de vous offrir le badge « Boutique certifiée » "
+            . "en reconnaissance de votre sérieux et de la qualité de votre présence sur la plateforme.\n\n"
+            . "Votre certification est valable du {$fromLabel} au {$untilLabel}.\n\n"
+            . "Durant cette période, votre boutique bénéficie d'une visibilité renforcée auprès des acheteurs, "
+            . "qui pourront facilement identifier que vous êtes un vendeur de confiance.\n\n"
+            . "Continuez comme ça — et merci de faire partie de la communauté LomePlus !\n\n"
+            . "L'équipe LomePlus";
+
+        $message = Message::create([
+            'sender_id' => $request->user()->id,
+            'subject' => '🎉 Votre boutique est certifiée par LomePlus !',
+            'body' => $body,
+            'is_group_message' => false,
+            'parent_message_id' => null,
+        ]);
+        $message->recipients()->sync([$user->id]);
+
+        return redirect()->back()->with(
+            'success',
+            "Utilisateur certifié du {$fromLabel} au {$untilLabel}. Un message a été envoyé dans sa messagerie."
+        );
+    }
+
+    /**
+     * Retirer la certification d'un utilisateur.
+     */
+    public function uncertifyUser(User $user)
+    {
+        $user->certifie = 0;
+        $user->certifie_from = null;
+        $user->certifie_until = null;
+        $user->save();
+
+        return redirect()->back()->with('success', 'Certification retirée avec succès.');
+    }
+
+    /**
      * Supprimer un utilisateur
      */
     public function deleteUser(User $user)
@@ -445,7 +508,7 @@ class AdminController extends Controller
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // Max 5MB
                 'lien_url' => 'nullable|url|max:500',
                 'position' => 'required|in:header,sidebar,footer,entre_articles,homepage_top,homepage_bottom',
-                'apres_n_articles' => 'nullable|integer|min:1|max:100|required_if:position,entre_articles',
+                'apres_n_articles' => 'nullable|integer|min:1|max:100',
                 'date_debut' => 'nullable|date',
                 'date_fin' => 'nullable|date|after_or_equal:date_debut',
                 'is_active' => 'boolean',
@@ -457,8 +520,6 @@ class AdminController extends Controller
                 'image.mimes' => 'L\'image doit être au format : jpeg, png, jpg, gif ou webp.',
                 'image.max' => 'L\'image ne doit pas dépasser 5MB.',
                 'position.required' => 'Veuillez sélectionner une position.',
-                'apres_n_articles.required_if' => 'Indiquez après combien d\'articles afficher cette publicité.',
-                'apres_n_articles.min' => 'Le nombre d\'articles doit être au moins 1.',
                 'lien_url.url' => 'L\'URL n\'est pas valide.',
             ]);
 
@@ -489,9 +550,7 @@ class AdminController extends Controller
                 'image' => $imagePath,
                 'lien_url' => $request->lien_url ?? null,
                 'position' => $request->position,
-                'apres_n_articles' => $request->position === 'entre_articles'
-                    ? (int) $request->apres_n_articles
-                    : null,
+                'apres_n_articles' => null,
                 'date_debut' => $request->date_debut ?? null,
                 'date_fin' => $request->date_fin ?? null,
                 'is_active' => $isActive,
@@ -560,7 +619,7 @@ class AdminController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
                 'lien_url' => 'nullable|url|max:500',
                 'position' => 'required|in:header,sidebar,footer,entre_articles,homepage_top,homepage_bottom',
-                'apres_n_articles' => 'nullable|integer|min:1|max:100|required_if:position,entre_articles',
+                'apres_n_articles' => 'nullable|integer|min:1|max:100',
                 'date_debut' => 'nullable|date',
                 'date_fin' => 'nullable|date|after_or_equal:date_debut',
                 'is_active' => 'boolean',
@@ -573,8 +632,6 @@ class AdminController extends Controller
                 'image.max' => 'L\'image ne doit pas dépasser 5 Mo.',
                 'lien_url.url' => 'L\'URL n\'est pas valide.',
                 'position.required' => 'Veuillez sélectionner une position.',
-                'apres_n_articles.required_if' => 'Indiquez après combien d\'articles afficher cette publicité.',
-                'apres_n_articles.min' => 'Le nombre d\'articles doit être au moins 1.',
                 'date_fin.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -595,9 +652,7 @@ class AdminController extends Controller
                 'titre' => $request->titre,
                 'lien_url' => $request->lien_url,
                 'position' => $request->position,
-                'apres_n_articles' => $request->position === 'entre_articles'
-                    ? (int) $request->apres_n_articles
-                    : null,
+                'apres_n_articles' => null,
                 'date_debut' => $request->date_debut,
                 'date_fin' => $request->date_fin,
                 'is_active' => $request->has('is_active') ? true : false,

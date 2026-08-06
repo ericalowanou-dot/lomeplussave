@@ -42,32 +42,35 @@ class Publicite extends Model
             'header' => 'Header (sous le titre Annonces)',
             'sidebar' => 'Sidebar (barre latérale)',
             'footer' => 'Footer (pied de page)',
-            'entre_articles' => 'Entre les articles (slot précis)',
+            'entre_articles' => 'Section annonces (carrousel / scroll)',
             'homepage_top' => 'Page d\'accueil - Haut',
             'homepage_bottom' => 'Page d\'accueil - Bas',
         ];
     }
 
     /**
-     * Publicités actives « entre articles », groupées par numéro d'article.
-     * Clé = apres_n_articles (ex: 2, 5, 9).
+     * Publicités actives pour la section feed (carrousel mobile / scroll desktop).
      */
-    public static function activeSlotsEntreArticles(): \Illuminate\Support\Collection
+    public static function activeForFeed(): \Illuminate\Support\Collection
     {
         try {
             return static::active()
                 ->byPosition('entre_articles')
-                ->whereNotNull('apres_n_articles')
-                ->where('apres_n_articles', '>', 0)
-                ->orderBy('apres_n_articles')
                 ->orderBy('ordre')
                 ->orderByDesc('created_at')
-                ->get()
-                ->groupBy('apres_n_articles');
+                ->get();
         } catch (\Throwable $e) {
-            \Log::error('Erreur slots publicités entre articles: ' . $e->getMessage());
+            \Log::error('Erreur publicités feed: ' . $e->getMessage());
             return collect();
         }
+    }
+
+    /**
+     * @deprecated Conservé pour compatibilité — préférer activeForFeed().
+     */
+    public static function activeSlotsEntreArticles(): \Illuminate\Support\Collection
+    {
+        return collect();
     }
 
     /**

@@ -82,7 +82,7 @@
                             <option value="header" {{ old('position', $publicite->position) === 'header' ? 'selected' : '' }}>Header (En-tête)</option>
                             <option value="sidebar" {{ old('position', $publicite->position) === 'sidebar' ? 'selected' : '' }}>Sidebar (Barre latérale)</option>
                             <option value="footer" {{ old('position', $publicite->position) === 'footer' ? 'selected' : '' }}>Footer (Pied de page)</option>
-                            <option value="entre_articles" {{ old('position', $publicite->position) === 'entre_articles' ? 'selected' : '' }}>Entre les articles (slot précis)</option>
+                            <option value="entre_articles" {{ old('position', $publicite->position) === 'entre_articles' ? 'selected' : '' }}>Section annonces (carrousel / scroll)</option>
                             <option value="homepage_top" {{ old('position', $publicite->position) === 'homepage_top' ? 'selected' : '' }}>Page d'accueil - Haut</option>
                             <option value="homepage_bottom" {{ old('position', $publicite->position) === 'homepage_bottom' ? 'selected' : '' }}>Page d'accueil - Bas</option>
                         </select>
@@ -91,24 +91,7 @@
                         @enderror
                     </div>
 
-                    <div class="mb-3" id="apresNArticlesGroup" style="display: none;">
-                        <label for="apres_n_articles" class="form-label">Afficher après combien d'articles ? *</label>
-                        <input type="number"
-                               class="form-control @error('apres_n_articles') is-invalid @enderror"
-                               id="apres_n_articles"
-                               name="apres_n_articles"
-                               value="{{ old('apres_n_articles', $publicite->apres_n_articles) }}"
-                               min="1"
-                               max="100"
-                               placeholder="Ex: 2, 4, 5, 9...">
-                        @error('apres_n_articles')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="form-text text-muted">
-                            Exemple : <strong>2</strong> = après le 2<sup>e</sup> article,
-                            <strong>9</strong> = après le 9<sup>e</sup>. Chaque publicité a son propre emplacement.
-                        </small>
-                    </div>
+                    {{-- Champ "après N articles" retiré : section feed fixe --}}
 
                     <div class="row">
                         <div class="col-md-6">
@@ -214,32 +197,6 @@
         </form>
     </div>
 </div>
-
-<script>
-    (function () {
-        const positionSelect = document.getElementById('position');
-        const apresGroup = document.getElementById('apresNArticlesGroup');
-        const apresInput = document.getElementById('apres_n_articles');
-
-        function toggleApresField() {
-            const isEntre = positionSelect && positionSelect.value === 'entre_articles';
-            if (apresGroup) {
-                apresGroup.style.display = isEntre ? 'block' : 'none';
-            }
-            if (apresInput) {
-                apresInput.required = isEntre;
-                if (!isEntre) {
-                    apresInput.value = '';
-                }
-            }
-        }
-
-        if (positionSelect) {
-            positionSelect.addEventListener('change', toggleApresField);
-            toggleApresField();
-        }
-    })();
-</script>
 
 <!-- Overlay de chargement -->
 <div id="loadingOverlay" style="display:none;">

@@ -81,6 +81,30 @@
                         <span class="detail-label">Coins</span>
                         <span class="badge bg-info text-dark">{{ $user->coins ?? 0 }}</span>
                     </div>
+                    <div class="detail-info-row py-2">
+                        <span class="detail-label">Certification</span>
+                        <span class="detail-value">
+                            @if($user->estCertifie())
+                                <span class="badge bg-success">Active</span>
+                            @elseif((int) $user->certifie === 1 && $user->certifie_from && $user->certifie_from->isFuture())
+                                <span class="badge bg-warning text-dark">Programmée</span>
+                            @elseif((int) $user->certifie === 1)
+                                <span class="badge bg-secondary">Expirée</span>
+                            @else
+                                <span class="text-muted">Non certifié</span>
+                            @endif
+                        </span>
+                    </div>
+                    @if($user->certifie_from || $user->certifie_until)
+                        <div class="detail-info-row py-2">
+                            <span class="detail-label">Période</span>
+                            <span class="detail-value small">
+                                {{ $user->certifie_from?->format('d/m/Y') ?? '—' }}
+                                →
+                                {{ $user->certifie_until?->format('d/m/Y') ?? '—' }}
+                            </span>
+                        </div>
+                    @endif
                     @if($user->is_blocked)
                         @if($user->blocked_at)
                         <div class="detail-info-row py-2">
@@ -114,6 +138,55 @@
                                     <i class="fas fa-coins me-1"></i> Valider
                                 </button>
                             </form>
+                        </div>
+                        <hr class="my-2">
+                        <div>
+                            <label class="form-label small text-muted mb-2">
+                                <i class="fas fa-check-circle me-1"></i>Certification boutique
+                            </label>
+                            <form method="POST" action="{{ route('admin.users.certify', $user) }}" class="d-grid gap-2">
+                                @csrf
+                                <div>
+                                    <label class="form-label small mb-0" for="certifie_from">Date de début</label>
+                                    <input type="date"
+                                           name="certifie_from"
+                                           id="certifie_from"
+                                           class="form-control form-control-sm @error('certifie_from') is-invalid @enderror"
+                                           value="{{ old('certifie_from', $user->certifie_from?->format('Y-m-d') ?? now()->format('Y-m-d')) }}"
+                                           required>
+                                    @error('certifie_from')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div>
+                                    <label class="form-label small mb-0" for="certifie_until">Date de fin</label>
+                                    <input type="date"
+                                           name="certifie_until"
+                                           id="certifie_until"
+                                           class="form-control form-control-sm @error('certifie_until') is-invalid @enderror"
+                                           value="{{ old('certifie_until', $user->certifie_until?->format('Y-m-d') ?? now()->addMonth()->format('Y-m-d')) }}"
+                                           required>
+                                    @error('certifie_until')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <button type="submit"
+                                        class="btn btn-primary btn-sm"
+                                        onclick="return confirm('Certifier {{ addslashes($user->name) }} et lui envoyer un message ?')">
+                                    <i class="fas fa-award me-1"></i>
+                                    {{ (int) $user->certifie === 1 ? 'Mettre à jour la certification' : 'Certifier' }}
+                                </button>
+                            </form>
+                            @if((int) $user->certifie === 1)
+                                <form method="POST" action="{{ route('admin.users.uncertify', $user) }}" class="mt-2">
+                                    @csrf
+                                    <button type="submit"
+                                            class="btn btn-outline-secondary btn-sm w-100"
+                                            onclick="return confirm('Retirer la certification de {{ addslashes($user->name) }} ?')">
+                                        <i class="fas fa-times-circle me-1"></i> Retirer la certification
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                         <hr class="my-2">
                         @if($user->is_blocked)

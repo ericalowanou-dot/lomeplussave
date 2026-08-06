@@ -20,7 +20,7 @@
                     <option value="header" {{ request('position') === 'header' ? 'selected' : '' }}>Header</option>
                     <option value="sidebar" {{ request('position') === 'sidebar' ? 'selected' : '' }}>Sidebar</option>
                     <option value="footer" {{ request('position') === 'footer' ? 'selected' : '' }}>Footer</option>
-                    <option value="entre_articles" {{ request('position') === 'entre_articles' ? 'selected' : '' }}>Entre articles</option>
+                    <option value="entre_articles" {{ request('position') === 'entre_articles' ? 'selected' : '' }}>Section annonces</option>
                     <option value="homepage_top" {{ request('position') === 'homepage_top' ? 'selected' : '' }}>Page d'accueil - Haut</option>
                     <option value="homepage_bottom" {{ request('position') === 'homepage_bottom' ? 'selected' : '' }}>Page d'accueil - Bas</option>
                 </select>
@@ -91,9 +91,6 @@
                                 <small class="text-muted">
                                     <i class="fas fa-map-marker-alt"></i> 
                                     {{ ucfirst(str_replace('_', ' ', $publicite->position)) }}
-                                    @if($publicite->position === 'entre_articles' && $publicite->apres_n_articles)
-                                        | Après {{ $publicite->apres_n_articles }} article{{ $publicite->apres_n_articles > 1 ? 's' : '' }}
-                                    @endif
                                     @if($publicite->ordre)
                                         | Ordre: {{ $publicite->ordre }}
                                     @endif

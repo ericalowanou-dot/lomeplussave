@@ -1,0 +1,9 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1d4ed8"/><stop offset="100%" stop-color="#312e81"/></linearGradient></defs>
+  <rect width="800" height="800" fill="url(#g)"/>
+  <circle cx="250" cy="280" r="70" fill="#fbbf24"/>
+  <circle cx="520" cy="420" r="110" fill="rgba(255,255,255,0.12)"/>
+  <text x="400" y="480" text-anchor="middle" fill="#fff" font-family="Segoe UI,Arial,sans-serif" font-size="46" font-weight="700">Électronique</text>
+  <text x="400" y="545" text-anchor="middle" fill="#FDE68A" font-family="Segoe UI,Arial,sans-serif" font-size="28">-30% ce week-end</text>
+  <text x="400" y="620" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-family="Segoe UI,Arial,sans-serif" font-size="24">Pub démo 3</text>
+</svg>

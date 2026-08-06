@@ -29,7 +29,21 @@ class User extends Authenticatable
 
     public function estCertifie()
     {
-        return $this->certifie == 1;
+        if ((int) $this->certifie !== 1) {
+            return false;
+        }
+
+        $now = now();
+
+        if ($this->certifie_from && $this->certifie_from->isFuture()) {
+            return false;
+        }
+
+        if ($this->certifie_until && $this->certifie_until->isPast()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -69,6 +83,7 @@ class User extends Authenticatable
         'photo_profil',
         'certifie',
         'coins',
+        'certifie_from',
         'certifie_until',
         'is_blocked',
         'block_reason',
@@ -96,6 +111,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'blocked_at' => 'datetime',
+            'certifie_from' => 'datetime',
             'certifie_until' => 'datetime',
         ];
     }

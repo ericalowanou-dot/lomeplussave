@@ -418,9 +418,6 @@
 
     {{-- ...le code de la liste des articles... --}}
     <h4>Articles en vente</h4>
-    @php
-        $pubsParSlot = $pubsParSlot ?? \App\Models\Publicite::activeSlotsEntreArticles();
-    @endphp
     <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
         @foreach($articles as $article)
             <div class="col">
@@ -519,7 +516,15 @@
                 </div> <!-- fin card -->
             </div> <!-- fin col -->
 
-            @include('partials.publicite-slot', ['after' => $loop->iteration, 'pubsParSlot' => $pubsParSlot])
+            @if($loop->iteration === 6)
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-md-none', 'feedId' => 'ads-feed-shop-mobile'])
+            @endif
+            @if($loop->iteration === 9)
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-md-block d-lg-none', 'feedId' => 'ads-feed-shop-tablet'])
+            @endif
+            @if($loop->iteration === 12)
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => 'ads-feed-shop-desktop'])
+            @endif
 
             @if($loop->iteration == 4)
                 <!-- Bannière après la 2e ligne sur mobile (4 articles) -->

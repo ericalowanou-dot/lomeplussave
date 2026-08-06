@@ -1,9 +1,6 @@
 @if($articles->isEmpty())
     <p class="text-center" style="color: red; font-weight: bold;">Aucun résultat trouvé.</p>
 @else
-    @php
-        $pubsParSlot = $pubsParSlot ?? \App\Models\Publicite::activeSlotsEntreArticles();
-    @endphp
     <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
         @foreach($articles as $article)
             <div class="col">
@@ -99,7 +96,16 @@
                 </div> <!-- fin card -->
             </div> <!-- fin col -->
 
-            @include('partials.publicite-slot', ['after' => $loop->iteration, 'pubsParSlot' => $pubsParSlot])
+            {{-- Section pubs après 3 lignes (6 / 9 / 12 selon le nombre de colonnes) --}}
+            @if($loop->iteration === 6)
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-md-none', 'feedId' => 'ads-feed-mobile'])
+            @endif
+            @if($loop->iteration === 9)
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-md-block d-lg-none', 'feedId' => 'ads-feed-tablet'])
+            @endif
+            @if($loop->iteration === 12)
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => 'ads-feed-desktop'])
+            @endif
 
             @if($loop->iteration == 4)
                 @guest
