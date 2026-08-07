@@ -460,13 +460,13 @@
             </div> <!-- fin col -->
 
             @if($loop->iteration === 6)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-md-none', 'feedId' => 'ads-feed-search-mobile'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-md-none', 'feedId' => 'promo-feed-search-mobile'])
             @endif
             @if($loop->iteration === 9)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-md-block d-lg-none', 'feedId' => 'ads-feed-search-tablet'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-md-block d-lg-none', 'feedId' => 'promo-feed-search-tablet'])
             @endif
             @if($loop->iteration === 12)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => 'ads-feed-search-desktop'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => 'promo-feed-search-desktop'])
             @endif
 
             @if($loop->iteration == 4)

@@ -517,13 +517,13 @@
             </div> <!-- fin col -->
 
             @if($loop->iteration === 6)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-md-none', 'feedId' => 'ads-feed-shop-mobile'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-md-none', 'feedId' => 'promo-feed-shop-mobile'])
             @endif
             @if($loop->iteration === 9)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-md-block d-lg-none', 'feedId' => 'ads-feed-shop-tablet'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-md-block d-lg-none', 'feedId' => 'promo-feed-shop-tablet'])
             @endif
             @if($loop->iteration === 12)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => 'ads-feed-shop-desktop'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => 'promo-feed-shop-desktop'])
             @endif
 
             @if($loop->iteration == 4)

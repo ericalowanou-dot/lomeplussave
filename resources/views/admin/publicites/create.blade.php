@@ -77,6 +77,7 @@
                             <option value="entre_articles" {{ old('position') === 'entre_articles' ? 'selected' : '' }}>Section annonces (carrousel / scroll)</option>
                             <option value="homepage_top" {{ old('position') === 'homepage_top' ? 'selected' : '' }}>Page d'accueil - Haut</option>
                             <option value="homepage_bottom" {{ old('position') === 'homepage_bottom' ? 'selected' : '' }}>Page d'accueil - Bas</option>
+                            <option value="popup" {{ old('position') === 'popup' ? 'selected' : '' }}>Popup (fenêtre flottante)</option>
                         </select>
                         @error('position')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -157,6 +158,7 @@
                             <strong>Section annonces:</strong> Carrousel (mobile) / scroll (PC) après 3 lignes d’annonces — images carrées<br>
                             <strong>Homepage Top:</strong> Tout en haut de l’accueil, mobile + PC (paysage)<br>
                             <strong>Homepage Bottom:</strong> Bas de la liste d’annonces (paysage)<br>
+                            <strong>Popup:</strong> Fenêtre flottante fermable (image verticale recommandée ~3:4)<br>
                             <em>Astuce : carré 1:1 pour la section annonces ; paysage ~16:5 pour les bandeaux.</em>
                         </small>
                     </div>

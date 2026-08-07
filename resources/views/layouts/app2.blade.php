@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/articles.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/publicites.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/spotlight.css') }}">
     <link rel="stylesheet" href="{{ asset('css/content-width.css') }}">
     <link rel="stylesheet" href="{{ asset('css/article-horizontale.css') }}">
     <link rel="stylesheet" href="{{asset('css/detail_article.css')}}"> 
@@ -722,6 +722,7 @@
         
           <!-- script des likes - Le code est maintenant dans resources/js/like.js et chargé via Vite via app.js -->
 
+        @include('partials.promo-modal')
 
 </body>
 </html>

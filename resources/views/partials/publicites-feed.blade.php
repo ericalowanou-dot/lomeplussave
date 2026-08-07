@@ -1,7 +1,7 @@
 @php
     use App\Models\Publicite;
 
-    $feedId = $feedId ?? ('ads-feed-' . uniqid());
+    $feedId = $feedId ?? ('promo-feed-' . uniqid());
     try {
         $feedPubs = Publicite::activeForFeed();
     } catch (\Throwable $e) {
@@ -11,88 +11,93 @@
 @endphp
 
 @if($feedPubs->isNotEmpty())
-<div class="col-12 ads-feed-col {{ $feedVisibilityClass ?? '' }}">
-    <section class="ads-feed"
+<div class="col-12 promo-feed-col {{ $feedVisibilityClass ?? '' }}">
+    <section class="promo-feed"
              id="{{ $feedId }}"
-             data-ads-feed
+             data-promo-feed
              data-duration="4500"
-             aria-label="Publicités">
-        <div class="ads-feed__progress d-md-none" aria-hidden="true">
+             aria-label="Promotions">
+        <div class="promo-feed__progress d-md-none" aria-hidden="true">
             @foreach($feedPubs as $index => $publicite)
-                <div class="ads-feed__bar" data-bar-index="{{ $index }}">
-                    <span class="ads-feed__bar-fill"></span>
+                <div class="promo-feed__bar" data-bar-index="{{ $index }}">
+                    <span class="promo-feed__bar-fill"></span>
                 </div>
             @endforeach
         </div>
 
-        {{-- Mobile : carrousel plein format --}}
-        <div class="ads-feed__mobile d-md-none">
-            <div class="ads-feed__viewport">
-                @foreach($feedPubs as $index => $publicite)
-                    <article class="ads-feed__slide {{ $index === 0 ? 'is-active' : '' }}"
-                             data-slide-index="{{ $index }}"
-                             data-publicite-id="{{ $publicite->id }}">
-                        @if($publicite->lien_url)
-                            <a href="{{ $publicite->lien_url }}"
-                               target="_blank"
-                               rel="nofollow noopener"
-                               class="ads-feed__link"
-                               onclick="return typeof handlePubliciteClick === 'function' ? handlePubliciteClick(event, {{ $publicite->id }}) : true;">
+        {{-- Mobile : bandeau horizontal scrollable (style catégories) + barres WhatsApp --}}
+        <div class="promo-feed__mobile d-md-none">
+            <div class="promo-feed__mobile-wrap">
+                @if($feedPubs->count() > 1)
+                    <button type="button" class="promo-feed__nav promo-feed__nav--prev" data-promo-prev aria-label="Promotion précédente">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                @endif
+
+                <div class="promo-feed__mobile-track" data-promo-mobile-track>
+                    @foreach($feedPubs as $index => $publicite)
+                        <article class="promo-feed__slide {{ $index === 0 ? 'is-active' : '' }}"
+                                 data-slide-index="{{ $index }}"
+                                 data-item-id="{{ $publicite->id }}">
+                            @if($publicite->lien_url)
+                                <a href="{{ $publicite->lien_url }}"
+                                   target="_blank"
+                                   rel="nofollow noopener"
+                                   class="promo-feed__link"
+                                   onclick="return typeof handlePubliciteClick === 'function' ? handlePubliciteClick(event, {{ $publicite->id }}) : true;">
+                                    <img src="{{ $publicite->image_url }}"
+                                         alt="{{ $publicite->titre ?? 'Promotion' }}"
+                                         class="promo-feed__image promo-image"
+                                         loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
+                                         onload="typeof trackPubliciteView === 'function' && trackPubliciteView({{ $publicite->id }})"
+                                         onerror="this.src='{{ asset('images/placeholder.png') }}';">
+                                </a>
+                            @else
                                 <img src="{{ $publicite->image_url }}"
-                                     alt="{{ $publicite->titre ?? 'Publicité' }}"
-                                     class="ads-feed__image publicite-image"
+                                     alt="{{ $publicite->titre ?? 'Promotion' }}"
+                                     class="promo-feed__image promo-image"
                                      loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                                      onload="typeof trackPubliciteView === 'function' && trackPubliciteView({{ $publicite->id }})"
                                      onerror="this.src='{{ asset('images/placeholder.png') }}';">
-                            </a>
-                        @else
-                            <img src="{{ $publicite->image_url }}"
-                                 alt="{{ $publicite->titre ?? 'Publicité' }}"
-                                 class="ads-feed__image publicite-image"
-                                 loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
-                                 onload="typeof trackPubliciteView === 'function' && trackPubliciteView({{ $publicite->id }})"
-                                 onerror="this.src='{{ asset('images/placeholder.png') }}';">
-                        @endif
-                    </article>
-                @endforeach
-            </div>
+                            @endif
+                        </article>
+                    @endforeach
+                </div>
 
-            @if($feedPubs->count() > 1)
-                <button type="button" class="ads-feed__nav ads-feed__nav--prev" data-ads-prev aria-label="Publicité précédente">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-                <button type="button" class="ads-feed__nav ads-feed__nav--next" data-ads-next aria-label="Publicité suivante">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-                <div class="ads-feed__counter d-md-none" data-ads-counter>1/{{ $feedPubs->count() }}</div>
-            @endif
+                @if($feedPubs->count() > 1)
+                    <button type="button" class="promo-feed__nav promo-feed__nav--next" data-promo-next aria-label="Promotion suivante">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <div class="promo-feed__counter" data-promo-counter>1/{{ $feedPubs->count() }}</div>
+                @endif
+            </div>
         </div>
 
-        {{-- Desktop : scroll horizontal type catégories --}}
-        <div class="ads-feed__desktop d-none d-md-block">
-            <button type="button" class="ads-feed__scroll-btn ads-feed__scroll-btn--left" data-ads-scroll-left aria-label="Faire défiler à gauche">
+        {{-- Desktop : scroll horizontal (phase 2) --}}
+        <div class="promo-feed__desktop d-none d-md-block">
+            <button type="button" class="promo-feed__scroll-btn promo-feed__scroll-btn--left" data-promo-scroll-left aria-label="Faire défiler à gauche">
                 <i class="bi bi-chevron-left"></i>
             </button>
-            <div class="ads-feed__track" data-ads-track>
+            <div class="promo-feed__track" data-promo-track>
                 @foreach($feedPubs as $index => $publicite)
-                    <article class="ads-feed__card" data-publicite-id="{{ $publicite->id }}">
+                    <article class="promo-feed__card" data-item-id="{{ $publicite->id }}">
                         @if($publicite->lien_url)
                             <a href="{{ $publicite->lien_url }}"
                                target="_blank"
                                rel="nofollow noopener"
-                               class="ads-feed__link"
+                               class="promo-feed__link"
                                onclick="return typeof handlePubliciteClick === 'function' ? handlePubliciteClick(event, {{ $publicite->id }}) : true;">
                                 <img src="{{ $publicite->image_url }}"
-                                     alt="{{ $publicite->titre ?? 'Publicité' }}"
-                                     class="ads-feed__image publicite-image"
+                                     alt="{{ $publicite->titre ?? 'Promotion' }}"
+                                     class="promo-feed__image promo-image"
                                      loading="lazy"
                                      onload="typeof trackPubliciteView === 'function' && trackPubliciteView({{ $publicite->id }})"
                                      onerror="this.src='{{ asset('images/placeholder.png') }}';">
                             </a>
                         @else
                             <img src="{{ $publicite->image_url }}"
-                                 alt="{{ $publicite->titre ?? 'Publicité' }}"
-                                 class="ads-feed__image publicite-image"
+                                 alt="{{ $publicite->titre ?? 'Promotion' }}"
+                                 class="promo-feed__image promo-image"
                                  loading="lazy"
                                  onload="typeof trackPubliciteView === 'function' && trackPubliciteView({{ $publicite->id }})"
                                  onerror="this.src='{{ asset('images/placeholder.png') }}';">
@@ -100,7 +105,7 @@
                     </article>
                 @endforeach
             </div>
-            <button type="button" class="ads-feed__scroll-btn ads-feed__scroll-btn--right" data-ads-scroll-right aria-label="Faire défiler à droite">
+            <button type="button" class="promo-feed__scroll-btn promo-feed__scroll-btn--right" data-promo-scroll-right aria-label="Faire défiler à droite">
                 <i class="bi bi-chevron-right"></i>
             </button>
         </div>
@@ -108,14 +113,14 @@
 </div>
 
 @once
-<link rel="stylesheet" href="{{ asset('css/ads-feed.css') }}">
-<script src="{{ asset('js/ads-feed.js') }}" defer></script>
+<link rel="stylesheet" href="{{ asset('css/promo-feed.css') }}">
+<script src="{{ asset('assets/promo/promo-feed.js') }}" defer></script>
 <script>
     if (typeof trackPubliciteView !== 'function') {
         function trackPubliciteView(publiciteId) {
             const token = document.querySelector('meta[name="csrf-token"]')?.content;
             if (!token) return;
-            fetch(`/publicite/${publiciteId}/view`, {
+            fetch(`/spotlight/${publiciteId}/view`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json' }
             }).catch(() => {});
@@ -125,7 +130,7 @@
         function trackPubliciteClick(publiciteId) {
             const token = document.querySelector('meta[name="csrf-token"]')?.content;
             if (!token) return;
-            fetch(`/publicite/${publiciteId}/click`, {
+            fetch(`/spotlight/${publiciteId}/click`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json' }
             }).catch(() => {});
@@ -133,7 +138,7 @@
     }
     if (typeof handlePubliciteClick !== 'function') {
         function handlePubliciteClick(event, publiciteId) {
-            if (event.target && event.target.classList.contains('publicite-image')) {
+            if (event.target && (event.target.classList.contains('promo-image') || event.target.classList.contains('publicite-image'))) {
                 trackPubliciteClick(publiciteId);
                 return true;
             }

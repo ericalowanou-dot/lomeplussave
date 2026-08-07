@@ -45,6 +45,7 @@ class Publicite extends Model
             'entre_articles' => 'Section annonces (carrousel / scroll)',
             'homepage_top' => 'Page d\'accueil - Haut',
             'homepage_bottom' => 'Page d\'accueil - Bas',
+            'popup' => 'Popup (fenêtre flottante)',
         ];
     }
 
@@ -62,6 +63,23 @@ class Publicite extends Model
         } catch (\Throwable $e) {
             \Log::error('Erreur publicités feed: ' . $e->getMessage());
             return collect();
+        }
+    }
+
+    /**
+     * Une seule popup active à afficher (la plus prioritaire).
+     */
+    public static function activePopup(): ?self
+    {
+        try {
+            return static::active()
+                ->byPosition('popup')
+                ->orderBy('ordre')
+                ->orderByDesc('created_at')
+                ->first();
+        } catch (\Throwable $e) {
+            \Log::error('Erreur publicité popup: ' . $e->getMessage());
+            return null;
         }
     }
 
@@ -149,14 +167,37 @@ class Publicite extends Model
      */
     public function getImageUrlAttribute()
     {
-        if ($this->image) {
-            // Si le chemin commence déjà par advertisements ou publicites, on l'utilise tel quel
-            if (str_starts_with($this->image, 'advertisements/') || str_starts_with($this->image, 'publicites/')) {
-                return asset($this->image);
-            }
-            // Sinon, on adapte les anciens chemins
-            return asset('advertisements/' . basename($this->image));
+        if (!$this->image) {
+            return asset('images/placeholder.png');
         }
+
+        $path = $this->image;
+
+        // Préférer le dossier neutre (moins bloqué par les adblockers)
+        if (str_starts_with($path, 'advertisements/')) {
+            $neutral = 'media/spotlight/' . substr($path, strlen('advertisements/'));
+            if (is_file(public_path($neutral))) {
+                return asset($neutral);
+            }
+        }
+
+        if (
+            str_starts_with($path, 'media/spotlight/')
+            || str_starts_with($path, 'advertisements/')
+            || str_starts_with($path, 'publicites/')
+        ) {
+            return asset($path);
+        }
+
+        $neutral = 'media/spotlight/' . basename($path);
+        if (is_file(public_path($neutral))) {
+            return asset($neutral);
+        }
+
+        if (is_file(public_path('advertisements/' . basename($path)))) {
+            return asset('advertisements/' . basename($path));
+        }
+
         return asset('images/placeholder.png');
     }
 }

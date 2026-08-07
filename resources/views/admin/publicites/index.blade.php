@@ -23,6 +23,7 @@
                     <option value="entre_articles" {{ request('position') === 'entre_articles' ? 'selected' : '' }}>Section annonces</option>
                     <option value="homepage_top" {{ request('position') === 'homepage_top' ? 'selected' : '' }}>Page d'accueil - Haut</option>
                     <option value="homepage_bottom" {{ request('position') === 'homepage_bottom' ? 'selected' : '' }}>Page d'accueil - Bas</option>
+                    <option value="popup" {{ request('position') === 'popup' ? 'selected' : '' }}>Popup</option>
                 </select>
             </div>
 

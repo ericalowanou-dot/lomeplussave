@@ -16,52 +16,52 @@
 @endphp
 
 @if($publicites->isNotEmpty())
-<section class="ads-carousel"
-         data-ads-carousel
+<section class="promo-carousel"
+         data-promo-carousel
          data-position="{{ $positionKey }}"
          data-duration="5000"
          aria-label="Publicités">
     {{-- Barres de progression (mobile / style WhatsApp) --}}
     @if($publicites->count() > 1)
-        <div class="ads-carousel__progress" aria-hidden="true">
+        <div class="promo-carousel__progress" aria-hidden="true">
             @foreach($publicites as $index => $publicite)
-                <div class="ads-carousel__progress-item" data-progress-index="{{ $index }}">
-                    <span class="ads-carousel__progress-fill"></span>
+                <div class="promo-carousel__progress-item" data-progress-index="{{ $index }}">
+                    <span class="promo-carousel__progress-fill"></span>
                 </div>
             @endforeach
         </div>
     @endif
 
-    <div class="ads-carousel__viewport">
-        <button type="button" class="ads-carousel__nav ads-carousel__nav--prev" data-ads-prev aria-label="Publicité précédente">
+    <div class="promo-carousel__viewport">
+        <button type="button" class="promo-carousel__nav promo-carousel__nav--prev" data-promo-prev aria-label="Publicité précédente">
             <i class="bi bi-chevron-left" aria-hidden="true"></i>
         </button>
 
-        <div class="ads-carousel__track" data-ads-track>
+        <div class="promo-carousel__track" data-promo-track>
             @foreach($publicites as $index => $publicite)
-                <div class="ads-carousel__slide{{ $index === 0 ? ' is-active' : '' }}"
-                     data-ads-slide
+                <div class="promo-carousel__slide{{ $index === 0 ? ' is-active' : '' }}"
+                     data-promo-slide
                      data-publicite-id="{{ $publicite->id }}"
                      data-index="{{ $index }}">
                     @if($publicite->lien_url)
                         <a href="{{ $publicite->lien_url }}"
                            target="_blank"
                            rel="nofollow noopener"
-                           class="ads-carousel__link"
+                           class="promo-carousel__link"
                            onclick="return typeof handlePubliciteClick === 'function' ? handlePubliciteClick(event, {{ $publicite->id }}) : true;">
                             <img src="{{ $publicite->image_url }}"
                                  alt="{{ $publicite->titre ?? 'Publicité' }}"
-                                 class="ads-carousel__image publicite-image"
+                                 class="promo-carousel__image publicite-image"
                                  loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                                  decoding="async"
                                  onload="typeof trackPubliciteView === 'function' && trackPubliciteView({{ $publicite->id }})"
                                  onerror="this.src='{{ asset('images/placeholder.png') }}';">
                         </a>
                     @else
-                        <div class="ads-carousel__link">
+                        <div class="promo-carousel__link">
                             <img src="{{ $publicite->image_url }}"
                                  alt="{{ $publicite->titre ?? 'Publicité' }}"
-                                 class="ads-carousel__image publicite-image"
+                                 class="promo-carousel__image publicite-image"
                                  loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                                  decoding="async"
                                  onload="typeof trackPubliciteView === 'function' && trackPubliciteView({{ $publicite->id }})"
@@ -72,14 +72,14 @@
             @endforeach
         </div>
 
-        <button type="button" class="ads-carousel__nav ads-carousel__nav--next" data-ads-next aria-label="Publicité suivante">
+        <button type="button" class="promo-carousel__nav promo-carousel__nav--next" data-promo-next aria-label="Publicité suivante">
             <i class="bi bi-chevron-right" aria-hidden="true"></i>
         </button>
     </div>
 
     @if($publicites->count() > 1)
-        <div class="ads-carousel__counter" data-ads-counter aria-live="polite">
-            <span data-ads-current>1</span>/<span data-ads-total>{{ $publicites->count() }}</span>
+        <div class="promo-carousel__counter" data-promo-counter aria-live="polite">
+            <span data-promo-current>1</span>/<span data-promo-total>{{ $publicites->count() }}</span>
         </div>
     @endif
 </section>
@@ -90,7 +90,7 @@
         function trackPubliciteView(publiciteId) {
             const token = document.querySelector('meta[name="csrf-token"]')?.content;
             if (!token) return;
-            fetch(`/publicite/${publiciteId}/view`, {
+            fetch(`/spotlight/${publiciteId}/view`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json' }
             }).catch(() => {});
@@ -101,7 +101,7 @@
         function trackPubliciteClick(publiciteId) {
             const token = document.querySelector('meta[name="csrf-token"]')?.content;
             if (!token) return;
-            fetch(`/publicite/${publiciteId}/click`, {
+            fetch(`/spotlight/${publiciteId}/click`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json' }
             }).catch(() => {});
@@ -129,11 +129,11 @@
             if (root.dataset.adsReady === '1') return;
             root.dataset.adsReady = '1';
 
-            const track = root.querySelector('[data-ads-track]');
-            const slides = Array.from(root.querySelectorAll('[data-ads-slide]'));
-            const prevBtn = root.querySelector('[data-ads-prev]');
-            const nextBtn = root.querySelector('[data-ads-next]');
-            const currentEl = root.querySelector('[data-ads-current]');
+            const track = root.querySelector('[data-promo-track]');
+            const slides = Array.from(root.querySelectorAll('[data-promo-slide]'));
+            const prevBtn = root.querySelector('[data-promo-prev]');
+            const nextBtn = root.querySelector('[data-promo-next]');
+            const currentEl = root.querySelector('[data-promo-current]');
             const progressItems = Array.from(root.querySelectorAll('[data-progress-index]'));
             const duration = parseInt(root.dataset.duration || '5000', 10);
 
@@ -151,7 +151,7 @@
 
             function resetProgress() {
                 progressItems.forEach((item, i) => {
-                    const fill = item.querySelector('.ads-carousel__progress-fill');
+                    const fill = item.querySelector('.promo-carousel__progress-fill');
                     if (!fill) return;
                     fill.style.transition = 'none';
                     fill.style.width = i < index ? '100%' : '0%';
@@ -164,7 +164,7 @@
                 if (isDesktop() || slides.length < 2) return;
                 const active = progressItems[index];
                 if (!active) return;
-                const fill = active.querySelector('.ads-carousel__progress-fill');
+                const fill = active.querySelector('.promo-carousel__progress-fill');
                 if (!fill) return;
                 fill.style.transition = 'none';
                 fill.style.width = '0%';
@@ -289,7 +289,7 @@
         }
 
         function boot() {
-            document.querySelectorAll('[data-ads-carousel]').forEach(initCarousel);
+            document.querySelectorAll('[data-promo-carousel]').forEach(initCarousel);
         }
 
         if (document.readyState === 'loading') {

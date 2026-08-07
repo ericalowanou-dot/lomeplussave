@@ -507,7 +507,7 @@ class AdminController extends Controller
                 'titre' => 'nullable|string|max:255',
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120', // Max 5MB
                 'lien_url' => 'nullable|url|max:500',
-                'position' => 'required|in:header,sidebar,footer,entre_articles,homepage_top,homepage_bottom',
+                'position' => 'required|in:header,sidebar,footer,entre_articles,homepage_top,homepage_bottom,popup',
                 'apres_n_articles' => 'nullable|integer|min:1|max:100',
                 'date_debut' => 'nullable|date',
                 'date_fin' => 'nullable|date|after_or_equal:date_debut',
@@ -524,7 +524,7 @@ class AdminController extends Controller
             ]);
 
             // Gérer l'upload de l'image
-            $destinationPath = public_path('advertisements');
+            $destinationPath = public_path('media/spotlight');
             
             // Créer le dossier s'il n'existe pas
             if (!file_exists($destinationPath)) {
@@ -534,11 +534,11 @@ class AdminController extends Controller
             // Générer un nom unique
             $filename = time() . '_' . uniqid() . '.' . $request->file('image')->getClientOriginalExtension();
             
-            // Déplacer l'image dans public/advertisements
+            // Déplacer l'image (chemin neutre pour éviter les bloqueurs de pubs)
             $request->file('image')->move($destinationPath, $filename);
             
             // Sauvegarder le chemin relatif
-            $imagePath = 'advertisements/' . $filename;
+            $imagePath = 'media/spotlight/' . $filename;
 
             // Vérifier si is_active est coché (checkbox)
             // Les checkboxes en HTML envoient "on" si cochées, rien sinon
@@ -618,7 +618,7 @@ class AdminController extends Controller
                 'titre' => 'nullable|string|max:255',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
                 'lien_url' => 'nullable|url|max:500',
-                'position' => 'required|in:header,sidebar,footer,entre_articles,homepage_top,homepage_bottom',
+                'position' => 'required|in:header,sidebar,footer,entre_articles,homepage_top,homepage_bottom,popup',
                 'apres_n_articles' => 'nullable|integer|min:1|max:100',
                 'date_debut' => 'nullable|date',
                 'date_fin' => 'nullable|date|after_or_equal:date_debut',
@@ -668,7 +668,7 @@ class AdminController extends Controller
                 }
                 
                 // Upload de la nouvelle image
-                $destinationPath = public_path('advertisements');
+                $destinationPath = public_path('media/spotlight');
                 
                 // Créer le dossier s'il n'existe pas
                 if (!file_exists($destinationPath)) {
@@ -678,11 +678,11 @@ class AdminController extends Controller
                 // Générer un nom unique
                 $filename = time() . '_' . uniqid() . '.' . $request->file('image')->getClientOriginalExtension();
                 
-                // Déplacer l'image dans public/advertisements
+                // Déplacer l'image (chemin neutre pour éviter les bloqueurs de pubs)
                 $request->file('image')->move($destinationPath, $filename);
                 
                 // Sauvegarder le chemin relatif
-                $data['image'] = 'advertisements/' . $filename;
+                $data['image'] = 'media/spotlight/' . $filename;
             }
 
             $publicite->update($data);

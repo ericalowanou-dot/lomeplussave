@@ -1,0 +1,236 @@
+﻿/* Section promo feed — mobile scroll categories + barres WhatsApp / desktop scroll */
+
+.promo-feed-col {
+    z-index: 1;
+}
+
+.promo-feed {
+    position: relative;
+    width: 100%;
+    margin: 0.35rem 0 0.5rem;
+    --promo-duration: 4500ms;
+}
+
+.promo-feed__progress {
+    display: flex;
+    gap: 4px;
+    padding: 0 2px 8px;
+}
+
+.promo-feed__bar {
+    flex: 1;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.15);
+    overflow: hidden;
+}
+
+.promo-feed__bar-fill {
+    display: block;
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: #FF9900;
+}
+
+.promo-feed__bar.is-done .promo-feed__bar-fill {
+    width: 100%;
+}
+
+.promo-feed__bar.is-active .promo-feed__bar-fill {
+    animation: promoFeedProgress var(--promo-duration) linear forwards;
+}
+
+@keyframes promoFeedProgress {
+    from { width: 0%; }
+    to { width: 100%; }
+}
+
+.promo-feed.is-paused .promo-feed__bar.is-active .promo-feed__bar-fill {
+    animation-play-state: paused;
+}
+
+/* â€”â€”â€” Mobile : bandeau scrollable â€”â€”â€” */
+.promo-feed__mobile {
+    position: relative;
+}
+
+.promo-feed__mobile-wrap {
+    position: relative;
+}
+
+.promo-feed__mobile-track {
+    display: flex;
+    gap: 0.65rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.15rem 2.4rem 0.45rem 0.15rem;
+    scrollbar-width: none;
+}
+
+.promo-feed__mobile-track::-webkit-scrollbar {
+    display: none;
+}
+
+.promo-feed__slide {
+    flex: 0 0 auto;
+    width: min(72vw, 280px);
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #f1f5f9;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+    scroll-snap-align: start;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.promo-feed__slide.is-active {
+    box-shadow: 0 6px 18px rgba(255, 153, 0, 0.28);
+}
+
+.promo-feed__link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+}
+
+.promo-feed__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 14px;
+}
+
+.promo-feed__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.55);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.promo-feed__nav--prev { left: 4px; }
+.promo-feed__nav--next { right: 4px; }
+
+.promo-feed__counter {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 3;
+    background: rgba(15, 23, 42, 0.65);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    pointer-events: none;
+}
+
+/* ——— Desktop / tablette : pleine largeur de la grille annonces ——— */
+.promo-feed-col {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+}
+
+.promo-feed__desktop {
+    position: relative;
+    width: 100%;
+    padding: 0;
+}
+
+.promo-feed__track {
+    display: flex;
+    gap: 1rem; /* aligné sur Bootstrap g-3 */
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    padding: 0.25rem 0 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    width: 100%;
+}
+
+.promo-feed__track::-webkit-scrollbar {
+    height: 6px;
+}
+
+.promo-feed__track::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.25);
+    border-radius: 999px;
+}
+
+/* Tablette (3 colonnes) : 3 cartes = largeur totale */
+.promo-feed__card {
+    flex: 0 0 calc((100% - 2 * 1rem) / 3);
+    width: calc((100% - 2 * 1rem) / 3);
+    max-width: calc((100% - 2 * 1rem) / 3);
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #f8fafc;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.1);
+    scroll-snap-align: start;
+}
+
+/* PC (4 colonnes) : 4 cartes = largeur totale des 4 articles */
+@media (min-width: 992px) {
+    .promo-feed__card {
+        flex: 0 0 calc((100% - 3 * 1rem) / 4);
+        width: calc((100% - 3 * 1rem) / 4);
+        max-width: calc((100% - 3 * 1rem) / 4);
+    }
+}
+
+.promo-feed__card .promo-feed__image {
+    border-radius: 14px;
+}
+
+.promo-feed__scroll-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 38px;
+    height: 38px;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.16);
+}
+
+.promo-feed__scroll-btn--left { left: 0.35rem; }
+.promo-feed__scroll-btn--right { right: 0.35rem; }
+
+.promo-feed__scroll-btn:hover {
+    background: #FF9900;
+    border-color: #FF9900;
+    color: #fff;
+}
+
+@media (max-width: 380px) {
+    .promo-feed__slide {
+        width: min(78vw, 260px);
+    }
+}
+

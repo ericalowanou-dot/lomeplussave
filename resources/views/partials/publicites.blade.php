@@ -31,7 +31,7 @@
         function trackPubliciteView(publiciteId) {
             const token = document.querySelector('meta[name="csrf-token"]')?.content;
             if (!token) return;
-            fetch(`/publicite/${publiciteId}/view`, {
+            fetch(`/spotlight/${publiciteId}/view`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': token,
@@ -43,7 +43,7 @@
         function trackPubliciteClick(publiciteId) {
             const token = document.querySelector('meta[name="csrf-token"]')?.content;
             if (!token) return;
-            fetch(`/publicite/${publiciteId}/click`, {
+            fetch(`/spotlight/${publiciteId}/click`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': token,

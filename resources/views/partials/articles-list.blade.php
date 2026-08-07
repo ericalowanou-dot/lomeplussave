@@ -98,13 +98,13 @@
 
             {{-- Section pubs après 3 lignes (6 / 9 / 12 selon le nombre de colonnes) --}}
             @if($loop->iteration === 6)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-md-none', 'feedId' => 'ads-feed-mobile'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-md-none', 'feedId' => 'promo-feed-mobile'])
             @endif
             @if($loop->iteration === 9)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-md-block d-lg-none', 'feedId' => 'ads-feed-tablet'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-md-block d-lg-none', 'feedId' => 'promo-feed-tablet'])
             @endif
             @if($loop->iteration === 12)
-                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => 'ads-feed-desktop'])
+                @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => 'promo-feed-desktop'])
             @endif
 
             @if($loop->iteration == 4)

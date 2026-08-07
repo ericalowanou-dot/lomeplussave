@@ -1,0 +1,25 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="840" height="1100" viewBox="0 0 840 1100">
+  <rect width="840" height="700" fill="#F8FAFC"/>
+  <text x="48" y="90" fill="#0B1F4D" font-family="Segoe UI,Arial,sans-serif" font-size="42" font-weight="700">DÉVELOPPEZ</text>
+  <text x="48" y="145" fill="#FF9900" font-family="Segoe UI,Arial,sans-serif" font-size="46" font-weight="800">VOTRE BUSINESS</text>
+  <text x="48" y="195" fill="#0B1F4D" font-family="Segoe UI,Arial,sans-serif" font-size="36" font-weight="700">AVEC LOME+</text>
+  <text x="48" y="250" fill="#475569" font-family="Segoe UI,Arial,sans-serif" font-size="22">La marketplace n°1 pour vendre et acheter</text>
+  <text x="48" y="280" fill="#475569" font-family="Segoe UI,Arial,sans-serif" font-size="22">en toute confiance.</text>
+  <circle cx="70" cy="360" r="18" fill="#FF9900"/>
+  <text x="100" y="368" fill="#0F172A" font-family="Segoe UI,Arial,sans-serif" font-size="24" font-weight="600">Visibilité maximale</text>
+  <circle cx="70" cy="420" r="18" fill="#FF9900"/>
+  <text x="100" y="428" fill="#0F172A" font-family="Segoe UI,Arial,sans-serif" font-size="24" font-weight="600">Ventes boostées</text>
+  <circle cx="70" cy="480" r="18" fill="#FF9900"/>
+  <text x="100" y="488" fill="#0F172A" font-family="Segoe UI,Arial,sans-serif" font-size="24" font-weight="600">Ciblage professionnel</text>
+  <circle cx="70" cy="540" r="18" fill="#FF9900"/>
+  <text x="100" y="548" fill="#0F172A" font-family="Segoe UI,Arial,sans-serif" font-size="24" font-weight="600">Accompagnement dédié</text>
+  <circle cx="640" cy="430" r="150" fill="#FFEDD5"/>
+  <rect x="560" y="320" width="160" height="260" rx="24" fill="#0B1F4D"/>
+  <rect x="580" y="350" width="120" height="180" rx="12" fill="#FF9900"/>
+  <rect width="840" height="400" y="700" fill="#0B1F4D"/>
+  <text x="420" y="820" text-anchor="middle" fill="#FFFFFF" font-family="Segoe UI,Arial,sans-serif" font-size="30" font-weight="800">PLUS DE VISIBILITÉ,</text>
+  <text x="420" y="865" text-anchor="middle" fill="#FFFFFF" font-family="Segoe UI,Arial,sans-serif" font-size="30" font-weight="800">PLUS DE CLIENTS,</text>
+  <text x="420" y="910" text-anchor="middle" fill="#FFFFFF" font-family="Segoe UI,Arial,sans-serif" font-size="30" font-weight="800">PLUS DE VENTES !</text>
+  <rect x="90" y="960" width="660" height="70" rx="14" fill="#FF9900"/>
+  <text x="420" y="1005" text-anchor="middle" fill="#FFFFFF" font-family="Segoe UI,Arial,sans-serif" font-size="24" font-weight="800">BOOSTEZ VOS VENTES MAINTENANT</text>
+</svg>

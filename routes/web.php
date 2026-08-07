@@ -39,7 +39,9 @@ Route::middleware(['auth', 'check.blocked'])->group(function(){
     Route::post('/messages/send', [MessageController::class, 'send'])->name('messages.send');
 });
 
-// Routes publiques pour le tracking des publicités
+// Tracking spotlight (noms neutres anti-bloqueurs) + alias legacy
+Route::post('/spotlight/{publicite}/view', [AdminController::class, 'trackPubliciteView'])->name('spotlight.view');
+Route::post('/spotlight/{publicite}/click', [AdminController::class, 'trackPubliciteClick'])->name('spotlight.click');
 Route::post('/publicite/{publicite}/view', [AdminController::class, 'trackPubliciteView'])->name('publicite.view');
 Route::post('/publicite/{publicite}/click', [AdminController::class, 'trackPubliciteClick'])->name('publicite.click');
 

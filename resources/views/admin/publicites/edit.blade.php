@@ -85,6 +85,7 @@
                             <option value="entre_articles" {{ old('position', $publicite->position) === 'entre_articles' ? 'selected' : '' }}>Section annonces (carrousel / scroll)</option>
                             <option value="homepage_top" {{ old('position', $publicite->position) === 'homepage_top' ? 'selected' : '' }}>Page d'accueil - Haut</option>
                             <option value="homepage_bottom" {{ old('position', $publicite->position) === 'homepage_bottom' ? 'selected' : '' }}>Page d'accueil - Bas</option>
+                            <option value="popup" {{ old('position', $publicite->position) === 'popup' ? 'selected' : '' }}>Popup (fenêtre flottante)</option>
                         </select>
                         @error('position')
                             <div class="invalid-feedback">{{ $message }}</div>
