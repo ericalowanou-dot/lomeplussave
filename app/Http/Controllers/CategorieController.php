@@ -394,14 +394,11 @@ public function getSubcategories($id)
 
         $selectedSubcategory = null;
 
-        // 🔹 Filtrer par sous-catégorie
+        // 🔹 Filtrer par sous-catégorie (prioritaire) ou par catégorie
         if ($request->filled('subcategory')) {
             $articles->where('sous_categorie_id', $request->subcategory);
             $selectedSubcategory = SousCategorie::with('categorie')->find($request->subcategory);
-        }
-
-        // 🔹 Autres filtres (exemple : catégorie, prix, etc.)
-        if ($request->filled('categorie')) {
+        } elseif ($request->filled('categorie')) {
             $sousCategoriesIds = SousCategorie::where('categorie_id', $request->categorie)->pluck('id');
             $articles->whereIn('sous_categorie_id', $sousCategoriesIds);
         }

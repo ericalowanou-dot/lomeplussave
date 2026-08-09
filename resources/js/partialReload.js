@@ -174,6 +174,20 @@ function isLocalSearchContext(context = getSearchContext()) {
     return context === 'favoris' || context === 'mesannonces';
 }
 
+function isSubcategoryListingPath(pathname = window.location.pathname) {
+    return pathname.replace(/\/+$/, '') === '/articlesParCategorie';
+}
+
+function clearListingSearchParams(url) {
+    url.searchParams.delete('q');
+    url.searchParams.delete('page');
+}
+
+function clearSearchInput() {
+    const input = document.getElementById('search');
+    if (input) input.value = '';
+}
+
 function localSearchEndpoint(context) {
     if (context === 'favoris') return '/search/favoris';
     if (context === 'mesannonces') return '/search/mesannonces';
@@ -356,64 +370,7 @@ function initAjaxSearch() {
         }
     };
 
-    /**
-     * Accueil / page /search : filtre live sur #articles-results.
-     */
-    const runArticlesSearch = async ({ dismissKeyboard = false } = {}) => {
-        const listEl = getSearchResultsEl('articles');
-        if (!listEl) return;
-
-        const q = (input.value || '').trim();
-        const isSearchPage = window.location.pathname.replace(/\/+$/, '') === '/search';
-
-        const url = new URL(window.location.href);
-        if (isSearchPage) {
-            url.pathname = '/search';
-        } else {
-            const baseAction =
-                document.getElementById('filterForm')?.getAttribute('action') ||
-                window.location.pathname;
-            url.pathname = new URL(baseAction, window.location.origin).pathname;
-        }
-
-        if (q.length >= 3) {
-            url.searchParams.set('q', q);
-        } else {
-            url.searchParams.delete('q');
-            // Sur /search, moins de 3 caractères => revenir à l'accueil
-            if (isSearchPage && dismissKeyboard) {
-                window.location.href = '/';
-                return;
-            }
-            if (isSearchPage && !dismissKeyboard) {
-                return;
-            }
-        }
-
-        url.searchParams.delete('page');
-
-        try {
-            // Sur /search avec q, le contrôleur search gère l'AJAX.
-            // Sur l'accueil, index() gère l'AJAX avec le param q éventuel.
-            const data = await fetchArticlesPartial(url.toString());
-            replaceSearchResultsDom('articles', data);
-            window.history.pushState({ partial: true }, '', url.toString());
-
-            if (!dismissKeyboard) return;
-
-            window.setTimeout(() => {
-                scrollToResults(listEl, { delay: 700, dismissKeyboard: true, instant: false });
-            }, 800);
-        } catch {
-            if (q.length >= 3) {
-                window.location.href = `/search?q=${encodeURIComponent(q)}`;
-            } else {
-                window.location.href = url.toString();
-            }
-        }
-    };
-
-    /** Autres pages : navigation vers la recherche globale. */
+    /** Autres pages / sous-catégorie : navigation vers la recherche globale. */
     const runGlobalNavigate = () => {
         const q = (input.value || '').trim();
         if (q.length < 3) {
@@ -425,6 +382,62 @@ function initAjaxSearch() {
         }
         window.showPageLoader?.('Chargement...');
         window.location.href = `/search?q=${encodeURIComponent(q)}`;
+    };
+
+    /**
+     * Recherche articles :
+     * - favoris / mes annonces : gérés à part (runLocalSearch) — ne pas toucher
+     * - hors /search (accueil filtré, sous-catégorie, etc.) : toujours /search?q= (global)
+     * - sur /search : AJAX live sans filtres catégorie/sous-catégorie
+     */
+    const runArticlesSearch = async ({ dismissKeyboard = false } = {}) => {
+        const listEl = getSearchResultsEl('articles');
+        if (!listEl) return;
+
+        const q = (input.value || '').trim();
+        const isSearchPage = window.location.pathname.replace(/\/+$/, '') === '/search';
+
+        // Accueil (?sous_categorie=…) / articlesParCategorie / autres listes :
+        // ne jamais combiner q avec un filtre de catégorie.
+        if (!isSearchPage) {
+            if (q.length >= 3) {
+                runGlobalNavigate();
+            }
+            return;
+        }
+
+        const url = new URL(window.location.origin + '/search');
+
+        if (q.length >= 3) {
+            url.searchParams.set('q', q);
+        } else {
+            url.searchParams.delete('q');
+            if (dismissKeyboard) {
+                window.location.href = '/';
+                return;
+            }
+            return;
+        }
+
+        url.searchParams.delete('page');
+        // Sécurité : aucun filtre listing sur la recherche globale
+        url.searchParams.delete('sous_categorie');
+        url.searchParams.delete('subcategory');
+        url.searchParams.delete('categorie');
+
+        try {
+            const data = await fetchArticlesPartial(url.toString());
+            replaceSearchResultsDom('articles', data);
+            window.history.pushState({ partial: true }, '', url.toString());
+
+            if (!dismissKeyboard) return;
+
+            window.setTimeout(() => {
+                scrollToResults(listEl, { delay: 700, dismissKeyboard: true, instant: false });
+            }, 800);
+        } catch {
+            window.location.href = `/search?q=${encodeURIComponent(q)}`;
+        }
     };
 
     form.addEventListener(
@@ -509,7 +522,8 @@ function initAjaxCategories() {
                 const url = new URL(window.location.href);
                 url.searchParams.set('categorie', categoryId);
                 url.searchParams.delete('sous_categorie');
-                url.searchParams.delete('page');
+                clearListingSearchParams(url);
+                clearSearchInput();
 
                 try {
                     const data = await fetchArticlesPartial(url.toString());
@@ -522,6 +536,7 @@ function initAjaxCategories() {
                 }
             }
 
+            clearSearchInput();
             window.showPageLoader?.('Chargement...');
             window.location.href = `/?categorie=${encodeURIComponent(categoryId)}`;
         },
@@ -542,6 +557,14 @@ function initAjaxCategories() {
             e.preventDefault();
             e.stopImmediatePropagation();
             hideSubcategoriesUi();
+            clearSearchInput();
+
+            // Page sous-catégorie dédiée : toujours navigation complète (pas d'AJAX JSON).
+            if (isSubcategoryListingPath()) {
+                window.showPageLoader?.('Chargement...');
+                window.location.href = `/articlesParCategorie?subcategory=${encodeURIComponent(subcategoryId)}`;
+                return;
+            }
 
             const listEl = getArticlesResultsEl();
 
@@ -550,7 +573,7 @@ function initAjaxCategories() {
                 const url = new URL(window.location.href);
                 url.searchParams.set('sous_categorie', subcategoryId);
                 url.searchParams.delete('categorie');
-                url.searchParams.delete('page');
+                clearListingSearchParams(url);
 
                 try {
                     const data = await fetchArticlesPartial(url.toString());
@@ -563,7 +586,7 @@ function initAjaxCategories() {
                 }
             }
 
-            // Depuis toute autre page (détail, favoris, /articlesParCategorie, etc.)
+            // Depuis toute autre page (détail, favoris, etc.)
             window.showPageLoader?.('Chargement...');
             window.location.href = `/articlesParCategorie?subcategory=${encodeURIComponent(subcategoryId)}`;
         },

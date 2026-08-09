@@ -109,7 +109,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             <img src="{{ $senderPhoto }}" alt="{{ $message->sender->name }}"
                                                  class="rounded-circle flex-shrink-0 message-avatar"
-                                                 onerror="this.src='{{ asset('images/user_default.png') }}'">
+                                                 onerror="this.src='{{ asset('assets/icons/user_default.png') }}'">
                                             <div class="min-w-0">
                                                 <div class="fw-medium text-truncate">{{ $message->sender->name }}</div>
                                                 <small class="text-muted text-truncate d-block">{{ $message->sender->email ?? '—' }}</small>

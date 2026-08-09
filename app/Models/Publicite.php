@@ -168,36 +168,39 @@ class Publicite extends Model
     public function getImageUrlAttribute()
     {
         if (!$this->image) {
-            return asset('images/placeholder.png');
+            return $this->placeholderImageUrl();
         }
 
         $path = $this->image;
+        $candidates = [];
 
         // Préférer le dossier neutre (moins bloqué par les adblockers)
         if (str_starts_with($path, 'advertisements/')) {
-            $neutral = 'media/spotlight/' . substr($path, strlen('advertisements/'));
-            if (is_file(public_path($neutral))) {
-                return asset($neutral);
+            $candidates[] = 'media/spotlight/' . substr($path, strlen('advertisements/'));
+        }
+
+        $candidates[] = $path;
+        $candidates[] = 'media/spotlight/' . basename($path);
+        $candidates[] = 'advertisements/' . basename($path);
+        $candidates[] = 'publicites/' . basename($path);
+
+        foreach (array_unique($candidates) as $candidate) {
+            if (is_file(public_path($candidate))) {
+                return asset($candidate);
             }
         }
 
-        if (
-            str_starts_with($path, 'media/spotlight/')
-            || str_starts_with($path, 'advertisements/')
-            || str_starts_with($path, 'publicites/')
-        ) {
-            return asset($path);
+        return $this->placeholderImageUrl();
+    }
+
+    protected function placeholderImageUrl(): string
+    {
+        foreach (['assets/icons/user_default.svg', 'images/placeholder.png', 'images/1.png'] as $fallback) {
+            if (is_file(public_path($fallback))) {
+                return asset($fallback);
+            }
         }
 
-        $neutral = 'media/spotlight/' . basename($path);
-        if (is_file(public_path($neutral))) {
-            return asset($neutral);
-        }
-
-        if (is_file(public_path('advertisements/' . basename($path)))) {
-            return asset('advertisements/' . basename($path));
-        }
-
-        return asset('images/placeholder.png');
+        return asset('assets/icons/user_default.svg');
     }
 }

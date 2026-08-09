@@ -21,7 +21,7 @@
             <div class="admin-card mb-4 overflow-hidden">
                 <div class="admin-card-body text-center pt-4 pb-4">
                     <div class="user-detail-avatar-wrapper mb-3 mx-auto">
-                        <img src="{{ $user->getProfilPhotoUrl() }}" alt="Photo de profil" class="rounded-circle" width="110" height="110" style="object-fit: cover;" onerror="this.src='{{ asset('images/user_default.png') }}';">
+                        <img src="{{ $user->getProfilPhotoUrl() }}" alt="Photo de profil" class="rounded-circle" width="110" height="110" style="object-fit: cover;" onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
                     </div>
                     <h4 class="mb-2 fw-bold">{{ $user->name }}</h4>
                     <div class="d-flex flex-wrap justify-content-center gap-2 mb-2">

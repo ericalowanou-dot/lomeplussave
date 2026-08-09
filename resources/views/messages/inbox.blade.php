@@ -456,7 +456,7 @@
                                     $isAdmin = $msg->sender->isAdmin();
                     $senderPhoto = $msg->sender->photo_profil 
                         ? asset('storage/' . $msg->sender->photo_profil) 
-                        : asset('images/default-avatar.png');
+                        : asset('assets/icons/user_default.svg');
                                 @endphp
                 
                 <a href="{{ route('messages.show', $msg) }}" class="message-item {{ $isRead ? 'read' : 'unread' }}">

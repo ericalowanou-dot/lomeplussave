@@ -78,7 +78,7 @@
                                          class="rounded-circle me-2" 
                                          width="40" 
                                          height="40"
-                                         onerror="this.src='{{ asset('images/user_default.png') }}';">
+                                         onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
                                     <div>
                                         <strong>{{ $user->name }}</strong>
                                         @if($user->estCertifie())
@@ -173,7 +173,7 @@
                         <div class="d-flex align-items-center mb-3">
                             <img src="{{ $user->getProfilPhotoUrl() }}" 
                                  alt="Photo de profil"
-                                 onerror="this.src='{{ asset('images/user_default.png') }}';" 
+                                 onerror="this.src='{{ asset('assets/icons/user_default.png') }}';" 
                                  class="rounded-circle me-3" width="50" height="50">
                             <div class="flex-grow-1">
                                 <h6 class="mb-1">{{ $user->name }}</h6>

@@ -24,7 +24,15 @@ class User extends Authenticatable
             // Sinon, on adapte les anciens chemins
             return asset('users/profil/' . basename($this->photo_profil));
         }
-        return asset('images/user_default.svg');
+        return asset('assets/icons/user_default.svg');
+    }
+
+    /**
+     * Avatar par défaut (hors public/images, souvent exclus en déploiement).
+     */
+    public static function defaultProfilPhotoUrl(): string
+    {
+        return asset('assets/icons/user_default.svg');
     }
 
     public function estCertifie()

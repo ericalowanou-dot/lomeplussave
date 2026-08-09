@@ -201,7 +201,7 @@
         @else
 
             <button id="ouvrirModalConnexion" type="button" aria-label="Connexion">
-                <img src="{{ asset('images/user_default.svg') }}" alt="connexion">
+                <i class="bi bi-person-fill" aria-hidden="true"></i>
             </button>
 
             <style>
@@ -221,6 +221,12 @@
                         0 2px 6px rgba(0, 0, 0, 0.22),
                         0 6px 14px rgba(0, 0, 0, 0.16);
                     transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+
+                #ouvrirModalConnexion i {
+                    font-size: 1.25rem;
+                    color: #fb923c;
+                    line-height: 1;
                 }
 
                 #ouvrirModalConnexion img {

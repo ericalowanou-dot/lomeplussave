@@ -120,7 +120,7 @@
                     @foreach($article->comments as $comment)
                     <div class="comment-block {{ !$loop->last ? 'mb-3 pb-3 border-bottom' : '' }}">
                         <div class="d-flex align-items-start gap-3">
-                            <img src="{{ $comment->user->getProfilPhotoUrl() }}" alt="Profil" class="rounded-circle flex-shrink-0" width="40" height="40" onerror="this.src='{{ asset('images/user_default.png') }}';">
+                            <img src="{{ $comment->user->getProfilPhotoUrl() }}" alt="Profil" class="rounded-circle flex-shrink-0" width="40" height="40" onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
                             <div class="flex-grow-1">
                                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                                     <strong>{{ $comment->user->name }}</strong>
@@ -171,7 +171,7 @@
                     <h5 class="admin-card-title mb-0"><i class="fas fa-user me-2"></i>Auteur</h5>
                 </div>
                 <div class="admin-card-body text-center">
-                    <img src="{{ $article->user->getProfilPhotoUrl() }}" alt="Profil" class="rounded-circle mb-3" width="72" height="72" onerror="this.src='{{ asset('images/user_default.png') }}';" style="object-fit: cover;">
+                    <img src="{{ $article->user->getProfilPhotoUrl() }}" alt="Profil" class="rounded-circle mb-3" width="72" height="72" onerror="this.src='{{ asset('assets/icons/user_default.png') }}';" style="object-fit: cover;">
                     <h6 class="mb-1">{{ $article->user->name }}</h6>
                     @if($article->user->estCertifie())
                         <span class="badge bg-success mb-2"><i class="fas fa-check-circle me-1"></i> Certifié</span>

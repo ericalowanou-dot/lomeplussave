@@ -87,7 +87,7 @@
                         <tbody>
                             @foreach($reports as $report)
                                 @php
-                                    $userPhoto = $report->user ? $report->user->getProfilPhotoUrl() : asset('images/user_default.png');
+                                    $userPhoto = $report->user ? $report->user->getProfilPhotoUrl() : asset('assets/icons/user_default.png');
                                     $createdAt = $report->created_at;
                                     $dateDisplay = $createdAt ? ($createdAt->isToday() ? 'Aujourd\'hui ' . $createdAt->format('H:i')
                                         : ($createdAt->isYesterday() ? 'Hier ' . $createdAt->format('H:i')
@@ -104,7 +104,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             <img src="{{ $userPhoto }}" alt="{{ $report->user?->name ?? 'Anonyme' }}"
                                                  class="rounded-circle flex-shrink-0 report-user-avatar"
-                                                 onerror="this.src='{{ asset('images/user_default.png') }}'">
+                                                 onerror="this.src='{{ asset('assets/icons/user_default.png') }}'">
                                             <div class="min-w-0">
                                                 @if($report->user)
                                                     <a href="{{ route('admin.users.show', $report->user) }}" class="text-decoration-none fw-medium text-dark d-block text-truncate">

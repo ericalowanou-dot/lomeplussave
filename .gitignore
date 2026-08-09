@@ -43,10 +43,12 @@ config/mail.php
 /public/js*
 /public/images*
 
-# Scripts promo versionnés (hors /public/js* ignoré)
+# Scripts promo / icônes versionnés (hors /public/js* et /public/images* ignorés)
 !/public/assets/
 !/public/assets/promo/
 !/public/assets/promo/**
+!/public/assets/icons/
+!/public/assets/icons/**
 
 # Démos spotlight versionnées
 !/public/media/

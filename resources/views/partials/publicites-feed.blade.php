@@ -25,15 +25,9 @@
             @endforeach
         </div>
 
-        {{-- Mobile : bandeau horizontal scrollable (style catégories) + barres WhatsApp --}}
+        {{-- Mobile : bandeau scrollable + barres (sans flèches) --}}
         <div class="promo-feed__mobile d-md-none">
             <div class="promo-feed__mobile-wrap">
-                @if($feedPubs->count() > 1)
-                    <button type="button" class="promo-feed__nav promo-feed__nav--prev" data-promo-prev aria-label="Promotion précédente">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
-                @endif
-
                 <div class="promo-feed__mobile-track" data-promo-mobile-track>
                     @foreach($feedPubs as $index => $publicite)
                         <article class="promo-feed__slide {{ $index === 0 ? 'is-active' : '' }}"
@@ -42,9 +36,10 @@
                             @if($publicite->lien_url)
                                 <a href="{{ $publicite->lien_url }}"
                                    target="_blank"
-                                   rel="nofollow noopener"
+                                   rel="noopener noreferrer"
                                    class="promo-feed__link"
-                                   onclick="return typeof handlePubliciteClick === 'function' ? handlePubliciteClick(event, {{ $publicite->id }}) : true;">
+                                   data-promo-link
+                                   data-promo-id="{{ $publicite->id }}">
                                     <img src="{{ $publicite->image_url }}"
                                          alt="{{ $publicite->titre ?? 'Promotion' }}"
                                          class="promo-feed__image promo-image"
@@ -65,9 +60,6 @@
                 </div>
 
                 @if($feedPubs->count() > 1)
-                    <button type="button" class="promo-feed__nav promo-feed__nav--next" data-promo-next aria-label="Promotion suivante">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
                     <div class="promo-feed__counter" data-promo-counter>1/{{ $feedPubs->count() }}</div>
                 @endif
             </div>
@@ -84,9 +76,10 @@
                         @if($publicite->lien_url)
                             <a href="{{ $publicite->lien_url }}"
                                target="_blank"
-                               rel="nofollow noopener"
+                               rel="noopener noreferrer"
                                class="promo-feed__link"
-                               onclick="return typeof handlePubliciteClick === 'function' ? handlePubliciteClick(event, {{ $publicite->id }}) : true;">
+                               data-promo-link
+                               data-promo-id="{{ $publicite->id }}">
                                 <img src="{{ $publicite->image_url }}"
                                      alt="{{ $publicite->titre ?? 'Promotion' }}"
                                      class="promo-feed__image promo-image"
@@ -136,17 +129,16 @@
             }).catch(() => {});
         }
     }
-    if (typeof handlePubliciteClick !== 'function') {
-        function handlePubliciteClick(event, publiciteId) {
-            if (event.target && (event.target.classList.contains('promo-image') || event.target.classList.contains('publicite-image'))) {
-                trackPubliciteClick(publiciteId);
-                return true;
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            return false;
+    // Tracking clic sans bloquer la navigation (handlePubliciteClick global peut preventDefault)
+    document.addEventListener('click', function (e) {
+        const link = e.target.closest?.('[data-promo-link][data-promo-id]');
+        if (!link) return;
+        const id = link.getAttribute('data-promo-id');
+        if (id && typeof trackPubliciteClick === 'function') {
+            trackPubliciteClick(id);
         }
-    }
+        // Ne jamais empêcher le href
+    }, true);
 </script>
 @endonce
 @endif

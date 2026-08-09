@@ -777,7 +777,7 @@
 
                                              loading="lazy"
 
-                                             onerror="this.src='{{ asset('images/user_default.png') }}';">
+                                             onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
 
                                         
 
@@ -957,11 +957,11 @@
 
                                          class="comment-form-avatar"
 
-                                         onerror="this.src='{{ asset('images/user_default.png') }}';">
+                                         onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
 
                                     @else
 
-                                    <img src="{{ asset('images/user_default.png') }}" 
+                                    <img src="{{ asset('assets/icons/user_default.png') }}" 
 
                                          alt="Utilisateur" 
 
@@ -1089,7 +1089,7 @@
                      alt="Photo de {{ $seller->name }}"
                      class="seller-boutique-avatar"
                      loading="lazy"
-                     onerror="this.src='{{ asset('images/user_default.png') }}';">
+                     onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
 
                 <div class="seller-boutique-info">
                     <h6 class="seller-boutique-name">{{ $seller->name }}</h6>
@@ -3783,7 +3783,7 @@
 
                                              class="comment-avatar"
 
-                                             onerror="this.src='{{ asset('images/user_default.png') }}';">
+                                             onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
 
                                         
 

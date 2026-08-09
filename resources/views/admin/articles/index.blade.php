@@ -104,7 +104,7 @@
                                              class="rounded-circle me-2" 
                                              width="30" 
                                              height="30"
-                                             onerror="this.src='{{ asset('images/user_default.png') }}';">
+                                             onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
                                         <span>{{ $article->user->name }}</span>
                                     </div>
                                 </td>
@@ -217,7 +217,7 @@
                                          class="rounded-circle me-1" 
                                          width="20" 
                                          height="20"
-                                         onerror="this.src='{{ asset('images/user_default.png') }}';">
+                                         onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
                                     <small>{{ Str::limit($article->user->name, 15) }}</small>
                                 </div>
                             </div>

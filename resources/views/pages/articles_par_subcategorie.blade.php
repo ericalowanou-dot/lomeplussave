@@ -309,35 +309,34 @@
 
         <!-- Résultats -->
         <div class="results-section">
-            @if($articles->isEmpty())
-                <div class="empty-results">
-                    <div class="empty-icon">
-                        <i class="bi bi-inbox"></i>
-                    </div>
-                    <h2 class="empty-title">Aucun article trouvé</h2>
-                    <p class="empty-text">
-                        Il n'y a pas encore d'articles dans cette sous-catégorie.
-                        <br>Revenez plus tard ou explorez d'autres catégories.
-                    </p>
-                    <a href="{{ route('articles.index') }}" class="empty-btn">
-                        <i class="bi bi-house-door"></i>
-                        Explorer les articles
-                    </a>
-                </div>
-            @else
-                <div id="articles-results" data-context="articles">
-                    @include('partials.articles-list', ['articles' => $articles])
-                </div>
-
-                <!-- Pagination -->
-                @if($articles->hasPages())
-                    <div class="pagination-wrapper">
-                        <p class="pagination-info">
-                            Page {{ $articles->currentPage() }} sur {{ $articles->lastPage() }}
+            <div id="articles-results" data-context="articles">
+                @if($articles->isEmpty())
+                    <div class="empty-results">
+                        <div class="empty-icon">
+                            <i class="bi bi-inbox"></i>
+                        </div>
+                        <h2 class="empty-title">Aucun article trouvé</h2>
+                        <p class="empty-text">
+                            Il n'y a pas encore d'articles dans cette sous-catégorie.
+                            <br>Revenez plus tard ou explorez d'autres catégories.
                         </p>
-                        {{ $articles->links() }}
+                        <a href="{{ route('articles.index') }}" class="empty-btn">
+                            <i class="bi bi-house-door"></i>
+                            Explorer les articles
+                        </a>
                     </div>
+                @else
+                    @include('partials.articles-list', ['articles' => $articles])
                 @endif
+            </div>
+
+            @if($articles->hasPages())
+                <div class="pagination-wrapper">
+                    <p class="pagination-info">
+                        Page {{ $articles->currentPage() }} sur {{ $articles->lastPage() }}
+                    </p>
+                    {{ $articles->links() }}
+                </div>
             @endif
         </div>
     </div>
