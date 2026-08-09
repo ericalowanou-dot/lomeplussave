@@ -1294,7 +1294,11 @@ class ArticleController extends Controller
 
             $article->livraison = $request->boolean('livraison');
 
-
+            // Remodération anti-fraude : approved/blocked → pending, sans toucher created_at
+            $needsReview = in_array($article->status, ['approved', 'blocked'], true);
+            if ($needsReview) {
+                $article->submitForReview();
+            }
 
             $article->save();
 
@@ -1304,7 +1308,11 @@ class ArticleController extends Controller
 
 
 
-            return redirect()->route('mes_annonces')->with('success', 'Article modifié avec succès.');
+            $successMessage = $needsReview
+                ? 'Article modifié. Il a été renvoyé en validation : un administrateur doit le réexaminer avant republication.'
+                : 'Article modifié avec succès.';
+
+            return redirect()->route('mes_annonces')->with('success', $successMessage);
 
             
 

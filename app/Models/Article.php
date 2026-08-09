@@ -131,6 +131,22 @@ class Article extends Model
             ]);
         }
 
+        /**
+         * Remet l'annonce en file de modération après modification vendeur.
+         * Ne touche jamais created_at (évite de remonter comme une nouvelle pub).
+         */
+        public function submitForReview(): void
+        {
+            if (! in_array($this->status, ['approved', 'blocked'], true)) {
+                return;
+            }
+
+            $this->status = 'pending';
+            $this->blocked_at = null;
+            $this->block_reason = null;
+            // created_at et approved_at inchangés volontairement
+        }
+
         // Scope pour récupérer seulement les articles approuvés
         public function scopeApproved($query)
         {
