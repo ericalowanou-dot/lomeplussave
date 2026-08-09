@@ -444,18 +444,20 @@
         transform: translateX(-50%) scale(1);
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
         background: #ff7b00;
         color: #fff;
-        padding: 10px 16px;
+        padding: 10px 18px;
         border-radius: 9999px;
         box-shadow: 0 6px 10px rgba(0, 0, 0, 0.5);
         cursor: pointer;
-        overflow: hidden;
+        overflow: visible; /* évite de couper « annonce » sur certains mobiles */
         z-index: 100;
         opacity: 1;
         pointer-events: auto;
-        max-width: calc(100vw - 24px);
+        width: max-content;
+        max-width: calc(100vw - 16px);
         box-sizing: border-box;
         will-change: opacity, transform, left, padding;
         transition:
@@ -475,28 +477,32 @@
 
     #megaphone-button span {
         display: inline-block;
-        max-width: 20em; /* assez large même avec zoom accessibilité */
         opacity: 1;
         transform: translateX(0);
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: clip;
+        overflow: visible;
         font-size: 14px;
         line-height: 1.25;
-        letter-spacing: 0.01em;
-        flex: 1 1 auto;
-        min-width: 0;
-        transition: opacity 0.35s ease, max-width 0.35s ease, transform 0.35s ease;
+        letter-spacing: 0;
+        flex: 0 0 auto; /* ne pas compresser le texte */
+        min-width: max-content;
+        transition: opacity 0.35s ease, max-width 0.35s ease, transform 0.35s ease, padding 0.35s ease;
     }
 
-    @media (max-width: 360px) {
+    @media (max-width: 380px) {
         #megaphone-button {
-            padding: 9px 12px;
+            padding: 9px 14px;
             gap: 6px;
         }
 
         #megaphone-button span {
-            font-size: 13px;
+            font-size: 12.5px;
+        }
+    }
+
+    @media (max-width: 320px) {
+        #megaphone-button span {
+            font-size: 12px;
         }
     }
 
@@ -525,20 +531,25 @@
     #megaphone-button.is-compact:not(.is-footer-hidden) {
         left: 30px;
         padding: 10px;
+        width: auto;
         border: 1px solid #fff;
         box-shadow: 0 6px 10px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
     }
 
     #megaphone-button.is-compact:not(.is-footer-hidden) img {
         width: 30px;
         height: 30px;
-        margin-right: -7px;
+        margin-right: 0;
     }
 
     #megaphone-button.is-compact:not(.is-footer-hidden) span {
         opacity: 0;
         max-width: 0;
+        min-width: 0;
+        overflow: hidden;
         transform: translateX(-10px);
+        pointer-events: none;
     }
 
     /* Masquer sur certaines pages */

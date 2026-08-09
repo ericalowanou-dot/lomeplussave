@@ -358,14 +358,7 @@
         $isAdminSender = $message->sender->isAdmin();
         $currentUser = auth()->user();
     
-    // Photo de profil avec fallback
-    $hasPhoto = $message->sender->photo_profil && file_exists(storage_path('app/public/' . $message->sender->photo_profil));
-    $senderPhoto = $hasPhoto 
-        ? asset('storage/' . $message->sender->photo_profil) 
-        : null;
-    
-    // Initiales pour le placeholder
-    $initials = strtoupper(substr($message->sender->name, 0, 2));
+    $senderPhoto = $message->sender->getProfilPhotoUrl();
     
     // Déterminer si c'est un message envoyé ou reçu
     $isSent = $message->sender_id == $currentUser->id;
@@ -391,11 +384,8 @@
         <div class="message-bubble {{ $isSent ? 'sent' : '' }}">
             <!-- Avatar -->
             <div class="message-avatar-wrapper">
-                @if($senderPhoto)
-                    <img src="{{ $senderPhoto }}" alt="{{ $message->sender->name }}" class="message-avatar">
-                @else
-                    <div class="message-avatar-placeholder">{{ $initials }}</div>
-                @endif
+                <img src="{{ $senderPhoto }}" alt="{{ $message->sender->name }}" class="message-avatar"
+                     onerror="this.onerror=null;this.src='{{ asset('assets/icons/user_default.svg') }}';">
                 @if($isAdminSender)
                     <div class="admin-avatar-badge">
                         <i class="bi bi-check-lg"></i>

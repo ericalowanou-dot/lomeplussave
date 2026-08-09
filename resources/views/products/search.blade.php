@@ -138,15 +138,14 @@
 
         <div class="container mt-4" style="margin-top: 180px !important;">
 
-  <!-- Informations sur la recherche -->
+  <!-- En-tête recherche -->
   @if(isset($q) && $articles->total() > 0)
-  <div class="search-results-header mb-4" style="padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; margin-bottom: 25px; border-left: 4px solid #FF9900; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-    <h5 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 10px;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <strong style="color: #FF9900;">{{ $articles->total() }}</strong> résultat(s) trouvé(s) pour "<strong style="color: #495057;">{{ $q }}</strong>"
-    </h5>
+  <div class="search-results-header mb-3" style="padding: 14px 16px; background: #fff; border-radius: 12px; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);">
+    <p style="margin: 0; color: #64748b; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      <i class="bi bi-search" style="color: #FF9900;" aria-hidden="true"></i>
+      <span>Résultats pour</span>
+      <span style="color: #0f172a; font-weight: 700;">« {{ $q }} »</span>
+    </p>
   </div>
   @endif
 

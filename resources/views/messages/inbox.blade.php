@@ -454,15 +454,14 @@
                                         ->whereNotNull('read_at')
                                         ->exists();
                                     $isAdmin = $msg->sender->isAdmin();
-                    $senderPhoto = $msg->sender->photo_profil 
-                        ? asset('storage/' . $msg->sender->photo_profil) 
-                        : asset('assets/icons/user_default.svg');
+                    $senderPhoto = $msg->sender->getProfilPhotoUrl();
                                 @endphp
                 
                 <a href="{{ route('messages.show', $msg) }}" class="message-item {{ $isRead ? 'read' : 'unread' }}">
                     <!-- Avatar -->
                     <div class="message-avatar">
-                        <img src="{{ $senderPhoto }}" alt="{{ $msg->sender->name }}" class="message-avatar-img">
+                        <img src="{{ $senderPhoto }}" alt="{{ $msg->sender->name }}" class="message-avatar-img"
+                             onerror="this.onerror=null;this.src='{{ asset('assets/icons/user_default.svg') }}';">
                         @if($isAdmin)
                             <div class="message-avatar-admin">
                                 <i class="bi bi-check-lg"></i>
