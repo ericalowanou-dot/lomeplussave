@@ -8,3 +8,32 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Cache navigateur pour les assets statiques.
+<IfModule mod_expires.c>
+    ExpiresActive On
+
+    # Assets Vite versionnes par hash : jamais modifies sous la meme URL -> cache long + immutable.
+    <FilesMatch "^build/.*\.(css|js|woff2?|png|jpe?g|svg|gif|webp)$">
+        ExpiresDefault "access plus 1 year"
+    </FilesMatch>
+
+    # Service Worker et manifest PWA : jamais mis en cache pour que les mises a jour arrivent vite.
+    <FilesMatch "^(sw\.js|manifest\.json|build-precache\.json|offline\.html)$">
+        ExpiresDefault "access plus 0 seconds"
+    </FilesMatch>
+
+    # Autres assets statiques (non versionnes) : cache modere.
+    <FilesMatch "\.(css|js|png|jpe?g|gif|webp|svg|ico|woff2?)$">
+        ExpiresDefault "access plus 7 days"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "^build/.*\.(css|js|woff2?|png|jpe?g|svg|gif|webp)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "^(sw\.js|manifest\.json|build-precache\.json|offline\.html)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>

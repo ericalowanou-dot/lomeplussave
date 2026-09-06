@@ -34,10 +34,9 @@
     <link rel="stylesheet" href="{{ asset('css/spotlight.css') }}">
     <link rel="stylesheet" href="{{ asset('css/content-width.css') }}">
     <link rel="stylesheet" href="{{ asset('css/article-horizontale.css') }}">
-    <link rel="stylesheet" href="{{asset('css/detail_article.css')}}"> 
-    <link rel="stylesheet" href="{{asset('css/all.min.css')}}" crossorigin="anonymous" referrerpolicy="no-referrer"> 
+    <link rel="stylesheet" href="{{asset('css/detail_article.css')}}">
+    <link rel="stylesheet" href="{{asset('css/all.min.css')}}" crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- <link rel="stylesheet" href="{{ asset('css/background-articles.css') }}"> -->
-    <link rel="stylesheet" href="{{ asset('css/detail_article.css') }}">
     <link rel="stylesheet" href="{{ asset('css/fix-stability.css') }}">
     {{-- Barre de navigation mobile désactivée (ancien fonctionnement) --}}
     {{-- <link rel="stylesheet" href="{{ asset('css/mobile-bottom-nav.css') }}"> --}}
@@ -89,7 +88,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="{{ asset('css/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    {{-- Font Awesome deja charge en local via css/all.min.css plus haut (evite un doublon CDN) --}}
 
                    
 
@@ -675,46 +674,63 @@
 
     
         <!-- Modal Connexion/Inscription -->
-        <div id="modal-auth" class="modal" style="display: none;">
+        <div id="modal-auth" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-auth-title">
             <div class="modal-content" style="max-width: 350px; margin: auto; background: #fff; border-radius: 12px; padding: 24px; text-align: center; position: relative;">
-                <span class="close-button" id="close-auth-modal" style="position: absolute; top: 8px; right: 16px; font-size: 28px; cursor: pointer;">&times;</span>
-                <h5 style="font-weight: bold;">Vous devez être connecté</h5>
+                <button type="button" class="close-button" id="close-auth-modal" aria-label="Fermer" style="position: absolute; top: 8px; right: 16px; font-size: 28px; line-height: 1; cursor: pointer; background: none; border: none; color: inherit;">&times;</button>
+                <h5 id="modal-auth-title" style="font-weight: bold;">Vous devez être connecté</h5>
                 <div style="display: flex; text-align: center; align-items: center; justify-content: center; margin: 20px 0; gap: 10px;">
                     <a href="{{ route('login') }}" class="btn btn-primary w-100">Connexion</a>
                     <a href="{{ route('register') }}" class="btn btn-outline-primary w-100">Inscription</a>
                 </div>
             </div>
         </div>
-    <!-- script de connexion / inscription si non connecté et ouverture de la page de création d'annonce si connecté --> 
+    <!-- script de connexion / inscription si non connecté et ouverture de la page de création d'annonce si connecté -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var isAuthenticated = @auth true @else false @endauth;
             var boutonMegaphone = document.getElementById("megaphone-button");
             var modalAuth = document.getElementById("modal-auth");
             var closeAuthModal = document.getElementById("close-auth-modal");
-        
+            var lastFocusedBeforeAuthModal = null;
+
+            function openAuthModal() {
+                lastFocusedBeforeAuthModal = document.activeElement;
+                modalAuth.style.display = "flex";
+                if (closeAuthModal) closeAuthModal.focus();
+            }
+
+            function closeAuthModalFn() {
+                modalAuth.style.display = "none";
+                if (lastFocusedBeforeAuthModal && typeof lastFocusedBeforeAuthModal.focus === 'function') {
+                    lastFocusedBeforeAuthModal.focus();
+                }
+            }
+
             // Vérifier que les éléments existent avant de les utiliser
             if (boutonMegaphone) {
             boutonMegaphone.addEventListener("click", function() {
                 if (isAuthenticated) {
                     window.location.href = "{{ route('articles.create') }}";
                     } else if (modalAuth) {
-                    modalAuth.style.display = "flex";
+                    openAuthModal();
                 }
             });
             }
-        
+
             if (closeAuthModal && modalAuth) {
-            closeAuthModal.addEventListener("click", function() {
-                modalAuth.style.display = "none";
-            });
+            closeAuthModal.addEventListener("click", closeAuthModalFn);
             }
-        
+
             // Fermer le modal si on clique en dehors du contenu
             if (modalAuth) {
             window.addEventListener("click", function(event) {
                 if (event.target === modalAuth) {
-                    modalAuth.style.display = "none";
+                    closeAuthModalFn();
+                }
+            });
+            document.addEventListener("keydown", function(event) {
+                if (event.key === "Escape" && modalAuth.style.display !== "none") {
+                    closeAuthModalFn();
                 }
             });
             }

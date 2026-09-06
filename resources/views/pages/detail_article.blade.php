@@ -225,7 +225,7 @@
 
                                         <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
 
-                                            <img src="{{ $image ? asset($image) : asset('images/placeholder.png') }}" class="d-block rounded image-clickable" alt="Image de l'article" data-image-index="{{ $index }}" style="cursor: pointer;" loading="{{ $loop->first ? 'eager' : 'lazy' }}" onerror="this.src='{{ asset('images/placeholder.png') }}';">
+                                            <img src="{{ $image ? asset($image) : asset('images/placeholder.png') }}" class="d-block rounded image-clickable" alt="{{ $article->titre }} - photo {{ $index + 1 }}" data-image-index="{{ $index }}" style="cursor: pointer;" loading="{{ $loop->first ? 'eager' : 'lazy' }}" onerror="this.src='{{ asset('images/placeholder.png') }}';">
 
                                         </div>
 
@@ -1012,13 +1012,13 @@
 
                         <!-- Modal Connexion/Inscription -->
 
-                        <div id="modal-auth" class="modal" style="display: none;">
+                        <div id="modal-auth" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-auth-title-page">
 
                             <div class="modal-content" style="max-width: 350px; margin: auto; background: #fff; border-radius: 12px; padding: 24px; text-align: center; position: relative;">
 
-                                <span class="close-button" id="close-auth-modal" style="position: absolute; top: 8px; right: 16px; font-size: 28px; cursor: pointer;">&times;</span>
+                                <button type="button" class="close-button" id="close-auth-modal" aria-label="Fermer" style="position: absolute; top: 8px; right: 16px; font-size: 28px; line-height: 1; cursor: pointer; background: none; border: none; color: inherit;">&times;</button>
 
-                                <h5 style="font-weight: bold;">Vous devez être connecté</h5>
+                                <h5 id="modal-auth-title-page" style="font-weight: bold;">Vous devez être connecté</h5>
 
                                 <p style="font-size: 14px; color: #6b7280; margin: 10px 0 20px;">Connectez-vous pour continuer</p>
 
@@ -2613,15 +2613,15 @@
 
     <!-- Modal Lightbox pour afficher les images en plein écran -->
 
-    <div id="lightboxModal" class="lightbox-modal">
+    <div id="lightboxModal" class="lightbox-modal" role="dialog" aria-modal="true" aria-label="Image de l'annonce en plein écran">
 
-        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <button type="button" class="lightbox-close" onclick="closeLightbox()" aria-label="Fermer" style="border:none; font-family:inherit; line-height:normal;">&times;</button>
 
         @if(count($images) > 1)
 
-        <span class="lightbox-prev" onclick="changeLightboxImage(-1)">&#10094;</span>
+        <button type="button" class="lightbox-prev" onclick="changeLightboxImage(-1)" aria-label="Image précédente" style="border:none; font-family:inherit; line-height:normal;">&#10094;</button>
 
-        <span class="lightbox-next" onclick="changeLightboxImage(1)">&#10095;</span>
+        <button type="button" class="lightbox-next" onclick="changeLightboxImage(1)" aria-label="Image suivante" style="border:none; font-family:inherit; line-height:normal;">&#10095;</button>
 
         @endif
 
@@ -2664,6 +2664,16 @@
                             });
 
                             }
+
+                            document.addEventListener("keydown", function (event) {
+
+                                if (event.key === "Escape" && modal && modal.style.display !== "none") {
+
+                                    modal.style.display = "none";
+
+                                }
+
+                            });
 
                             window.addEventListener("click", function (event) {
 
@@ -4361,6 +4371,10 @@
                                 document.body.classList.add('lightbox-open');
                                 document.body.style.overflow = 'hidden';
                                 document.documentElement.style.overflow = 'hidden';
+
+                                window.__detailLightbox.lastFocused = document.activeElement;
+                                const closeBtn = modal.querySelector('.lightbox-close');
+                                if (closeBtn) closeBtn.focus();
                             };
 
                             window.closeLightbox = function () {
@@ -4370,6 +4384,11 @@
                                 document.body.classList.remove('lightbox-open');
                                 document.body.style.overflow = '';
                                 document.documentElement.style.overflow = '';
+
+                                const lastFocused = window.__detailLightbox.lastFocused;
+                                if (lastFocused && typeof lastFocused.focus === 'function') {
+                                    lastFocused.focus();
+                                }
                             };
 
                             window.changeLightboxImage = function (direction) {

@@ -598,7 +598,8 @@ class ArticleController extends Controller
                 return back()->withErrors($err)->withInput();
             }
 
-            $allowedMimes = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'svg', 'avif'];
+            // SVG volontairement exclu : peut embarquer du JS/HTML et est servi tel quel depuis public/articles (risque XSS stocké).
+            $allowedMimes = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'avif'];
             $extension = strtolower($photo->getClientOriginalExtension());
             if (!in_array($extension, $allowedMimes)) {
                 $msg = 'Le format de fichier n\'est pas accepté. Formats acceptés : ' . implode(', ', $allowedMimes) . '.';
@@ -1070,7 +1071,7 @@ class ArticleController extends Controller
 
                 'photos' => 'nullable|array|max:6',
 
-                'photos.*' => 'image|mimes:jpeg,png,jpg,gif,webp,bmp,heic,heif,svg,avif|max:30720',
+                'photos.*' => 'image|mimes:jpeg,png,jpg,gif,webp,bmp,heic,heif,avif|max:30720',
 
             ], [
 
@@ -1108,7 +1109,7 @@ class ArticleController extends Controller
 
                 'photos.*.image' => 'Tous les fichiers doivent être des images.',
 
-                'photos.*.mimes' => 'Les images doivent être au format : jpeg, png, jpg, gif, webp, bmp, heic, heif, svg ou avif.',
+                'photos.*.mimes' => 'Les images doivent être au format : jpeg, png, jpg, gif, webp, bmp, heic, heif ou avif.',
 
                 'photos.*.max' => 'Chaque image ne doit pas dépasser 30 Mo. L\'application optimisera automatiquement vos images.',
 
@@ -1527,43 +1528,6 @@ class ArticleController extends Controller
     
 
        
-
-    public function show($id)
-
-    {
-
-        $article = Article::with('user')->findOrFail($id);
-
-
-
-        $vendeur = $article->user;
-
-
-
-        // Membre depuis
-
-        $membreDepuis = $vendeur->created_at->diffForHumans(); 
-
-        // Exemple : "il y a 2 ans"
-
-
-
-        // Nombre d’articles publiés
-
-        $nbArticles = $vendeur->articles()->count();
-
-
-
-        // Nombre total de likes sur tous ses articles
-
-        $totalLikes = $vendeur->articles()->withCount('likes')->sum('likes_count');
-
-
-
-        return view('articles.show', compact('article', 'membreDepuis', 'nbArticles', 'totalLikes'));
-
-    }
-
 
 
     

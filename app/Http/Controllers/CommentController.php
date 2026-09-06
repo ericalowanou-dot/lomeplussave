@@ -86,14 +86,6 @@ class CommentController extends Controller
         ]);
     }
 
-    public function show($id)
-    {
-
-        $article->load('comments.user')->orderBy('desc'); // Charge les commentaires et les utilisateurs qui les ont publiés
-        return view('articles.show', compact('article'));
-
-    }
-
     public function report(Request $request, Comment $comment)
     {
         if (!auth()->check()) {

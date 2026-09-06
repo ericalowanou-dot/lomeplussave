@@ -488,6 +488,9 @@
                 modal.addEventListener('click', function (e) {
                     if (e.target === modal) closeModal();
                 });
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape' && !modal.hidden) closeModal();
+                });
 
                 form.addEventListener('submit', async function (e) {
                     e.preventDefault();

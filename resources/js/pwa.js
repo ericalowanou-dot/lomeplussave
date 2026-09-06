@@ -21,7 +21,7 @@ function ensureToastStyles() {
             box-shadow: 0 8px 24px rgba(0,0,0,0.25);
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 0.85rem;
-            z-index: 10000;
+            z-index: 9060;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -53,14 +53,14 @@ function ensureToastStyles() {
             text-align: center;
             font-size: 0.8rem;
             padding: 6px 12px;
-            z-index: 10001;
+            z-index: 9070;
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         .lomeplus-install-banner {
             position: fixed;
             left: 12px;
             right: 12px;
-            bottom: 12px;
+            bottom: 76px;
             background: #fff;
             border-radius: 14px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.18);
@@ -68,7 +68,7 @@ function ensureToastStyles() {
             display: flex;
             align-items: center;
             gap: 12px;
-            z-index: 9999;
+            z-index: 9050;
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             max-width: 420px;
             margin: 0 auto;
@@ -86,6 +86,9 @@ function showToast(message, { actionLabel, onAction, timeout = 8000 } = {}) {
     ensureToastStyles();
     const toast = document.createElement('div');
     toast.className = 'lomeplus-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.setAttribute('aria-atomic', 'true');
 
     const text = document.createElement('span');
     text.textContent = message;
@@ -170,6 +173,7 @@ function initOnlineBanner() {
         if (banner) return;
         banner = document.createElement('div');
         banner.className = 'lomeplus-offline-banner';
+        banner.setAttribute('role', 'alert');
         banner.textContent = 'Vous êtes hors connexion. Certaines fonctionnalités sont limitées.';
         document.body.prepend(banner);
     }
@@ -214,6 +218,8 @@ function buildInstallBanner({ onInstall }) {
     ensureToastStyles();
     const banner = document.createElement('div');
     banner.className = 'lomeplus-install-banner';
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
     banner.innerHTML = `
         <img src="/assets/icons/pwa/icon-96.png" alt="Lome+">
         <div class="lomeplus-install-text">
@@ -271,6 +277,8 @@ function initIosInstallHint() {
     ensureToastStyles();
     const banner = document.createElement('div');
     banner.className = 'lomeplus-install-banner';
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
     banner.innerHTML = `
         <img src="/assets/icons/pwa/icon-96.png" alt="Lome+">
         <div class="lomeplus-install-text">

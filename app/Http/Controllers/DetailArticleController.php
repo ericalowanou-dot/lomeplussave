@@ -39,20 +39,30 @@ class DetailArticleController extends Controller
      */
     public function showLegacy(int $id): RedirectResponse
     {
-        $article = Article::with(['sousCategorie.categorie'])->findOrFail($id);
+        $article = $this->loadArticle($id);
 
         return redirect($article->url(), 301);
     }
 
     protected function loadArticle(int $id): Article
     {
-        return Article::with([
+        $article = Article::with([
             'user:id,name,email,telephone,whatsapp,photo_profil,certifie,certifie_until,created_at',
             'sousCategorie.categorie',
         ])
             ->withCount('comments')
             ->withLikeCounts(auth()->id())
             ->findOrFail($id);
+
+        // Seuls le vendeur et les admins peuvent voir une annonce en attente/bloquée
+        // (sinon fuite du statut de modération et des coordonnées du vendeur par ID deviné).
+        $user = auth()->user();
+        $isOwnerOrAdmin = $user && ($user->id === $article->user_id || $user->isAdmin());
+        if (! $article->isApproved() && ! $isOwnerOrAdmin) {
+            abort(404);
+        }
+
+        return $article;
     }
 
     protected function render(Article $article): View

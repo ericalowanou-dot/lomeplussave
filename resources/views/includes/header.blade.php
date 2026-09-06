@@ -4777,6 +4777,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Fonction globale pour ouvrir un modal (utilisée par les modals secondaires)
 
+    var __lastFocusedBeforeModal = null;
+    var __currentOpenModalId = null;
+
     function openModal(modalId) {
 
         const modal = document.getElementById(modalId);
@@ -4787,6 +4790,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.body.appendChild(modal);
             }
 
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+
             modal.style.display = 'flex';
 
             // Sous-modals au-dessus du menu compte (10050)
@@ -4795,6 +4801,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.style.zIndex = '10100';
 
             }
+
+            __lastFocusedBeforeModal = document.activeElement;
+            __currentOpenModalId = modalId;
+            const focusTarget = modal.querySelector('.secondary-modal-close, .modal-close-control, [autofocus]') || modal.querySelector('button, a, input, select, textarea');
+            if (focusTarget) focusTarget.focus();
 
         }
 
@@ -4812,9 +4823,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
             modal.style.display = 'none';
 
+            if (__currentOpenModalId === modalId) {
+                __currentOpenModalId = null;
+                if (__lastFocusedBeforeModal && typeof __lastFocusedBeforeModal.focus === 'function') {
+                    __lastFocusedBeforeModal.focus();
+                }
+            }
+
         }
 
     }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && __currentOpenModalId) {
+            closeModal(__currentOpenModalId);
+        }
+    });
 
 
 

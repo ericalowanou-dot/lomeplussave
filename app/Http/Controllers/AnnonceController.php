@@ -117,10 +117,18 @@ public function index(Request $request)
 
     public function show($id)
     {
-        $article = Article::findOrFail($id); // recuperer un article par son id
-        return view('pages.detail_article', compact('article'));
+        // Ancienne URL /annonce/{id} : on redirige vers l'URL SEO canonique
+        // (qui applique aussi le controle de visibilite : annonce en attente/bloquee
+        // reservee au vendeur et aux admins, voir DetailArticleController::loadArticle).
+        $article = Article::findOrFail($id);
 
+        $user = Auth::user();
+        $isOwnerOrAdmin = $user && ($user->id === $article->user_id || $user->isAdmin());
+        if (! $article->isApproved() && ! $isOwnerOrAdmin) {
+            abort(404);
+        }
 
+        return redirect($article->url(), 301);
     }
 
 

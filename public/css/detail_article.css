@@ -968,7 +968,8 @@ h3.text-danger {
         border-radius: 10px;
         overflow: hidden;
         border: 1px solid #d3d3d3; 
-        width: 300px;
+        width: 100%;
+        max-width: 300px;
         box-shadow: 0 4px 8px 2px rgba(0, 0, 0, 0.2);
         margin: 0 auto;
         
@@ -988,7 +989,8 @@ h3.text-danger {
     }
 
     .prix-like {
-        width: 300px;
+        width: 100%;
+        max-width: 300px;
         display: flex; /* Aligne les éléments sur une seule ligne */
         justify-content: space-between; /* Espace entre le prix et le bouton */
         align-items: center; /* Centre verticalement les éléments */
@@ -999,7 +1001,8 @@ h3.text-danger {
         display: flex;
         justify-content: center;
         align-items: center;
-        width: 300px;
+        width: 100%;
+        max-width: 300px;
         margin: 5px auto;
         /* gap: 60px; */
         

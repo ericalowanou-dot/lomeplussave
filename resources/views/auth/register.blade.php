@@ -192,7 +192,7 @@
                             @error('password')
                                 <div class="field-error">
                                     <strong>{{ $message }}</strong>
-                                    <p style="margin-top: 8px; font-size: 14px; color: #6b7280;">
+                                    <p style="margin-top: 8px; font-size: 14px; color: #4b5563;">
                                         💡 <strong>Solution :</strong> Ajoutez des caractères pour atteindre 6 caractères minimum.
                                     </p>
                                 </div>

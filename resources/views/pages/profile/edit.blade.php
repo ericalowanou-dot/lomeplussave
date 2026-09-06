@@ -71,7 +71,7 @@
     }
 
     .profile-card__title i {
-        color: #ff9900;
+        color: #c2410c;
     }
 
     .profile-card__desc {
@@ -120,14 +120,14 @@
         justify-content: center;
         font-size: 2.5rem;
         font-weight: 700;
-        color: #ff9900;
+        color: #c2410c;
         background: #fff7ed;
     }
 
     .profile-photo__hint {
         margin: 0;
         font-size: 0.82rem;
-        color: #94a3b8;
+        color: #64748b;
         text-align: center;
     }
 
@@ -335,7 +335,7 @@
             <p class="profile-page__subtitle">Gérez vos informations personnelles et votre sécurité</p>
             @if(auth()->user()?->isAdmin())
                 <p class="profile-page__subtitle" style="margin-top: 8px;">
-                    <a href="{{ route('admin.dashboard') }}" style="color: #ff9900; font-weight: 600; text-decoration: none;">
+                    <a href="{{ route('admin.dashboard') }}" style="color: #b45309; font-weight: 600; text-decoration: underline;">
                         <i class="bi bi-speedometer2"></i> Retour au panneau admin
                     </a>
                 </p>
@@ -389,6 +389,7 @@
                     </div>
                 </button>
                 <p class="profile-photo__hint">Cliquez sur la photo pour la modifier (JPG, PNG, WEBP — max 2 Mo)</p>
+                <label for="profilePhotoInput" class="visually-hidden">Choisir une photo de profil</label>
                 <input type="file" name="photo" id="profilePhotoInput" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp" class="d-none">
             </div>
 
@@ -488,7 +489,7 @@
 
         <div id="push-notif-status" style="font-size:0.85rem;color:#6b7280;margin-bottom:12px;">Vérification du support de votre navigateur…</div>
 
-        <button type="button" id="push-notif-toggle" class="profile-btn profile-btn--primary" disabled>
+        <button type="button" id="push-notif-toggle" class="profile-btn profile-btn--primary" disabled aria-pressed="false">
             <i class="bi bi-bell"></i> Activer les notifications
         </button>
     </div>
@@ -514,6 +515,7 @@
         }
 
         toggleBtn.disabled = false;
+        toggleBtn.setAttribute('aria-pressed', status.subscribed ? 'true' : 'false');
         if (status.subscribed) {
             statusEl.textContent = "Notifications activées sur cet appareil.";
             toggleBtn.innerHTML = '<i class="bi bi-bell-slash"></i> Désactiver les notifications';
