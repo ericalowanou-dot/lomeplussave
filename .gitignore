@@ -84,6 +84,9 @@ Thumbs.db
 # Scripts et fichiers de démarrage locaux
 start.sh
 scripts/
+# ... sauf les scripts de build versionnés (ex: generation du precache Service Worker PWA)
+!/scripts/
+!/scripts/**
 
 # Documentation locale (optionnel - à garder si vous voulez)
 # CONFIGURATION_EMAIL.md

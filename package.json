@@ -3,6 +3,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "postbuild": "node scripts/generate-sw-manifest.mjs",
         "dev": "vite",
         "dev:watch": "vite --host 127.0.0.1 --port 5173"
     },

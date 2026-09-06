@@ -481,7 +481,74 @@
             </button>
         </form>
     </div>
+
+    <div class="profile-card">
+        <h2 class="profile-card__title"><i class="bi bi-bell-fill"></i> Notifications</h2>
+        <p class="profile-card__desc">Recevez une alerte instantanée dès qu'un message vous est envoyé, même quand l'application est fermée.</p>
+
+        <div id="push-notif-status" style="font-size:0.85rem;color:#6b7280;margin-bottom:12px;">Vérification du support de votre navigateur…</div>
+
+        <button type="button" id="push-notif-toggle" class="profile-btn profile-btn--primary" disabled>
+            <i class="bi bi-bell"></i> Activer les notifications
+        </button>
+    </div>
 </div>
+
+<script>
+(function() {
+    const statusEl = document.getElementById('push-notif-status');
+    const toggleBtn = document.getElementById('push-notif-toggle');
+    if (!statusEl || !toggleBtn) return;
+
+    function render(status) {
+        if (!status.supported) {
+            statusEl.textContent = "Les notifications ne sont pas supportées par ce navigateur.";
+            toggleBtn.disabled = true;
+            return;
+        }
+
+        if (status.permission === 'denied') {
+            statusEl.textContent = "Notifications bloquées : autorisez-les depuis les réglages de votre navigateur pour ce site.";
+            toggleBtn.disabled = true;
+            return;
+        }
+
+        toggleBtn.disabled = false;
+        if (status.subscribed) {
+            statusEl.textContent = "Notifications activées sur cet appareil.";
+            toggleBtn.innerHTML = '<i class="bi bi-bell-slash"></i> Désactiver les notifications';
+        } else {
+            statusEl.textContent = "Notifications désactivées sur cet appareil.";
+            toggleBtn.innerHTML = '<i class="bi bi-bell"></i> Activer les notifications';
+        }
+    }
+
+    function refresh() {
+        if (!window.LomePush) {
+            statusEl.textContent = "Les notifications ne sont pas supportées par ce navigateur.";
+            toggleBtn.disabled = true;
+            return;
+        }
+        window.LomePush.getStatus().then(render);
+    }
+
+    toggleBtn.addEventListener('click', function() {
+        if (!window.LomePush) return;
+        toggleBtn.disabled = true;
+
+        window.LomePush.getStatus().then(function(status) {
+            const action = status.subscribed ? window.LomePush.unsubscribe() : window.LomePush.subscribe();
+            return action;
+        }).then(refresh).catch(function(error) {
+            statusEl.textContent = error && error.message ? error.message : "Une erreur est survenue.";
+        }).finally(function() {
+            toggleBtn.disabled = false;
+        });
+    });
+
+    refresh();
+})();
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/intlTelInput.min.js"></script>
 <script>

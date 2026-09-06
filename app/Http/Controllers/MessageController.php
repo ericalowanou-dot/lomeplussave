@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Message;
 use App\Models\User;
+use App\Notifications\NewMessageReceived;
 
 class MessageController extends Controller
 {
@@ -113,6 +114,7 @@ class MessageController extends Controller
             ]);
 
             $message->recipients()->sync([$admin->id]);
+            $admin->notify(new NewMessageReceived($message));
 
             return redirect()->route('messages.inbox')->with('success', 'Message envoyé à l\'administrateur.');
         } catch (\Exception $e) {
@@ -211,6 +213,10 @@ class MessageController extends Controller
         ]);
 
         $message->recipients()->sync($recipients);
+
+        User::whereIn('id', $recipients)->get()->each(function (User $recipient) use ($message) {
+            $recipient->notify(new NewMessageReceived($message));
+        });
 
         return redirect()->route('admin.dashboard')->with('success', 'Message envoyé à ' . count($recipients) . ' utilisateur(s).');
     }

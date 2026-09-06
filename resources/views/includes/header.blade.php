@@ -72,7 +72,16 @@
 
         @endphp
 
-
+        <script>
+            if ('setAppBadge' in navigator) {
+                const unread = {{ (int) $unreadCount }};
+                if (unread > 0) {
+                    navigator.setAppBadge(unread).catch(() => {});
+                } else if ('clearAppBadge' in navigator) {
+                    navigator.clearAppBadge().catch(() => {});
+                }
+            }
+        </script>
 
         @if (auth()->check())
 

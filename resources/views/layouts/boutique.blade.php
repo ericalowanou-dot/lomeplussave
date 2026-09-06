@@ -11,6 +11,17 @@
     <link rel="icon" type="image/png" href="{{ asset('images/true-logo.png') }}">
     <link rel="shortcut icon" type="image/png" href="{{ asset('images/true-logo.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/true-logo.png') }}">
+
+    <!-- PWA : manifest, theme, icônes app -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#ff7b00">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lome+">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/icons/pwa/apple-touch-icon-180.png') }}">
+    @vite(['resources/js/pwa.js'])
+
     {{-- Bootstrap ou ton CSS principal --}}
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>

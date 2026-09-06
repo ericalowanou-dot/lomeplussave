@@ -17,6 +17,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\AboutController;
+use App\Http\Controllers\PushSubscriptionController;
 
 use Illuminate\Http\Request; //test wireshark
 
@@ -37,6 +38,10 @@ Route::middleware(['auth', 'check.blocked'])->group(function(){
     Route::get('/messages/compose/{message}', [MessageController::class, 'compose'])->name('messages.compose.reply');
     Route::get('/messages/{message}', [MessageController::class, 'show'])->name('messages.show');
     Route::post('/messages/send', [MessageController::class, 'send'])->name('messages.send');
+
+    // PWA : notifications push
+    Route::post('/push/subscribe', [PushSubscriptionController::class, 'subscribe'])->name('push.subscribe');
+    Route::post('/push/unsubscribe', [PushSubscriptionController::class, 'unsubscribe'])->name('push.unsubscribe');
 });
 
 // Tracking spotlight (noms neutres anti-bloqueurs) + alias legacy

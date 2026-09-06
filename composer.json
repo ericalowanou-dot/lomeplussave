@@ -9,6 +9,7 @@
         "php": "^8.2",
         "intervention/image": "^3.11",
         "intervention/image-laravel": "^1.5",
+        "laravel-notification-channels/webpush": "^10.5",
         "laravel/framework": "^11.31",
         "laravel/tinker": "^2.9",
         "spatie/image": "^3.8"

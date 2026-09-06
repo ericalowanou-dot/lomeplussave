@@ -17,7 +17,17 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/logo_icon.jpg') }}">
     <link rel="icon" type="image/jpeg" sizes="32x32" href="{{ asset('images/logo_icon.jpg') }}">
     <link rel="icon" type="image/jpeg" sizes="16x16" href="{{ asset('images/logo_icon.jpg') }}">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <!-- PWA : manifest, theme, icônes app -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#ff7b00">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lome+">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/icons/pwa/apple-touch-icon-180.png') }}">
+    <meta name="webpush-public-key" content="{{ config('webpush.vapid.public_key') }}">
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/pwa.js'])
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/articles.css') }}">

@@ -10,7 +10,18 @@
     <link rel="icon" type="image/jpeg" href="{{ asset('images/logo_icon.jpg') }}">
     <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/logo_icon.jpg') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/logo_icon.jpg') }}">
-    
+
+    <!-- PWA : manifest, theme, icônes app -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#ff7b00">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lome+">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/icons/pwa/apple-touch-icon-180.png') }}">
+    <meta name="webpush-public-key" content="{{ config('webpush.vapid.public_key') }}">
+    @vite(['resources/js/pwa.js'])
+
     <!-- pour les icons bootstrap  -->
     <link href="{{ asset('css/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
     
