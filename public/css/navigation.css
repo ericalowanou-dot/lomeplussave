@@ -197,7 +197,7 @@
   .categories-nom-navigation{
     font-size: 10px;
     font-family: 'Montserrat', sans-serif;
-    color: rgb(255, 255, 255); /* Couleur du texte */
+    color: #1a1a1a; /* Contraste WCAG AA sur fond orange #FF6A00 (6.06:1, blanc ne faisait que 2.87:1) */
     margin-top: 2px; /* Espace entre l'image et le texte */
     margin-bottom: 0;
     text-align: center; /* Centre le texte sous l'image */

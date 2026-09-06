@@ -455,7 +455,7 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        background: #ff7b00;
+        background: #a34e00; /* Contraste WCAG AA avec le texte blanc (5.8:1, #ff7b00 ne faisait que 2.6:1) */
         color: #fff;
         padding: 10px 18px;
         border-radius: 9999px;
@@ -753,7 +753,7 @@
 
 
         <!-- Ajoutez ici vos scripts JS ou autres ressources nécessaires -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
 
         

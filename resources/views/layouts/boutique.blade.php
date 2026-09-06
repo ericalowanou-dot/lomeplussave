@@ -164,7 +164,7 @@
         <link href="{{ asset('css/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
         
         <!-- font awesome -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         
         <link rel="stylesheet" href="{{asset('css/articles.css')}}">
@@ -177,7 +177,7 @@
         <meta name="generator" content="Hugo 0.122.0">
         <title>lome+</title>
         <link rel="canonical" href="https://getbootstrap.com/docs/5.3/examples/album/">
-        <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer integrity="sha384-I+xT0kI+5huLXfrgxNmj8364GnCUEyzjiZ7pgwvIV3BzDs63hxXUKxvBR/KTrERE" crossorigin="anonymous"></script>
         <link href="{{asset('css/bootstrap.min.css')}}" rel="stylesheet">
 
 
@@ -195,7 +195,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="{{ asset('css/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
     @yield('head')
 </head>
 <body>

@@ -182,7 +182,7 @@
         }
 
         .auth-footer a {
-            color: #f57c00;
+            color: #a34e00; /* Contraste WCAG AA sur fond blanc (5.8:1) ; #f57c00 ne faisait que 2.7:1 */
             text-decoration: none;
             font-weight: 500;
         }
@@ -224,7 +224,7 @@
     @stack('styles')
 
     <!-- IntlTelInput CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css" rel="stylesheet" integrity="sha384-TXDx4BvGGuJDYIKlcgXfDntJ100A809RRLB4W72MhjXJzakfj3ptxy4zER5qsxZH" crossorigin="anonymous" />
 
     <!-- Styles personnalisés pour les champs de téléphone -->
     <style>
@@ -263,7 +263,7 @@
 <body>
     <!-- Page Loader -->
     @include('components.page-loader')
-    <div class="auth-container">
+    <main class="auth-container">
         <div class="auth-card">
             
 
@@ -290,7 +290,7 @@
                 @yield('footer')
             </div>
         </div>
-    </div>
+    </main>
     <!-- Scripts IntlTelInput -->
      @yield('scripts')
      @stack('scripts')

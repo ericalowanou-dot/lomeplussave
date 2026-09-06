@@ -68,7 +68,7 @@ body {
 .article-price {
     white-space: nowrap;/* Empêche le retour à la ligne */
     font-size: 14px; /* Taille de la police */
-    color: rgb(218, 134, 44); /* Couleur orange */
+    color: rgb(163, 92, 23); /* Couleur orange assombrie pour contraste WCAG AA (5.1:1, avant 2.8:1) */
     font-weight: bold; /* Texte en gras */
     padding: 0;
     font-family: 'Arial', sans-serif; /* Police sans-serif pour un look moderne */

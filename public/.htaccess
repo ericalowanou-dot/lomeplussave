@@ -36,4 +36,10 @@
     <FilesMatch "^(sw\.js|manifest\.json|build-precache\.json|offline\.html)$">
         Header set Cache-Control "no-cache"
     </FilesMatch>
+
+    # En-tetes de securite pour les fichiers statiques (images/css/js/manifest...) :
+    # ils sont servis directement par Apache et ne passent jamais par le middleware Laravel.
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>

@@ -153,65 +153,6 @@
                     @include('partials.publicites-feed', ['feedVisibilityClass' => 'd-none d-lg-block', 'feedId' => $feedIdPrefix . '-desktop'])
                 @endif
 
-                @if($loop->iteration == 4)
-                    @guest
-                    <!-- Bannière après la 2e ligne sur mobile (4 articles) - Visible seulement si non connecté -->
-                    <div class="col-12" style="z-index: 1;">
-                        <div class="banner-ad my-3">
-                            <a href="{{ route('login') }}">
-                                <img src="{{ asset('images/1.png') }}" alt="Publicité" class="ad-img active" loading="lazy">
-                                <img src="{{ asset('images/2.png') }}" alt="Publicité" class="ad-img" loading="lazy">
-                                <img src="{{ asset('images/3.png') }}" alt="Publicité" class="ad-img" loading="lazy">
-                            </a>
-                        </div>
-                    </div>
-
-                    <style>
-                        .banner-ad {
-                            width: 100%;
-                            height: 150px;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            margin: 2px 0;
-                            box-shadow: 0 4px 16px rgba(0,0,0,0.18), 0 1.5px 4px rgba(0,0,0,0.12);
-                            border-radius: 10px;
-                            background: #fff;
-                            position: relative;
-                            overflow: hidden;
-                        }
-
-                        .banner-ad .ad-img {
-                            position: absolute;
-                            width: 100%;
-                            height: 100%;
-                            object-fit: cover;
-                            border-radius: 10px;
-                            top: 0;
-                            left: 0;
-                            opacity: 0;
-                            transition: opacity 1s ease-in-out;
-                        }
-
-                        .banner-ad .ad-img.active {
-                            opacity: 1;
-                            z-index: 2;
-                        }
-
-                        .banner-ad .ad-img.exit {
-                            opacity: 0;
-                            z-index: 1;
-                        }
-                    </style>
-
-                    <script>
-                        document.addEventListener("DOMContentLoaded", function () {
-                            const banner = document.querySelector(".banner-ad");
-                            if (banner) banner.dataset.loginUrl = "{{ route('login') }}";
-                        });
-                    </script>
-                    @endguest
-                @endif
             @endif
 
         @endforeach

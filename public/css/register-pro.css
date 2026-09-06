@@ -127,7 +127,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--register-primary-dark);
+    color: #a34e00; /* Contraste WCAG AA sur le fond pastel de la puce (5.1:1) ; var(--register-primary-dark) ne faisait que 3.3:1 */
     background: rgba(244, 117, 26, 0.12);
     border: 1px solid rgba(244, 117, 26, 0.35);
     border-radius: 999px;

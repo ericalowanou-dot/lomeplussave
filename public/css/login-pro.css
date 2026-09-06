@@ -187,7 +187,7 @@
 
 .login-options__link {
     font-size: 0.9rem;
-    color: var(--login-primary);
+    color: #a34e00; /* Contraste WCAG AA sur fond blanc (5.8:1) ; var(--login-primary) ne faisait que 2.8:1 en texte */
     text-decoration: none;
 }
 
@@ -223,7 +223,7 @@
 }
 
 .login-pro__footer a {
-    color: var(--login-primary);
+    color: #a34e00; /* Contraste WCAG AA sur fond blanc (5.8:1) ; var(--login-primary) ne faisait que 2.8:1 en texte */
     text-decoration: none;
     font-weight: 600;
 }

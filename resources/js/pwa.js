@@ -28,7 +28,7 @@ function ensureToastStyles() {
             max-width: calc(100vw - 32px);
         }
         .lomeplus-toast button {
-            background: #ff7b00;
+            background: #a34e00;
             color: #fff;
             border: none;
             padding: 6px 12px;
@@ -76,7 +76,7 @@ function ensureToastStyles() {
         .lomeplus-install-banner img { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; }
         .lomeplus-install-banner .lomeplus-install-text { flex: 1; font-size: 0.82rem; color: #1f2937; }
         .lomeplus-install-banner .lomeplus-install-title { font-weight: 700; margin-bottom: 2px; }
-        .lomeplus-install-banner button.install { background: #ff7b00; color: #fff; border: none; padding: 8px 14px; border-radius: 9999px; font-weight: 600; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+        .lomeplus-install-banner button.install { background: #a34e00; color: #fff; border: none; padding: 8px 14px; border-radius: 9999px; font-weight: 600; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
         .lomeplus-install-banner button.dismiss { background: transparent; border: none; color: #9ca3af; font-size: 1.1rem; cursor: pointer; padding: 4px; line-height: 1; }
     `;
     document.head.appendChild(style);

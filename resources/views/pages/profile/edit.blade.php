@@ -3,7 +3,7 @@
 @section('title', 'Mon profil - Lome+')
 
 @section('content')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css" integrity="sha384-TXDx4BvGGuJDYIKlcgXfDntJ100A809RRLB4W72MhjXJzakfj3ptxy4zER5qsxZH" crossorigin="anonymous">
 
 <style>
     .profile-page {
@@ -552,7 +552,7 @@
 })();
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/intlTelInput.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/intlTelInput.min.js" integrity="sha384-05IkdNHoAlkhrFVUCCN805WC/h4mcI98GUBssmShF2VJAXKyZTrO/TmJ+4eBo0Cy" crossorigin="anonymous"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var photoTrigger = document.getElementById('profilePhotoTrigger');

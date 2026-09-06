@@ -140,7 +140,7 @@
 }
 
 .forgot-pro__footer a {
-    color: var(--forgot-primary);
+    color: #a34e00; /* Contraste WCAG AA sur fond blanc (5.8:1) ; var(--forgot-primary) ne faisait que 2.8:1 en texte */
     text-decoration: none;
     font-weight: 600;
 }
