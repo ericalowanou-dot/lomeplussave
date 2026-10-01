@@ -278,6 +278,85 @@ class AdminStatisticsTest extends TestCase
         $this->assertTrue($after['tracking']['visites']);
     }
 
+    public function test_ville_filter_restricts_article_statistics_only(): void
+    {
+        $seller = $this->makeUser();
+        $this->makeArticle($seller, ['lieu' => 'Lomé', 'titre' => 'iPhone 13']);
+        $this->makeArticle($seller, ['lieu' => 'lome', 'titre' => 'iPhone 12']);
+        $kara = $this->makeArticle($seller, ['lieu' => 'Kara', 'titre' => 'Moto Haojue']);
+
+        $visitor = $this->makeUser();
+        $this->actingAs($visitor)->get($kara->url());
+
+        $stats = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => '7j', 'ville' => 'LOMÉ']))->all(refresh: true);
+
+        $this->assertSame(2, $stats['kpis']['annonces']['valeur']);   // Lomé + lome
+        $this->assertSame(1, count($stats['top_villes']));
+        $this->assertSame(0, $stats['kpis']['vues_annonces']['valeur']); // la vue concerne Kara
+        $this->assertSame(2, $stats['kpis']['inscriptions']['valeur']);  // global : vendeur + visiteur
+        $this->assertSame('LOMÉ', $stats['filtre']);
+        $this->assertSame('iphone', mb_strtolower($stats['top_mots']['mots'][0]['mot']));
+
+        $karaStats = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => '7j', 'ville' => 'Kara']))->all(refresh: true);
+        $this->assertSame(1, $karaStats['kpis']['annonces']['valeur']);
+        $this->assertSame(1, $karaStats['kpis']['vues_annonces']['valeur']);
+        $this->assertSame($kara->id, $karaStats['top_articles_vus'][0]['id']);
+    }
+
+    public function test_categorie_and_sous_categorie_filters(): void
+    {
+        $autreCategorie = DB::table('categories')->insertGetId(['nom' => 'Mode', 'created_at' => now(), 'updated_at' => now()]);
+        $chaussures = DB::table('sous_categories')->insertGetId(['nom' => 'Chaussures', 'categorie_id' => $autreCategorie, 'created_at' => now(), 'updated_at' => now()]);
+
+        $seller = $this->makeUser();
+        $this->makeArticle($seller);
+        $this->makeArticle($seller, ['sous_categorie_id' => $chaussures, 'titre' => 'Baskets Nike']);
+        $this->makeArticle($seller, ['sous_categorie_id' => $chaussures, 'titre' => 'Sandales cuir']);
+
+        $categoryStats = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => '7j', 'categorie' => 'c' . $autreCategorie]))->all(refresh: true);
+        $this->assertSame(2, $categoryStats['kpis']['annonces']['valeur']);
+        $this->assertSame('Mode', $categoryStats['top_categories'][0]['nom']);
+        $this->assertSame(1, count($categoryStats['top_categories']));
+        $this->assertSame('Mode', $categoryStats['filtre']);
+
+        $sousStats = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => '7j', 'categorie' => 's' . $this->sousCategorieId]))->all(refresh: true);
+        $this->assertSame(1, $sousStats['kpis']['annonces']['valeur']);
+        $this->assertSame('Électronique › Téléphones', $sousStats['filtre']);
+
+        // Filtre inconnu : aucune annonce, pas d'erreur
+        $none = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => '7j', 'categorie' => 'c999999']))->all(refresh: true);
+        $this->assertSame(0, $none['kpis']['annonces']['valeur']);
+
+        $admin = $this->makeUser(['role' => 'admin']);
+        $this->actingAs($admin)
+            ->get(route('admin.statistics.index', ['categorie' => 's' . $chaussures, 'ville' => 'Lomé']))
+            ->assertOk()
+            ->assertSee('Filtre actif');
+    }
+
+    public function test_custom_dates_and_curve_bounds(): void
+    {
+        $statistics = AdminStatistics::fromRequest(Request::create('/', 'GET', ['du' => '2026-03-04', 'au' => '2026-03-20', 'par' => 'semaine']));
+
+        $this->assertSame('perso', $statistics->period); // dates sans période = personnalisée
+        $series = $statistics->all(refresh: true)['series'];
+
+        // Les semaines à cheval sont bornées à la période choisie
+        $this->assertSame('2026-03-04', $series['debuts'][0]);
+        $this->assertSame('2026-03-20', end($series['fins']));
+        $this->assertSame(count($series['labels']), count($series['debuts']));
+
+        // Date invalide : période par défaut
+        $invalid = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => 'perso', 'du' => '2026-02-31']));
+        $this->assertNotSame('2026-03-03', $invalid->from->toDateString());
+
+        // Mois dernier : du 1er au dernier jour du mois précédent
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-15 10:00'));
+        $lastMonth = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => 'mois_dernier']));
+        $this->assertSame('2026-09-01', $lastMonth->from->toDateString());
+        $this->assertSame('2026-09-30', $lastMonth->to->toDateString());
+    }
+
     public function test_normalize_groups_accents_and_case(): void
     {
         $this->assertSame('telephone samsung', StatTracker::normalize('  Téléphone   SAMSUNG! '));

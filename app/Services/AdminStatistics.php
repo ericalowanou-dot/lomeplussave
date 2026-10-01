@@ -21,16 +21,24 @@ use Illuminate\Support\Facades\Schema;
  * se font par DATE(created_at) en SQL, puis par semaine / mois en PHP.
  * Les requêtes groupées ne sélectionnent que des identifiants et des agrégats
  * (compatible ONLY_FULL_GROUP_BY) ; les libellés sont chargés ensuite.
+ *
+ * Filtres Ville / Catégorie : ils s'appliquent à tout ce qui dépend d'une annonce
+ * (publications, vues, likes, vendeurs, classements). Les inscriptions et les
+ * recherches ne sont rattachées à aucune annonce : elles restent globales.
  */
 class AdminStatistics
 {
     public const PERIODS = [
         'aujourdhui' => "Aujourd'hui",
+        'hier' => 'Hier',
         '7j' => '7 derniers jours',
         '30j' => '30 derniers jours',
         '90j' => '90 derniers jours',
+        'ce_mois' => 'Ce mois-ci',
+        'mois_dernier' => 'Mois dernier',
         '12m' => '12 derniers mois',
         'annee' => 'Cette année',
+        'annee_derniere' => 'Année dernière',
         'tout' => 'Depuis le début',
         'perso' => 'Personnalisée',
     ];
@@ -64,8 +72,14 @@ class AdminStatistics
     public readonly CarbonImmutable $previousTo;
     public readonly string $granularity;
 
-    private bool $hasVisites;
-    private bool $hasRecherches;
+    private bool $hasVisites = false;
+    private bool $hasRecherches = false;
+
+    /** Valeurs brutes de `articles.lieu` correspondant à la ville filtrée (mémoïsé). */
+    private ?array $lieuValues = null;
+
+    /** Sous-catégories correspondant au filtre catégorie (mémoïsé). */
+    private ?array $sousCategorieIds = null;
 
     public function __construct(
         public readonly string $period,
@@ -73,6 +87,9 @@ class AdminStatistics
         CarbonImmutable $to,
         string $granularity,
         public readonly int $top,
+        public readonly ?string $ville = null,
+        public readonly ?int $categorieId = null,
+        public readonly ?int $sousCategorieId = null,
     ) {
         $this->from = $from->startOfDay();
         $this->to = $to->endOfDay();
@@ -86,9 +103,14 @@ class AdminStatistics
 
     public static function fromRequest(Request $request): self
     {
-        $period = array_key_exists($request->query('periode'), self::PERIODS)
-            ? $request->query('periode')
-            : '30j';
+        $du = self::parseDate($request->query('du'));
+        $au = self::parseDate($request->query('au'));
+
+        $period = $request->query('periode');
+        if (! array_key_exists($period, self::PERIODS)) {
+            // Des dates sans période explicite = sélection personnalisée (calendrier, courbes)
+            $period = ($du || $au) ? 'perso' : '30j';
+        }
 
         $today = CarbonImmutable::today();
         $to = $today;
@@ -97,11 +119,21 @@ class AdminStatistics
             case 'aujourdhui':
                 $from = $today;
                 break;
+            case 'hier':
+                $from = $to = $today->subDay();
+                break;
             case '7j':
                 $from = $today->subDays(6);
                 break;
             case '90j':
                 $from = $today->subDays(89);
+                break;
+            case 'ce_mois':
+                $from = $today->startOfMonth();
+                break;
+            case 'mois_dernier':
+                $from = $today->subMonthNoOverflow()->startOfMonth();
+                $to = $from->endOfMonth()->startOfDay();
                 break;
             case '12m':
                 $from = $today->subMonthsNoOverflow(12)->addDay();
@@ -109,12 +141,16 @@ class AdminStatistics
             case 'annee':
                 $from = $today->startOfYear();
                 break;
+            case 'annee_derniere':
+                $from = $today->subYear()->startOfYear();
+                $to = $from->endOfYear()->startOfDay();
+                break;
             case 'tout':
                 $from = self::firstActivityDate() ?? $today->subDays(29);
                 break;
             case 'perso':
-                $from = self::parseDate($request->query('du')) ?? $today->subDays(29);
-                $to = self::parseDate($request->query('au')) ?? $today;
+                $from = $du ?? $today->subDays(29);
+                $to = $au ?? $today;
                 if ($from->greaterThan($to)) {
                     [$from, $to] = [$to, $from];
                 }
@@ -134,7 +170,16 @@ class AdminStatistics
             $top = 10;
         }
 
-        return new self($period, $from, $to, $granularity, $top);
+        // Filtres : ville (texte) et catégorie (« c12 » = catégorie, « s33 » = sous-catégorie)
+        $ville = trim((string) $request->query('ville', ''));
+        $ville = $ville !== '' && StatTracker::normalize($ville) !== '' ? mb_substr($ville, 0, 100) : null;
+
+        $categorieId = $sousCategorieId = null;
+        if (preg_match('/^([cs])(\d+)$/', (string) $request->query('categorie', ''), $m)) {
+            $m[1] === 'c' ? $categorieId = (int) $m[2] : $sousCategorieId = (int) $m[2];
+        }
+
+        return new self($period, $from, $to, $granularity, $top, $ville, $categorieId, $sousCategorieId);
     }
 
     /**
@@ -147,9 +192,10 @@ class AdminStatistics
         $this->hasVisites = Schema::hasTable('stat_visites');
         $this->hasRecherches = Schema::hasTable('stat_recherches');
 
-        $key = 'admin_statistics:v2:' . md5(implode('|', [
+        $key = 'admin_statistics:v3:' . md5(implode('|', [
             $this->from->toDateString(), $this->to->toDateString(), $this->granularity, $this->top,
             (int) $this->hasVisites, (int) $this->hasRecherches,
+            StatTracker::normalize((string) $this->ville), $this->categorieId, $this->sousCategorieId,
         ]));
 
         if ($refresh) {
@@ -159,10 +205,96 @@ class AdminStatistics
         return Cache::remember($key, self::CACHE_TTL, fn () => $this->compute());
     }
 
+    public function hasArticleFilter(): bool
+    {
+        return $this->ville !== null || $this->categorieId !== null || $this->sousCategorieId !== null;
+    }
+
+    /**
+     * Libellé lisible des filtres actifs, ex. « Kara · Électronique › Téléphones ».
+     */
+    public function filterLabel(): ?string
+    {
+        $parts = [];
+
+        if ($this->ville !== null) {
+            $parts[] = $this->ville;
+        }
+
+        if ($this->sousCategorieId !== null) {
+            $sous = SousCategorie::with('categorie:id,nom')->find($this->sousCategorieId);
+            $parts[] = $sous ? trim(($sous->categorie?->nom ? $sous->categorie->nom . ' › ' : '') . $sous->nom) : 'Sous-catégorie supprimée';
+        } elseif ($this->categorieId !== null) {
+            $parts[] = Categorie::whereKey($this->categorieId)->value('nom') ?? 'Catégorie supprimée';
+        }
+
+        return $parts ? implode(' · ', $parts) : null;
+    }
+
+    /**
+     * Valeur du paramètre « categorie » à remettre dans les liens et le formulaire.
+     */
+    public function categorieParam(): ?string
+    {
+        return $this->sousCategorieId !== null ? 's' . $this->sousCategorieId
+            : ($this->categorieId !== null ? 'c' . $this->categorieId : null);
+    }
+
+    /**
+     * Villes proposées dans le filtre (orthographes fusionnées, les plus utilisées d'abord).
+     *
+     * @return array<int, string>
+     */
+    public static function villeOptions(): array
+    {
+        return Cache::remember('admin_statistics:villes', 600, function () {
+            $villes = [];
+            DB::table('articles')
+                ->selectRaw('lieu, COUNT(*) as total')
+                ->whereNotNull('lieu')
+                ->groupBy('lieu')
+                ->get()
+                ->each(function ($row) use (&$villes) {
+                    $label = trim((string) $row->lieu);
+                    $key = StatTracker::normalize($label);
+                    if ($key === '') {
+                        return;
+                    }
+                    $villes[$key] ??= ['nom' => $label, 'total' => 0, 'best' => 0];
+                    $villes[$key]['total'] += (int) $row->total;
+                    if ((int) $row->total > $villes[$key]['best']) {
+                        $villes[$key]['nom'] = $label;
+                        $villes[$key]['best'] = (int) $row->total;
+                    }
+                });
+
+            usort($villes, fn ($a, $b) => $b['total'] <=> $a['total']);
+
+            return array_column($villes, 'nom');
+        });
+    }
+
+    /**
+     * Catégories et leurs sous-catégories pour le filtre.
+     */
+    public static function categorieOptions(): array
+    {
+        return Categorie::with(['sousCategories' => fn ($q) => $q->orderBy('nom')])
+            ->orderBy('nom')
+            ->get()
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'nom' => $c->nom,
+                'sous' => $c->sousCategories->map(fn ($s) => ['id' => $s->id, 'nom' => $s->nom])->all(),
+            ])
+            ->all();
+    }
+
     private function compute(): array
     {
         return [
             'generated_at' => now()->format('d/m/Y H:i'),
+            'filtre' => $this->filterLabel(),
             'tracking' => [
                 'visites' => $this->hasVisites,
                 'recherches' => $this->hasRecherches,
@@ -186,25 +318,126 @@ class AdminStatistics
     }
 
     // ------------------------------------------------------------------
+    // Sources de données (avec filtres Ville / Catégorie)
+    // ------------------------------------------------------------------
+
+    /**
+     * Restreint une requête qui contient la table `articles` aux annonces filtrées.
+     */
+    private function filterArticles(Builder $query): Builder
+    {
+        if ($this->ville !== null) {
+            $query->whereIn('articles.lieu', $this->lieuValues());
+        }
+
+        if ($this->categorieId !== null || $this->sousCategorieId !== null) {
+            $query->whereIn('articles.sous_categorie_id', $this->sousCategorieIds());
+        }
+
+        return $query;
+    }
+
+    private function lieuValues(): array
+    {
+        if ($this->lieuValues === null) {
+            $wanted = StatTracker::normalize((string) $this->ville);
+            $this->lieuValues = DB::table('articles')
+                ->whereNotNull('lieu')
+                ->distinct()
+                ->pluck('lieu')
+                ->filter(fn ($lieu) => StatTracker::normalize((string) $lieu) === $wanted)
+                ->values()
+                ->all();
+        }
+
+        return $this->lieuValues;
+    }
+
+    private function sousCategorieIds(): array
+    {
+        if ($this->sousCategorieIds === null) {
+            $this->sousCategorieIds = $this->sousCategorieId !== null
+                ? [$this->sousCategorieId]
+                : DB::table('sous_categories')->where('categorie_id', $this->categorieId)->pluck('id')->all();
+        }
+
+        return $this->sousCategorieIds;
+    }
+
+    /** Annonces (filtrées). */
+    private function articles(): Builder
+    {
+        return $this->filterArticles(DB::table('articles'));
+    }
+
+    /** Vues d'annonces (filtrées par les annonces vues). */
+    private function articleVisits(): Builder
+    {
+        $query = DB::table('stat_visites')->where('stat_visites.type', 'article');
+
+        if ($this->hasArticleFilter()) {
+            $query->join('articles', 'articles.id', '=', 'stat_visites.article_id');
+            $this->filterArticles($query);
+        }
+
+        return $query;
+    }
+
+    /** Visites de boutiques (filtrées : vendeurs ayant au moins une annonce correspondante). */
+    private function shopVisits(): Builder
+    {
+        $query = DB::table('stat_visites')->where('stat_visites.type', 'boutique');
+
+        if ($this->hasArticleFilter()) {
+            $query->whereIn('stat_visites.vendeur_id', $this->articles()->select('articles.user_id'));
+        }
+
+        return $query;
+    }
+
+    /** Likes (filtrés par les annonces aimées). */
+    private function likes(): Builder
+    {
+        $query = DB::table('article_user_like');
+
+        if ($this->hasArticleFilter()) {
+            $query->join('articles', 'articles.id', '=', 'article_user_like.article_id');
+            $this->filterArticles($query);
+        }
+
+        return $query;
+    }
+
+    private function period(): array
+    {
+        return [$this->from, $this->to];
+    }
+
+    private function previousPeriod(): array
+    {
+        return [$this->previousFrom, $this->previousTo];
+    }
+
+    // ------------------------------------------------------------------
     // Indicateurs clés
     // ------------------------------------------------------------------
 
     private function kpis(): array
     {
-        $current = [$this->from, $this->to];
-        $previous = [$this->previousFrom, $this->previousTo];
+        $current = $this->period();
+        $previous = $this->previousPeriod();
 
         $newUsers = DB::table('users')->whereBetween('created_at', $current)->count();
         $newUsersPrev = DB::table('users')->whereBetween('created_at', $previous)->count();
 
-        $articles = DB::table('articles')->whereBetween('created_at', $current)->count();
-        $articlesPrev = DB::table('articles')->whereBetween('created_at', $previous)->count();
+        $articles = $this->articles()->whereBetween('articles.created_at', $current)->count();
+        $articlesPrev = $this->articles()->whereBetween('articles.created_at', $previous)->count();
 
-        $activeSellers = DB::table('articles')->whereBetween('created_at', $current)->distinct()->count('user_id');
-        $activeSellersPrev = DB::table('articles')->whereBetween('created_at', $previous)->distinct()->count('user_id');
+        $activeSellers = $this->articles()->whereBetween('articles.created_at', $current)->distinct()->count('articles.user_id');
+        $activeSellersPrev = $this->articles()->whereBetween('articles.created_at', $previous)->distinct()->count('articles.user_id');
 
-        $likes = DB::table('article_user_like')->whereBetween('created_at', $current)->count();
-        $likesPrev = DB::table('article_user_like')->whereBetween('created_at', $previous)->count();
+        $likes = $this->likes()->whereBetween('article_user_like.created_at', $current)->count();
+        $likesPrev = $this->likes()->whereBetween('article_user_like.created_at', $previous)->count();
 
         // Part des nouveaux inscrits de la période qui ont publié au moins une annonce
         $newSellers = $newUsers > 0
@@ -222,10 +455,10 @@ class AdminStatistics
             'vendeurs_actifs' => $this->metric($activeSellers, $activeSellersPrev),
             'likes' => $this->metric($likes, $likesPrev),
             'utilisateurs_total' => $totalUsers,
-            'annonces_total' => DB::table('articles')->count(),
-            'annonces_en_ligne' => DB::table('articles')->where('status', 'approved')->count(),
-            'annonces_en_attente' => DB::table('articles')->where('status', 'pending')->count(),
-            'annonces_boostees' => DB::table('articles')->where('boosted_until', '>', now())->count(),
+            'annonces_total' => $this->articles()->count(),
+            'annonces_en_ligne' => $this->articles()->where('articles.status', 'approved')->count(),
+            'annonces_en_attente' => $this->articles()->where('articles.status', 'pending')->count(),
+            'annonces_boostees' => $this->articles()->where('articles.boosted_until', '>', now())->count(),
             'certifies' => DB::table('users')
                 ->where('certifie', 1)
                 ->where(fn ($q) => $q->whereNull('certifie_from')->orWhere('certifie_from', '<=', now()))
@@ -234,7 +467,7 @@ class AdminStatistics
             'bloques' => DB::table('users')->where('is_blocked', true)->count(),
             'emails_verifies_pct' => $this->percent(DB::table('users')->whereNotNull('email_verified_at')->count(), $totalUsers),
             'conversion_vendeurs_pct' => $this->percent($newSellers, $newUsers),
-            'prix_moyen' => (float) (DB::table('articles')->whereBetween('created_at', $current)->where('prix_ht', '>', 0)->avg('prix_ht') ?? 0),
+            'prix_moyen' => (float) ($this->articles()->whereBetween('articles.created_at', $current)->where('articles.prix_ht', '>', 0)->avg('articles.prix_ht') ?? 0),
             'prix_median' => $this->medianPrice(),
             'vues_annonces' => $this->metric(0, 0),
             'visiteurs_uniques' => 0,
@@ -243,12 +476,18 @@ class AdminStatistics
         ];
 
         if ($this->hasVisites) {
-            $views = fn (array $range) => DB::table('stat_visites')->where('type', 'article')->whereBetween('created_at', $range);
-            $shops = fn (array $range) => DB::table('stat_visites')->where('type', 'boutique')->whereBetween('created_at', $range);
-
-            $kpis['vues_annonces'] = $this->metric($views($current)->count(), $views($previous)->count());
-            $kpis['visites_boutiques'] = $this->metric($shops($current)->count(), $shops($previous)->count());
-            $kpis['visiteurs_uniques'] = DB::table('stat_visites')->whereBetween('created_at', $current)->distinct()->count('visiteur_hash');
+            $kpis['vues_annonces'] = $this->metric(
+                $this->articleVisits()->whereBetween('stat_visites.created_at', $current)->count(),
+                $this->articleVisits()->whereBetween('stat_visites.created_at', $previous)->count(),
+            );
+            $kpis['visites_boutiques'] = $this->metric(
+                $this->shopVisits()->whereBetween('stat_visites.created_at', $current)->count(),
+                $this->shopVisits()->whereBetween('stat_visites.created_at', $previous)->count(),
+            );
+            $visitors = $this->hasArticleFilter()
+                ? $this->articleVisits()
+                : DB::table('stat_visites');
+            $kpis['visiteurs_uniques'] = $visitors->whereBetween('stat_visites.created_at', $current)->distinct()->count('stat_visites.visiteur_hash');
         }
 
         if ($this->hasRecherches) {
@@ -263,7 +502,7 @@ class AdminStatistics
 
     private function medianPrice(): float
     {
-        $query = fn () => DB::table('articles')->whereBetween('created_at', [$this->from, $this->to])->where('prix_ht', '>', 0);
+        $query = fn () => $this->articles()->whereBetween('articles.created_at', $this->period())->where('articles.prix_ht', '>', 0);
 
         $count = $query()->count();
         if ($count === 0) {
@@ -271,10 +510,10 @@ class AdminStatistics
         }
 
         $values = $query()
-            ->orderBy('prix_ht')
+            ->orderBy('articles.prix_ht')
             ->offset(intdiv($count - 1, 2))
             ->limit($count % 2 === 0 ? 2 : 1)
-            ->pluck('prix_ht');
+            ->pluck('articles.prix_ht');
 
         return (float) $values->avg();
     }
@@ -286,24 +525,28 @@ class AdminStatistics
     private function series(): array
     {
         $buckets = $this->buckets();
+        $empty = array_fill(0, count($buckets), 0);
 
         $series = [
-            'labels' => array_values(array_map(fn ($b) => $b['label'], $buckets)),
-            'inscriptions' => $this->bucketize($this->dailyCounts(DB::table('users')), $buckets),
-            'annonces' => $this->bucketize($this->dailyCounts(DB::table('articles')), $buckets),
-            'likes' => $this->bucketize($this->dailyCounts(DB::table('article_user_like')), $buckets),
-            'vues' => array_fill(0, count($buckets), 0),
-            'visites_boutiques' => array_fill(0, count($buckets), 0),
-            'recherches' => array_fill(0, count($buckets), 0),
+            'labels' => array_values(array_column($buckets, 'label')),
+            // Bornes réelles de chaque point (pour appliquer une sélection faite sur la courbe)
+            'debuts' => array_values(array_column($buckets, 'start')),
+            'fins' => array_values(array_column($buckets, 'end')),
+            'inscriptions' => $this->bucketize($this->dailyCounts(DB::table('users'), 'users.created_at'), $buckets),
+            'annonces' => $this->bucketize($this->dailyCounts($this->articles(), 'articles.created_at'), $buckets),
+            'likes' => $this->bucketize($this->dailyCounts($this->likes(), 'article_user_like.created_at'), $buckets),
+            'vues' => $empty,
+            'visites_boutiques' => $empty,
+            'recherches' => $empty,
         ];
 
         if ($this->hasVisites) {
-            $series['vues'] = $this->bucketize($this->dailyCounts(DB::table('stat_visites')->where('type', 'article')), $buckets);
-            $series['visites_boutiques'] = $this->bucketize($this->dailyCounts(DB::table('stat_visites')->where('type', 'boutique')), $buckets);
+            $series['vues'] = $this->bucketize($this->dailyCounts($this->articleVisits(), 'stat_visites.created_at'), $buckets);
+            $series['visites_boutiques'] = $this->bucketize($this->dailyCounts($this->shopVisits(), 'stat_visites.created_at'), $buckets);
         }
 
         if ($this->hasRecherches) {
-            $series['recherches'] = $this->bucketize($this->dailyCounts(DB::table('stat_recherches')), $buckets);
+            $series['recherches'] = $this->bucketize($this->dailyCounts(DB::table('stat_recherches'), 'stat_recherches.created_at'), $buckets);
         }
 
         // Cumul des inscrits : part du total existant avant la période
@@ -318,12 +561,12 @@ class AdminStatistics
     /**
      * @return array<string, int> date Y-m-d => nombre
      */
-    private function dailyCounts(Builder $query): array
+    private function dailyCounts(Builder $query, string $column): array
     {
         return $query
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->selectRaw('DATE(created_at) as jour, COUNT(*) as total')
-            ->groupBy(DB::raw('DATE(created_at)'))
+            ->whereBetween($column, $this->period())
+            ->selectRaw("DATE({$column}) as jour, COUNT(*) as total")
+            ->groupBy(DB::raw("DATE({$column})"))
             ->pluck('total', 'jour')
             ->map(fn ($n) => (int) $n)
             ->all();
@@ -331,28 +574,35 @@ class AdminStatistics
 
     /**
      * Intervalles de la courbe selon la granularité : clé => [label, start, end].
+     * start / end sont bornés à la période (une semaine à cheval reste dans la sélection).
      */
     private function buckets(): array
     {
         $buckets = [];
+        $first = $this->from;
+        $last = $this->to->startOfDay();
+        $clip = fn (CarbonImmutable $start, CarbonImmutable $end) => [
+            'start' => $start->max($first)->toDateString(),
+            'end' => $end->min($last)->toDateString(),
+        ];
 
         if ($this->granularity === 'jour') {
-            foreach (CarbonPeriod::create($this->from, '1 day', $this->to->startOfDay()) as $day) {
-                $key = $day->toDateString();
-                $buckets[$key] = ['label' => $day->translatedFormat('d M'), 'key' => $key];
+            foreach (CarbonPeriod::create($first, '1 day', $last) as $day) {
+                $day = CarbonImmutable::instance($day);
+                $buckets[$day->toDateString()] = ['label' => $day->translatedFormat('d M')] + $clip($day, $day);
             }
         } elseif ($this->granularity === 'semaine') {
-            $cursor = $this->from->startOfWeek();
-            while ($cursor->lessThanOrEqualTo($this->to)) {
-                $key = $cursor->toDateString();
-                $buckets[$key] = ['label' => 'Sem. ' . $cursor->translatedFormat('d M'), 'key' => $key];
+            $cursor = $first->startOfWeek();
+            while ($cursor->lessThanOrEqualTo($last)) {
+                $buckets[$cursor->toDateString()] = ['label' => 'Sem. ' . $cursor->translatedFormat('d M')]
+                    + $clip($cursor, $cursor->endOfWeek()->startOfDay());
                 $cursor = $cursor->addWeek();
             }
         } else {
-            $cursor = $this->from->startOfMonth();
-            while ($cursor->lessThanOrEqualTo($this->to)) {
-                $key = $cursor->toDateString();
-                $buckets[$key] = ['label' => ucfirst($cursor->translatedFormat('M Y')), 'key' => $key];
+            $cursor = $first->startOfMonth();
+            while ($cursor->lessThanOrEqualTo($last)) {
+                $buckets[$cursor->toDateString()] = ['label' => ucfirst($cursor->translatedFormat('M Y'))]
+                    + $clip($cursor, $cursor->endOfMonth()->startOfDay());
                 $cursor = $cursor->addMonthNoOverflow();
             }
         }
@@ -386,11 +636,11 @@ class AdminStatistics
 
     private function repartitions(): array
     {
-        $articles = fn () => DB::table('articles')->whereBetween('created_at', [$this->from, $this->to]);
+        $articles = fn () => $this->articles()->whereBetween('articles.created_at', $this->period());
 
-        $status = $articles()->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
-        $etat = $articles()->selectRaw('neuf, COUNT(*) as total')->groupBy('neuf')->pluck('total', 'neuf');
-        $livraison = $articles()->selectRaw('livraison, COUNT(*) as total')->groupBy('livraison')->pluck('total', 'livraison');
+        $status = $articles()->selectRaw('articles.status as cle, COUNT(*) as total')->groupBy('articles.status')->pluck('total', 'cle');
+        $etat = $articles()->selectRaw('articles.neuf as cle, COUNT(*) as total')->groupBy('articles.neuf')->pluck('total', 'cle');
+        $livraison = $articles()->selectRaw('articles.livraison as cle, COUNT(*) as total')->groupBy('articles.livraison')->pluck('total', 'cle');
 
         $result = [
             'statut' => [
@@ -413,7 +663,7 @@ class AdminStatistics
         if ($this->hasRecherches) {
             $labels = ['accueil' => 'Barre d\'accueil', 'recherche' => 'Page de recherche', 'recherche_directe' => 'Recherche en direct'];
             $result['sources_recherche'] = DB::table('stat_recherches')
-                ->whereBetween('created_at', [$this->from, $this->to])
+                ->whereBetween('created_at', $this->period())
                 ->selectRaw('source, COUNT(*) as total')
                 ->groupBy('source')
                 ->pluck('total', 'source')
@@ -436,9 +686,9 @@ class AdminStatistics
 
         $result = [];
         foreach ($ranges as $label => [$min, $max]) {
-            $query = DB::table('articles')->whereBetween('created_at', [$this->from, $this->to])->where('prix_ht', '>=', $min);
+            $query = $this->articles()->whereBetween('articles.created_at', $this->period())->where('articles.prix_ht', '>=', $min);
             if ($max !== null) {
-                $query->where('prix_ht', '<', $max);
+                $query->where('articles.prix_ht', '<', $max);
             }
             $result[$label] = $query->count();
         }
@@ -453,12 +703,14 @@ class AdminStatistics
     private function heatmaps(): array
     {
         $maps = [
-            'annonces' => $this->heatmap(DB::table('articles')),
-            'inscriptions' => $this->heatmap(DB::table('users')),
+            'annonces' => $this->heatmap($this->articles(), 'articles.created_at'),
+            'inscriptions' => $this->heatmap(DB::table('users'), 'users.created_at'),
         ];
 
         if ($this->hasVisites) {
-            $maps['vues'] = $this->heatmap(DB::table('stat_visites'));
+            $maps['vues'] = $this->hasArticleFilter()
+                ? $this->heatmap($this->articleVisits(), 'stat_visites.created_at')
+                : $this->heatmap(DB::table('stat_visites'), 'stat_visites.created_at');
         }
 
         return $maps;
@@ -467,14 +719,14 @@ class AdminStatistics
     /**
      * @return array<int, array<int, int>> [jour 0=lundi..6][heure 0..23]
      */
-    private function heatmap(Builder $query): array
+    private function heatmap(Builder $query, string $column): array
     {
         $grid = array_fill(0, 7, array_fill(0, 24, 0));
 
-        $query->whereBetween('created_at', [$this->from, $this->to])
-            ->orderByDesc('created_at')
+        $query->whereBetween($column, $this->period())
+            ->orderByDesc($column)
             ->limit(self::SAMPLE_LIMIT)
-            ->pluck('created_at')
+            ->pluck($column)
             ->each(function ($value) use (&$grid) {
                 // Lecture directe de « Y-m-d H:i:s » : bien plus rapide que Carbon sur des milliers de lignes
                 $value = (string) $value;
@@ -494,10 +746,10 @@ class AdminStatistics
 
     private function topPublishers(): array
     {
-        $rows = DB::table('articles')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->selectRaw("user_id, COUNT(*) as total, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approuvees")
-            ->groupBy('user_id')
+        $rows = $this->articles()
+            ->whereBetween('articles.created_at', $this->period())
+            ->selectRaw("articles.user_id as uid, COUNT(*) as total, SUM(CASE WHEN articles.status = 'approved' THEN 1 ELSE 0 END) as approuvees")
+            ->groupBy('articles.user_id')
             ->orderByDesc('total')
             ->limit($this->top)
             ->get();
@@ -506,51 +758,60 @@ class AdminStatistics
             return [];
         }
 
-        $ids = $rows->pluck('user_id')->all();
+        $ids = $rows->pluck('uid')->all();
         $users = User::whereIn('id', $ids)->get()->keyBy('id');
-        $allTime = DB::table('articles')->whereIn('user_id', $ids)->selectRaw('user_id, COUNT(*) as total')->groupBy('user_id')->pluck('total', 'user_id');
-        $views = $this->viewsBy('vendeur_id', $ids);
-        $likes = DB::table('article_user_like')
-            ->join('articles', 'articles.id', '=', 'article_user_like.article_id')
+        $allTime = $this->articles()->whereIn('articles.user_id', $ids)
+            ->selectRaw('articles.user_id as uid, COUNT(*) as total')->groupBy('articles.user_id')->pluck('total', 'uid');
+        $views = $this->hasVisites
+            ? $this->articleVisits()
+                ->whereBetween('stat_visites.created_at', $this->period())
+                ->whereIn('stat_visites.vendeur_id', $ids)
+                ->selectRaw('stat_visites.vendeur_id as uid, COUNT(*) as total')
+                ->groupBy('stat_visites.vendeur_id')
+                ->pluck('total', 'uid')
+            : collect();
+        $likes = $this->filterArticles(
+            DB::table('article_user_like')->join('articles', 'articles.id', '=', 'article_user_like.article_id')
+        )
             ->whereIn('articles.user_id', $ids)
             ->selectRaw('articles.user_id as uid, COUNT(*) as total')
             ->groupBy('articles.user_id')
             ->pluck('total', 'uid');
 
         return $rows->map(function ($row) use ($users, $allTime, $views, $likes) {
-            $user = $users->get($row->user_id);
-
-            return $this->userColumns($user, (int) $row->user_id) + [
+            return $this->userColumns($users->get($row->uid), (int) $row->uid) + [
                 'annonces' => (int) $row->total,
                 'approuvees' => (int) $row->approuvees,
-                'annonces_total' => (int) ($allTime[$row->user_id] ?? 0),
-                'vues' => (int) ($views[$row->user_id] ?? 0),
-                'likes' => (int) ($likes[$row->user_id] ?? 0),
+                'annonces_total' => (int) ($allTime[$row->uid] ?? 0),
+                'vues' => (int) ($views[$row->uid] ?? 0),
+                'likes' => (int) ($likes[$row->uid] ?? 0),
             ];
         })->values()->all();
     }
 
     private function topCategories(): array
     {
-        $rows = DB::table('articles')
+        $rows = $this->articles()
             ->join('sous_categories', 'sous_categories.id', '=', 'articles.sous_categorie_id')
-            ->whereBetween('articles.created_at', [$this->from, $this->to])
+            ->whereBetween('articles.created_at', $this->period())
             ->selectRaw('sous_categories.categorie_id as cid, COUNT(*) as total')
             ->groupBy('sous_categories.categorie_id')
             ->orderByDesc('total')
             ->limit($this->top)
             ->get();
 
-        $periodTotal = DB::table('articles')->whereBetween('created_at', [$this->from, $this->to])->count();
+        $periodTotal = $this->articles()->whereBetween('articles.created_at', $this->period())->count();
         $names = Categorie::whereIn('id', $rows->pluck('cid'))->pluck('nom', 'id');
 
         $views = [];
         if ($this->hasVisites && $rows->isNotEmpty()) {
-            $views = DB::table('stat_visites')
-                ->join('articles', 'articles.id', '=', 'stat_visites.article_id')
-                ->join('sous_categories', 'sous_categories.id', '=', 'articles.sous_categorie_id')
+            $views = $this->filterArticles(
+                DB::table('stat_visites')
+                    ->join('articles', 'articles.id', '=', 'stat_visites.article_id')
+                    ->join('sous_categories', 'sous_categories.id', '=', 'articles.sous_categorie_id')
+            )
                 ->where('stat_visites.type', 'article')
-                ->whereBetween('stat_visites.created_at', [$this->from, $this->to])
+                ->whereBetween('stat_visites.created_at', $this->period())
                 ->whereIn('sous_categories.categorie_id', $rows->pluck('cid'))
                 ->selectRaw('sous_categories.categorie_id as cid, COUNT(*) as total')
                 ->groupBy('sous_categories.categorie_id')
@@ -569,18 +830,31 @@ class AdminStatistics
 
     private function topSousCategories(): array
     {
-        $rows = DB::table('articles')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->whereNotNull('sous_categorie_id')
-            ->selectRaw('sous_categorie_id as sid, COUNT(*) as total')
-            ->groupBy('sous_categorie_id')
+        $rows = $this->articles()
+            ->whereBetween('articles.created_at', $this->period())
+            ->whereNotNull('articles.sous_categorie_id')
+            ->selectRaw('articles.sous_categorie_id as sid, COUNT(*) as total')
+            ->groupBy('articles.sous_categorie_id')
             ->orderByDesc('total')
             ->limit($this->top)
             ->get();
 
-        $periodTotal = DB::table('articles')->whereBetween('created_at', [$this->from, $this->to])->count();
+        $periodTotal = $this->articles()->whereBetween('articles.created_at', $this->period())->count();
         $sous = SousCategorie::with('categorie:id,nom')->whereIn('id', $rows->pluck('sid'))->get()->keyBy('id');
-        $views = $this->viewsBySousCategorie($rows->pluck('sid')->all());
+
+        $views = [];
+        if ($this->hasVisites && $rows->isNotEmpty()) {
+            $views = $this->filterArticles(
+                DB::table('stat_visites')->join('articles', 'articles.id', '=', 'stat_visites.article_id')
+            )
+                ->where('stat_visites.type', 'article')
+                ->whereBetween('stat_visites.created_at', $this->period())
+                ->whereIn('articles.sous_categorie_id', $rows->pluck('sid'))
+                ->selectRaw('articles.sous_categorie_id as sid, COUNT(*) as total')
+                ->groupBy('articles.sous_categorie_id')
+                ->pluck('total', 'sid')
+                ->all();
+        }
 
         return $rows->map(function ($row) use ($sous, $periodTotal, $views) {
             $item = $sous->get($row->sid);
@@ -596,29 +870,12 @@ class AdminStatistics
         })->values()->all();
     }
 
-    private function viewsBySousCategorie(array $ids): array
-    {
-        if (! $this->hasVisites || empty($ids)) {
-            return [];
-        }
-
-        return DB::table('stat_visites')
-            ->join('articles', 'articles.id', '=', 'stat_visites.article_id')
-            ->where('stat_visites.type', 'article')
-            ->whereBetween('stat_visites.created_at', [$this->from, $this->to])
-            ->whereIn('articles.sous_categorie_id', $ids)
-            ->selectRaw('articles.sous_categorie_id as sid, COUNT(*) as total')
-            ->groupBy('articles.sous_categorie_id')
-            ->pluck('total', 'sid')
-            ->all();
-    }
-
     private function topVilles(): array
     {
-        $rows = DB::table('articles')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->selectRaw('lieu, COUNT(*) as total')
-            ->groupBy('lieu')
+        $rows = $this->articles()
+            ->whereBetween('articles.created_at', $this->period())
+            ->selectRaw('articles.lieu as lieu, COUNT(*) as total')
+            ->groupBy('articles.lieu')
             ->get();
 
         // Fusionne « Lomé », « lome », « LOMÉ »… sous une même ville
@@ -658,11 +915,11 @@ class AdminStatistics
         $variants = [];
         $titles = 0;
 
-        DB::table('articles')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->orderByDesc('id')
+        $this->articles()
+            ->whereBetween('articles.created_at', $this->period())
+            ->orderByDesc('articles.id')
             ->limit(self::SAMPLE_LIMIT)
-            ->pluck('titre')
+            ->pluck('articles.titre')
             ->each(function ($titre) use (&$words, &$pairs, &$variants, &$titles, $stopwords) {
                 $titles++;
                 $tokens = [];
@@ -724,24 +981,23 @@ class AdminStatistics
             return [];
         }
 
-        $rows = DB::table('stat_visites')
-            ->where('type', 'article')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->whereNotNull('article_id')
-            ->selectRaw('article_id, COUNT(*) as vues, COUNT(DISTINCT visiteur_hash) as visiteurs')
-            ->groupBy('article_id')
+        $rows = $this->articleVisits()
+            ->whereBetween('stat_visites.created_at', $this->period())
+            ->whereNotNull('stat_visites.article_id')
+            ->selectRaw('stat_visites.article_id as aid, COUNT(*) as vues, COUNT(DISTINCT stat_visites.visiteur_hash) as visiteurs')
+            ->groupBy('stat_visites.article_id')
             ->orderByDesc('vues')
             ->limit($this->top)
             ->get();
 
-        $articles = $this->loadArticles($rows->pluck('article_id')->all());
-        $likes = DB::table('article_user_like')->whereIn('article_id', $rows->pluck('article_id'))
+        $articles = $this->loadArticles($rows->pluck('aid')->all());
+        $likes = DB::table('article_user_like')->whereIn('article_id', $rows->pluck('aid'))
             ->selectRaw('article_id, COUNT(*) as total')->groupBy('article_id')->pluck('total', 'article_id');
 
-        return $rows->map(fn ($row) => $this->articleColumns($articles->get($row->article_id), (int) $row->article_id) + [
+        return $rows->map(fn ($row) => $this->articleColumns($articles->get($row->aid), (int) $row->aid) + [
             'vues' => (int) $row->vues,
             'visiteurs' => (int) $row->visiteurs,
-            'likes' => (int) ($likes[$row->article_id] ?? 0),
+            'likes' => (int) ($likes[$row->aid] ?? 0),
         ])->values()->all();
     }
 
@@ -755,14 +1011,29 @@ class AdminStatistics
             return [];
         }
 
-        $rows = DB::table('stat_visites')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->whereNotNull('vendeur_id')
-            ->selectRaw("vendeur_id,
-                SUM(CASE WHEN type = 'boutique' THEN 1 ELSE 0 END) as visites_boutique,
-                SUM(CASE WHEN type = 'article' THEN 1 ELSE 0 END) as vues_annonces,
-                COUNT(DISTINCT visiteur_hash) as visiteurs")
-            ->groupBy('vendeur_id')
+        $query = DB::table('stat_visites')
+            ->whereBetween('stat_visites.created_at', $this->period())
+            ->whereNotNull('stat_visites.vendeur_id');
+
+        if ($this->hasArticleFilter()) {
+            // Boutiques des vendeurs concernés + seulement les vues de leurs annonces filtrées
+            $query->leftJoin('articles', 'articles.id', '=', 'stat_visites.article_id')
+                ->whereIn('stat_visites.vendeur_id', $this->articles()->select('articles.user_id'))
+                ->where(function (Builder $where) {
+                    $where->where('stat_visites.type', 'boutique')
+                        ->orWhere(function (Builder $article) {
+                            $article->where('stat_visites.type', 'article');
+                            $this->filterArticles($article);
+                        });
+                });
+        }
+
+        $rows = $query
+            ->selectRaw("stat_visites.vendeur_id as vid,
+                SUM(CASE WHEN stat_visites.type = 'boutique' THEN 1 ELSE 0 END) as visites_boutique,
+                SUM(CASE WHEN stat_visites.type = 'article' THEN 1 ELSE 0 END) as vues_annonces,
+                COUNT(DISTINCT stat_visites.visiteur_hash) as visiteurs")
+            ->groupBy('stat_visites.vendeur_id')
             ->orderByDesc('visites_boutique')
             ->orderByDesc('vues_annonces')
             ->limit($this->top)
@@ -772,37 +1043,36 @@ class AdminStatistics
             return [];
         }
 
-        $ids = $rows->pluck('vendeur_id')->all();
+        $ids = $rows->pluck('vid')->all();
         $users = User::whereIn('id', $ids)->get()->keyBy('id');
 
         // Annonce la plus vue de chaque vendeur
         $best = [];
-        DB::table('stat_visites')
-            ->where('type', 'article')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->whereIn('vendeur_id', $ids)
-            ->whereNotNull('article_id')
-            ->selectRaw('vendeur_id, article_id, COUNT(*) as vues')
-            ->groupBy('vendeur_id', 'article_id')
+        $this->articleVisits()
+            ->whereBetween('stat_visites.created_at', $this->period())
+            ->whereIn('stat_visites.vendeur_id', $ids)
+            ->whereNotNull('stat_visites.article_id')
+            ->selectRaw('stat_visites.vendeur_id as vid, stat_visites.article_id as aid, COUNT(*) as vues')
+            ->groupBy('stat_visites.vendeur_id', 'stat_visites.article_id')
             ->get()
             ->each(function ($row) use (&$best) {
-                if (! isset($best[$row->vendeur_id]) || $row->vues > $best[$row->vendeur_id]['vues']) {
-                    $best[$row->vendeur_id] = ['article_id' => (int) $row->article_id, 'vues' => (int) $row->vues];
+                if (! isset($best[$row->vid]) || $row->vues > $best[$row->vid]['vues']) {
+                    $best[$row->vid] = ['article_id' => (int) $row->aid, 'vues' => (int) $row->vues];
                 }
             });
 
         $articles = $this->loadArticles(array_column($best, 'article_id'));
-        $activeArticles = DB::table('articles')->whereIn('user_id', $ids)->where('status', 'approved')
-            ->selectRaw('user_id, COUNT(*) as total')->groupBy('user_id')->pluck('total', 'user_id');
+        $activeArticles = $this->articles()->whereIn('articles.user_id', $ids)->where('articles.status', 'approved')
+            ->selectRaw('articles.user_id as uid, COUNT(*) as total')->groupBy('articles.user_id')->pluck('total', 'uid');
 
         return $rows->map(function ($row) use ($users, $best, $articles, $activeArticles) {
-            $top = $best[$row->vendeur_id] ?? null;
+            $top = $best[$row->vid] ?? null;
 
-            return $this->userColumns($users->get($row->vendeur_id), (int) $row->vendeur_id) + [
+            return $this->userColumns($users->get($row->vid), (int) $row->vid) + [
                 'visites_boutique' => (int) $row->visites_boutique,
                 'vues_annonces' => (int) $row->vues_annonces,
                 'visiteurs' => (int) $row->visiteurs,
-                'annonces_en_ligne' => (int) ($activeArticles[$row->vendeur_id] ?? 0),
+                'annonces_en_ligne' => (int) ($activeArticles[$row->vid] ?? 0),
                 'meilleure_annonce' => $top
                     ? $this->articleColumns($articles->get($top['article_id']), $top['article_id']) + ['vues' => $top['vues']]
                     : null,
@@ -812,25 +1082,34 @@ class AdminStatistics
 
     private function topLikedArticles(): array
     {
-        $rows = DB::table('article_user_like')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->selectRaw('article_id, COUNT(*) as likes')
-            ->groupBy('article_id')
+        $rows = $this->likes()
+            ->whereBetween('article_user_like.created_at', $this->period())
+            ->selectRaw('article_user_like.article_id as aid, COUNT(*) as likes')
+            ->groupBy('article_user_like.article_id')
             ->orderByDesc('likes')
             ->limit($this->top)
             ->get();
 
-        $articles = $this->loadArticles($rows->pluck('article_id')->all());
-        $views = $this->viewsBy('article_id', $rows->pluck('article_id')->all());
+        $ids = $rows->pluck('aid')->all();
+        $articles = $this->loadArticles($ids);
+        $views = ($this->hasVisites && $ids)
+            ? DB::table('stat_visites')
+                ->where('type', 'article')
+                ->whereBetween('created_at', $this->period())
+                ->whereIn('article_id', $ids)
+                ->selectRaw('article_id, COUNT(*) as total')
+                ->groupBy('article_id')
+                ->pluck('total', 'article_id')
+            : collect();
 
-        return $rows->map(fn ($row) => $this->articleColumns($articles->get($row->article_id), (int) $row->article_id) + [
+        return $rows->map(fn ($row) => $this->articleColumns($articles->get($row->aid), (int) $row->aid) + [
             'likes' => (int) $row->likes,
-            'vues' => (int) ($views[$row->article_id] ?? 0),
+            'vues' => (int) ($views[$row->aid] ?? 0),
         ])->values()->all();
     }
 
     // ------------------------------------------------------------------
-    // Recherches
+    // Recherches (globales : non rattachées à une annonce)
     // ------------------------------------------------------------------
 
     private function searches(): array
@@ -841,7 +1120,7 @@ class AdminStatistics
             return $empty;
         }
 
-        $base = fn () => DB::table('stat_recherches')->whereBetween('created_at', [$this->from, $this->to]);
+        $base = fn () => DB::table('stat_recherches')->whereBetween('created_at', $this->period());
 
         $total = $base()->count();
         if ($total === 0) {
@@ -891,22 +1170,6 @@ class AdminStatistics
     // ------------------------------------------------------------------
     // Outils
     // ------------------------------------------------------------------
-
-    private function viewsBy(string $column, array $ids): array
-    {
-        if (! $this->hasVisites || empty($ids)) {
-            return [];
-        }
-
-        return DB::table('stat_visites')
-            ->where('type', 'article')
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->whereIn($column, $ids)
-            ->selectRaw("{$column} as cle, COUNT(*) as total")
-            ->groupBy($column)
-            ->pluck('total', 'cle')
-            ->all();
-    }
 
     private function loadArticles(array $ids)
     {
@@ -1039,7 +1302,10 @@ class AdminStatistics
         }
 
         try {
-            return CarbonImmutable::createFromFormat('Y-m-d', $value)->startOfDay();
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $value);
+
+            // Refuse les dates invalides que PHP « corrige » (ex. 2026-02-31)
+            return $date && $date->format('Y-m-d') === $value ? $date : null;
         } catch (\Throwable) {
             return null;
         }

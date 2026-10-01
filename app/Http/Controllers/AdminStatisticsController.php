@@ -56,6 +56,8 @@ class AdminStatisticsController extends Controller
             'periods' => AdminStatistics::PERIODS,
             'granularities' => AdminStatistics::GRANULARITIES,
             'topSizes' => AdminStatistics::TOP_SIZES,
+            'villeOptions' => AdminStatistics::villeOptions(),
+            'categorieOptions' => AdminStatistics::categorieOptions(),
         ]);
     }
 
@@ -101,7 +103,9 @@ class AdminStatisticsController extends Controller
         return response()->streamDownload(function () use ($title, $columns, $rows, $statistics, $host) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF"); // BOM : accents corrects dans Excel
-            fputcsv($out, [$title . ' — du ' . $statistics->from->format('d/m/Y') . ' au ' . $statistics->to->format('d/m/Y')], ';');
+            $filtre = $statistics->filterLabel();
+            fputcsv($out, [$title . ' — du ' . $statistics->from->format('d/m/Y') . ' au ' . $statistics->to->format('d/m/Y')
+                . ($filtre ? ' — filtre : ' . $filtre : '')], ';');
             fputcsv($out, array_merge(['Rang'], array_keys($columns)), ';');
 
             foreach ($rows as $index => $row) {
