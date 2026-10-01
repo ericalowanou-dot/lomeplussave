@@ -408,7 +408,7 @@ public function getSubcategories($id)
         $articles = $articles
             ->withLikeCounts(auth()->id())
             ->with(['user:id,name,photo_profil,certifie', 'sousCategorie:id,nom'])
-            ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > NOW()) DESC')
+            ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > ?) DESC', [now()])
             ->orderBy('created_at', 'desc')
             ->paginate(120)
             ->withQueryString();

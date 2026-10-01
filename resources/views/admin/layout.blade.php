@@ -29,6 +29,13 @@
                     </a>
                 </li>
                 
+                <li class="menu-item {{ request()->routeIs('admin.statistics.*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.statistics.index') }}">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Statistiques</span>
+                    </a>
+                </li>
+
                 <li class="menu-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                     <a href="{{ route('admin.users.index') }}">
                         <i class="fas fa-users"></i>

@@ -39,24 +39,24 @@ class AppServiceProvider extends ServiceProvider
         App::setLocale('fr');
         Carbon::setLocale('fr');
         
-        // Vérifier si les tables existent avant d'y accéder
-        try {
-            if (Schema::hasTable('categories')) {
-                $categories = Categorie::all();
-                view()->share('categories', $categories);
+        // Catégories disponibles dans toutes les vues (menus, en-têtes), chargées une seule
+        // fois par requête et seulement si une vue est rendue (pas pour les réponses JSON).
+        // Une valeur passée par le contrôleur reste prioritaire.
+        // (L'ancien partage global de Article::all() a été retiré : chaque contrôleur passe
+        // déjà ses $articles, et il chargeait toutes les annonces à chaque requête.)
+        View::composer('*', function ($view) {
+            if (array_key_exists('categories', $view->getData())) {
+                return;
             }
-        } catch (\Exception $e) {
-            // Les tables n'existent pas encore, ignorer silencieusement
-        }
 
-        try {
-            if (Schema::hasTable('articles')) {
-                $articles = Article::all();
-                view()->share('articles', $articles);
-            }
-        } catch (\Exception $e) {
-            // Les tables n'existent pas encore, ignorer silencieusement
-        }
+            $view->with('categories', once(function () {
+                try {
+                    return Categorie::all();
+                } catch (\Throwable $e) {
+                    return collect(); // tables pas encore migrées
+                }
+            }));
+        });
 
         Paginator::useBootstrap();
 

@@ -11,6 +11,7 @@ use App\Models\Categorie;
 use App\Models\SousCategorie;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use App\Services\StatTracker;
 
 class AnnonceController extends Controller
 {
@@ -88,13 +89,13 @@ public function index(Request $request)
 
     // Statistiques optimisées : une seule requête avec groupBy
     $statsQuery = Article::where('user_id', Auth::id())
-        ->selectRaw('
+        ->selectRaw("
             COUNT(*) as total,
-            SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as approved,
-            SUM(CASE WHEN status = "blocked" THEN 1 ELSE 0 END) as blocked,
-            SUM(CASE WHEN boosted_until IS NOT NULL AND boosted_until > NOW() THEN 1 ELSE 0 END) as boosted
-        ')
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+            SUM(CASE WHEN status = 'blocked' THEN 1 ELSE 0 END) as blocked,
+            SUM(CASE WHEN boosted_until IS NOT NULL AND boosted_until > ? THEN 1 ELSE 0 END) as boosted
+        ", [now()])
         ->first();
     
     $stats = [
@@ -185,6 +186,10 @@ public function index(Request $request)
             ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
             ->orderBy('created_at', 'desc')
             ->paginate(30);
+
+        if ($q !== '' && $articles->currentPage() === 1) {
+            app(StatTracker::class)->recordSearch($q, $articles->total(), $request, 'recherche_directe');
+        }
 
         if ($request->ajax()) {
             return response()->json([

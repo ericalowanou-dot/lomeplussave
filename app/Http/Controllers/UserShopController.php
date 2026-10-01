@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\UserReportCreated;
 use App\Models\User;
 use App\Models\UserReport;
+use App\Services\StatTracker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -28,6 +29,8 @@ class UserShopController extends Controller
         if ($slugId !== $canonical) {
             return redirect()->route('boutique.show', ['slugId' => $canonical], 301);
         }
+
+        app(StatTracker::class)->recordShopVisit($user, request());
 
         return $this->renderShop($user);
     }

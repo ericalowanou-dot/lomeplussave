@@ -14,17 +14,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Fonction helper pour vérifier si un index existe
-        $hasIndex = function($tableName, $indexName) {
-            $connection = Schema::getConnection();
-            $database = $connection->getDatabaseName();
-            $result = $connection->select(
-                "SELECT COUNT(*) as count FROM information_schema.statistics 
-                 WHERE table_schema = ? AND table_name = ? AND index_name = ?",
-                [$database, $tableName, $indexName]
-            );
-            return $result[0]->count > 0;
-        };
+        // Fonction helper pour vérifier si un index existe (compatible MySQL et SQLite)
+        $hasIndex = fn ($tableName, $indexName) => Schema::hasIndex($tableName, $indexName);
 
         // Index sur la table articles
         Schema::table('articles', function (Blueprint $table) use ($hasIndex) {

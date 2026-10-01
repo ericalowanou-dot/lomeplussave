@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Article;
+use App\Services\StatTracker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -30,6 +31,8 @@ class DetailArticleController extends Controller
         ) {
             return redirect()->route('article.details', $params, 301);
         }
+
+        app(StatTracker::class)->recordArticleView($article, request());
 
         return $this->render($article);
     }

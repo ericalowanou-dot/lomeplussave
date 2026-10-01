@@ -13,6 +13,7 @@ use App\Http\Controllers\AnnonceController;
 use App\Http\Controllers\DetailArticleController;
 use App\Http\Controllers\UserShopController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminStatisticsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MessageController;
@@ -186,6 +187,12 @@ Route::get('/a-propos', [AboutController::class, 'index'])->name('about');
 Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(function () {
     // Dashboard
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+
+    // Statistiques avancées
+    Route::get('/statistiques', [AdminStatisticsController::class, 'index'])->name('statistics.index');
+    Route::get('/statistiques/export/{section}', [AdminStatisticsController::class, 'export'])
+        ->name('statistics.export')
+        ->where('section', '[a-z_]+');
     
     // Gestion des utilisateurs
     Route::get('/users', [AdminController::class, 'users'])->name('users.index');

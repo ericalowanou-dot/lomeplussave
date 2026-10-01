@@ -1,0 +1,933 @@
+@extends('admin.layout')
+
+@section('title', 'Statistiques')
+@section('page-title', 'Statistiques')
+
+@php
+    $fmt = fn ($n) => number_format((float) $n, 0, ',', ' ');
+    $money = fn ($n) => number_format((float) $n, 0, ',', ' ') . ' F';
+    $query = request()->only(['periode', 'du', 'au', 'par', 'top']);
+    $exportUrl = fn (string $section) => route('admin.statistics.export', ['section' => $section] + $query);
+    $kpis = $stats['kpis'];
+    $tracking = $stats['tracking'];
+    $jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    // Préparé ici : @json() ne sait pas lire un tableau littéral à plusieurs clés
+    $chartData = [
+        'series' => $stats['series'],
+        'repartitions' => $stats['repartitions'],
+        'heatmaps' => $stats['heatmaps'],
+        'villes' => $stats['top_villes'],
+    ];
+@endphp
+
+@push('styles')
+<style>
+    .st-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .st-filters .form-label { font-size: .78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .03em; }
+    .st-filters .form-select, .st-filters .form-control { min-width: 150px; }
+    .st-meta { font-size: .82rem; color: var(--text-secondary); }
+    .st-nav { position: sticky; top: var(--st-nav-top, 80px); z-index: 20; background: var(--light-color); padding: 10px 0; margin-bottom: 8px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+    .st-nav a { white-space: nowrap; padding: 6px 14px; border-radius: 999px; background: #fff; color: var(--dark-color); text-decoration: none; font-size: .88rem; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .st-nav a:hover { background: var(--primary-color); color: #fff; }
+    .st-section { scroll-margin-top: calc(var(--st-nav-top, 80px) + 60px); }
+    .st-section-title { font-size: 1.1rem; font-weight: 700; margin: 28px 0 14px; display: flex; align-items: center; gap: 10px; }
+    .st-section-title i { color: var(--primary-color); }
+
+    .st-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+    .st-kpi { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-top: 3px solid var(--kpi, var(--primary-color)); }
+    .st-kpi-label { font-size: .82rem; color: var(--text-secondary); font-weight: 500; display: flex; justify-content: space-between; gap: 8px; }
+    .st-kpi-label i { color: var(--kpi, var(--primary-color)); opacity: .7; }
+    .st-kpi-value { font-size: 1.75rem; font-weight: 700; color: var(--dark-color); margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+    .st-kpi-sub { font-size: .78rem; color: var(--text-secondary); }
+    .st-trend { display: inline-flex; align-items: center; gap: 3px; font-weight: 600; font-size: .78rem; padding: 1px 7px; border-radius: 999px; }
+    .st-trend.up { color: #047857; background: #d1fae5; }
+    .st-trend.down { color: #b91c1c; background: #fee2e2; }
+    .st-trend.flat { color: #4b5563; background: #f3f4f6; }
+    .st-trend.new { color: #1d4ed8; background: #dbeafe; }
+
+    .st-chart { position: relative; height: 320px; }
+    .st-chart.sm { height: 230px; }
+    .st-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .st-grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; }
+    .st-grid-2 > .admin-card, .st-grid-4 > .admin-card { margin-bottom: 0; }
+    /* Les tableaux larges défilent dans leur carte au lieu d'élargir la page */
+    .main-content, .st-grid-2 > *, .st-grid-4 > *, .st-kpis > * { min-width: 0; }
+
+    .st-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .st-export { font-size: .8rem; text-decoration: none; color: var(--primary-color); font-weight: 600; white-space: nowrap; }
+    .st-export:hover { text-decoration: underline; }
+
+    .st-table { width: 100%; font-size: .88rem; }
+    .st-table th { font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid #e5e7eb; padding: 8px 10px; white-space: nowrap; }
+    .st-table th[data-sort] { cursor: pointer; user-select: none; }
+    .st-table th[data-sort]:hover { color: var(--primary-color); }
+    .st-table th[data-sort]::after { content: '\f0dc'; font-family: 'Font Awesome 6 Free'; font-weight: 900; margin-left: 5px; opacity: .3; }
+    .st-table th.asc::after { content: '\f0de'; opacity: 1; }
+    .st-table th.desc::after { content: '\f0dd'; opacity: 1; }
+    .st-table td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    .st-table tr:last-child td { border-bottom: 0; }
+    .st-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .st-rank { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; background: #f3f4f6; color: #4b5563; }
+    .st-rank.rank-1 { background: #fde68a; color: #92400e; }
+    .st-rank.rank-2 { background: #e2e8f0; color: #334155; box-shadow: inset 0 0 0 1px #cbd5e1; }
+    .st-rank.rank-3 { background: #fed7aa; color: #9a3412; }
+    .st-person { display: flex; align-items: center; gap: 10px; min-width: 180px; }
+    .st-person img, .st-thumb { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #f3f4f6; }
+    .st-thumb { border-radius: 8px; }
+    .st-person a { color: var(--dark-color); font-weight: 600; text-decoration: none; }
+    .st-person a:hover { color: var(--primary-color); }
+    .st-person small { display: block; color: var(--text-secondary); font-weight: 400; }
+    .st-bar { height: 6px; border-radius: 3px; background: #eef2ff; overflow: hidden; min-width: 60px; }
+    .st-bar span { display: block; height: 100%; background: var(--primary-color); border-radius: 3px; }
+    .st-empty { text-align: center; color: var(--text-secondary); padding: 28px 10px; font-size: .9rem; }
+    .st-empty i { display: block; font-size: 1.6rem; margin-bottom: 8px; opacity: .4; }
+
+    .st-cloud { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+    .st-cloud span { background: #eef2ff; color: #3730a3; border-radius: 999px; padding: 3px 12px; font-weight: 600; line-height: 1.5; }
+    .st-cloud span small { opacity: .6; font-weight: 500; margin-left: 4px; }
+
+    .st-heat { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: .7rem; }
+    .st-heat th { color: var(--text-secondary); font-weight: 600; text-align: center; padding: 2px; }
+    .st-heat td { height: 24px; border-radius: 3px; text-align: center; color: transparent; cursor: default; min-width: 18px; }
+    .st-heat td:hover { outline: 2px solid var(--dark-color); color: var(--dark-color); }
+    .st-heat-legend { display: flex; align-items: center; gap: 6px; font-size: .75rem; color: var(--text-secondary); margin-top: 8px; }
+    .st-heat-legend i { display: inline-block; width: 60px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #eef2ff, #4338ca); }
+
+    .st-notice { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: 10px; padding: 12px 16px; font-size: .88rem; display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; }
+    .st-best { font-size: .82rem; }
+    .st-best a { color: var(--dark-color); text-decoration: none; font-weight: 500; }
+    .st-best a:hover { color: var(--primary-color); }
+    .badge-cert { color: #2563eb; font-size: .8rem; }
+    .st-span-2 { grid-column: span 2; min-width: 0; }
+
+    @media (max-width: 768px) {
+        .st-filters > div { flex: 1 1 140px; }
+        .st-filters .form-select, .st-filters .form-control { min-width: 0; width: 100%; }
+        .st-kpi-value { font-size: 1.45rem; }
+        .st-chart { height: 260px; }
+        .st-span-2 { grid-column: 1 / -1; }
+    }
+</style>
+@endpush
+
+@section('content')
+
+{{-- Filtres --}}
+<div class="admin-card">
+    <div class="admin-card-body">
+        <form method="GET" action="{{ route('admin.statistics.index') }}" class="st-filters" id="statsFilters">
+            <div>
+                <label class="form-label" for="periode">Période</label>
+                <select name="periode" id="periode" class="form-select form-select-sm">
+                    @foreach($periods as $key => $label)
+                        <option value="{{ $key }}" @selected($filters->period === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="st-custom-dates" @if($filters->period !== 'perso') hidden @endif>
+                <label class="form-label" for="du">Du</label>
+                <input type="date" name="du" id="du" class="form-control form-control-sm" value="{{ $filters->from->toDateString() }}" max="{{ now()->toDateString() }}">
+            </div>
+            <div class="st-custom-dates" @if($filters->period !== 'perso') hidden @endif>
+                <label class="form-label" for="au">Au</label>
+                <input type="date" name="au" id="au" class="form-control form-control-sm" value="{{ $filters->to->toDateString() }}" max="{{ now()->toDateString() }}">
+            </div>
+            <div>
+                <label class="form-label" for="par">Regrouper</label>
+                <select name="par" id="par" class="form-select form-select-sm">
+                    @foreach($granularities as $key => $label)
+                        <option value="{{ $key }}" @selected($filters->granularity === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="top">Classements</label>
+                <select name="top" id="top" class="form-select form-select-sm">
+                    @foreach($topSizes as $size)
+                        <option value="{{ $size }}" @selected($filters->top === $size)>Top {{ $size }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Appliquer</button>
+                <a href="{{ route('admin.statistics.index', $query + ['refresh' => 1]) }}" class="btn btn-outline-secondary btn-sm" title="Recalculer sans attendre le cache">
+                    <i class="fas fa-sync-alt"></i>
+                </a>
+            </div>
+            <div class="st-meta ms-auto text-end">
+                Du <strong>{{ $filters->from->format('d/m/Y') }}</strong> au <strong>{{ $filters->to->format('d/m/Y') }}</strong><br>
+                comparé au {{ $filters->previousFrom->format('d/m/Y') }} – {{ $filters->previousTo->format('d/m/Y') }} · calculé le {{ $stats['generated_at'] }}
+            </div>
+        </form>
+    </div>
+</div>
+
+@if(! $tracking['visites'] || ! $tracking['recherches'])
+    <div class="st-notice">
+        <i class="fas fa-database mt-1"></i>
+        <div>Les tables de suivi n'existent pas encore. Lancez <code>php artisan migrate</code> pour activer le suivi des vues, des visites de boutiques et des recherches.</div>
+    </div>
+@else
+    <div class="st-notice">
+        <i class="fas fa-info-circle mt-1"></i>
+        <div>
+            Les vues d'annonces, visites de boutiques et recherches sont enregistrées
+            @if($tracking['depuis_visites'] || $tracking['depuis_recherches'])
+                depuis le <strong>{{ $tracking['depuis_visites'] ?? $tracking['depuis_recherches'] }}</strong>.
+            @else
+                à partir de maintenant (aucune donnée pour l'instant).
+            @endif
+            Robots, administrateurs et propriétaires ne sont pas comptés ; un même visiteur compte une fois par heure.
+        </div>
+    </div>
+@endif
+
+<nav class="st-nav" aria-label="Sections">
+    <a href="#vue-ensemble"><i class="fas fa-gauge"></i> Vue d'ensemble</a>
+    <a href="#evolution"><i class="fas fa-chart-line"></i> Évolution</a>
+    <a href="#vendeurs"><i class="fas fa-trophy"></i> Vendeurs</a>
+    <a href="#categories"><i class="fas fa-tags"></i> Catégories</a>
+    <a href="#villes-mots"><i class="fas fa-map-marker-alt"></i> Villes & mots-clés</a>
+    <a href="#audience"><i class="fas fa-eye"></i> Audience</a>
+    <a href="#recherches"><i class="fas fa-search"></i> Recherches</a>
+    <a href="#habitudes"><i class="fas fa-clock"></i> Habitudes</a>
+</nav>
+
+{{-- ============ VUE D'ENSEMBLE ============ --}}
+<section id="vue-ensemble" class="st-section">
+    @php
+        $trend = function (array $m) {
+            if ($m['evolution'] === null) {
+                return '<span class="st-trend new"><i class="fas fa-star"></i> nouveau</span>';
+            }
+            $cls = $m['evolution'] > 0 ? 'up' : ($m['evolution'] < 0 ? 'down' : 'flat');
+            $icon = $m['evolution'] > 0 ? 'fa-arrow-up' : ($m['evolution'] < 0 ? 'fa-arrow-down' : 'fa-minus');
+            $value = number_format(abs($m['evolution']), 1, ',', ' ');
+            return "<span class=\"st-trend {$cls}\"><i class=\"fas {$icon}\"></i> {$value} %</span>";
+        };
+
+        $cards = [
+            ['Nouveaux inscrits', 'fa-user-plus', '#6366f1', $kpis['inscriptions'], number_format($kpis['utilisateurs_total'], 0, ',', ' ') . ' inscrits au total'],
+            ['Annonces publiées', 'fa-newspaper', '#f97316', $kpis['annonces'], number_format($kpis['annonces_en_ligne'], 0, ',', ' ') . ' en ligne · ' . number_format($kpis['annonces_en_attente'], 0, ',', ' ') . ' en attente'],
+            ['Vendeurs actifs', 'fa-store', '#10b981', $kpis['vendeurs_actifs'], 'ont publié sur la période'],
+            ['Vues d\'annonces', 'fa-eye', '#3b82f6', $kpis['vues_annonces'], number_format($kpis['visiteurs_uniques'], 0, ',', ' ') . ' visiteurs uniques'],
+            ['Visites de boutiques', 'fa-shop', '#8b5cf6', $kpis['visites_boutiques'], 'pages boutique consultées'],
+            ['Recherches', 'fa-search', '#0ea5e9', $kpis['recherches'], number_format($stats['recherches']['sans_resultat_pct'], 1, ',', ' ') . ' % sans résultat'],
+            ['Likes (favoris)', 'fa-heart', '#ef4444', $kpis['likes'], 'ajouts en favoris'],
+        ];
+    @endphp
+
+    <div class="st-kpis">
+        @foreach($cards as [$label, $icon, $color, $metric, $sub])
+            <div class="st-kpi" style="--kpi: {{ $color }}">
+                <div class="st-kpi-label"><span>{{ $label }}</span><i class="fas {{ $icon }}"></i></div>
+                <div class="st-kpi-value">{{ $fmt($metric['valeur']) }}</div>
+                <div class="st-kpi-sub">{!! $trend($metric) !!} <span title="Période précédente">vs {{ $fmt($metric['precedent']) }}</span></div>
+                <div class="st-kpi-sub mt-1">{{ $sub }}</div>
+            </div>
+        @endforeach
+
+        <div class="st-kpi" style="--kpi: #14b8a6">
+            <div class="st-kpi-label"><span>Inscrits devenus vendeurs</span><i class="fas fa-percentage"></i></div>
+            <div class="st-kpi-value">{{ number_format($kpis['conversion_vendeurs_pct'], 1, ',', ' ') }} %</div>
+            <div class="st-kpi-sub">des nouveaux inscrits ont publié au moins une annonce</div>
+        </div>
+        <div class="st-kpi" style="--kpi: #eab308">
+            <div class="st-kpi-label"><span>Prix des annonces</span><i class="fas fa-coins"></i></div>
+            <div class="st-kpi-value">{{ $money($kpis['prix_median']) }}</div>
+            <div class="st-kpi-sub">prix médian · moyenne {{ $money($kpis['prix_moyen']) }}</div>
+        </div>
+        <div class="st-kpi" style="--kpi: #64748b">
+            <div class="st-kpi-label"><span>Comptes</span><i class="fas fa-id-badge"></i></div>
+            <div class="st-kpi-value">{{ $fmt($kpis['certifies']) }} <small class="fs-6 fw-normal text-muted">certifiés</small></div>
+            <div class="st-kpi-sub">{{ $fmt($kpis['bloques']) }} bloqués · {{ number_format($kpis['emails_verifies_pct'], 1, ',', ' ') }} % emails vérifiés · {{ $fmt($kpis['annonces_boostees']) }} annonces boostées</div>
+        </div>
+    </div>
+</section>
+
+{{-- ============ ÉVOLUTION ============ --}}
+<section id="evolution" class="st-section">
+    <h3 class="st-section-title"><i class="fas fa-chart-line"></i> Évolution {{ strtolower($granularities[$filters->granularity]) }}</h3>
+
+    <div class="admin-card">
+        <div class="admin-card-header st-card-head">
+            <h5 class="admin-card-title">Activité sur la période <small class="text-muted fw-normal">— cliquez une légende pour masquer une courbe</small></h5>
+            <a class="st-export" href="{{ $exportUrl('evolution') }}"><i class="fas fa-file-csv"></i> Exporter</a>
+        </div>
+        <div class="admin-card-body">
+            <div class="st-chart"><canvas id="chartActivity"></canvas></div>
+        </div>
+    </div>
+
+    <div class="st-grid-2">
+        <div class="admin-card">
+            <div class="admin-card-header"><h5 class="admin-card-title">Inscriptions et total cumulé</h5></div>
+            <div class="admin-card-body"><div class="st-chart sm"><canvas id="chartUsers"></canvas></div></div>
+        </div>
+        <div class="admin-card">
+            <div class="admin-card-header"><h5 class="admin-card-title">Audience : vues, boutiques, recherches</h5></div>
+            <div class="admin-card-body"><div class="st-chart sm"><canvas id="chartAudience"></canvas></div></div>
+        </div>
+    </div>
+
+    <div class="st-grid-4 mt-4">
+        <div class="admin-card">
+            <div class="admin-card-header"><h5 class="admin-card-title">Statut des annonces</h5></div>
+            <div class="admin-card-body"><div class="st-chart sm"><canvas id="chartStatus"></canvas></div></div>
+        </div>
+        <div class="admin-card">
+            <div class="admin-card-header"><h5 class="admin-card-title">Neuf / occasion</h5></div>
+            <div class="admin-card-body"><div class="st-chart sm"><canvas id="chartEtat"></canvas></div></div>
+        </div>
+        <div class="admin-card">
+            <div class="admin-card-header"><h5 class="admin-card-title">Livraison</h5></div>
+            <div class="admin-card-body"><div class="st-chart sm"><canvas id="chartLivraison"></canvas></div></div>
+        </div>
+        <div class="admin-card">
+            <div class="admin-card-header"><h5 class="admin-card-title">Tranches de prix (F CFA)</h5></div>
+            <div class="admin-card-body"><div class="st-chart sm"><canvas id="chartPrix"></canvas></div></div>
+        </div>
+    </div>
+</section>
+
+{{-- ============ VENDEURS ============ --}}
+<section id="vendeurs" class="st-section">
+    <h3 class="st-section-title"><i class="fas fa-trophy"></i> Vendeurs qui publient le plus</h3>
+    <div class="admin-card">
+        <div class="admin-card-header st-card-head">
+            <h5 class="admin-card-title">Top {{ $filters->top }} des vendeurs <small class="text-muted fw-normal">— cliquez un en-tête pour trier</small></h5>
+            <a class="st-export" href="{{ $exportUrl('vendeurs') }}"><i class="fas fa-file-csv"></i> Exporter</a>
+        </div>
+        <div class="admin-card-body">
+            @if(empty($stats['top_vendeurs']))
+                <div class="st-empty"><i class="fas fa-user-slash"></i>Aucune annonce publiée sur cette période.</div>
+            @else
+                @php $maxV = max(array_column($stats['top_vendeurs'], 'annonces')); @endphp
+                <div class="table-responsive">
+                    <table class="st-table" data-sortable>
+                        <thead><tr>
+                            <th data-sort="num">#</th>
+                            <th data-sort="text">Vendeur</th>
+                            <th data-sort="num" class="num">Annonces</th>
+                            <th></th>
+                            <th data-sort="num" class="num">Approuvées</th>
+                            <th data-sort="num" class="num">Total (tout temps)</th>
+                            <th data-sort="num" class="num">Vues reçues</th>
+                            <th data-sort="num" class="num">Likes reçus</th>
+                            <th data-sort="text">Inscrit le</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach($stats['top_vendeurs'] as $i => $v)
+                            <tr>
+                                <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                <td data-value="{{ $v['nom'] }}">
+                                    <div class="st-person">
+                                        <img src="{{ $v['photo'] }}" alt="" loading="lazy">
+                                        <div>
+                                            @if($v['admin_url'])<a href="{{ $v['admin_url'] }}">{{ $v['nom'] }}</a>@else{{ $v['nom'] }}@endif
+                                            @if($v['certifie'])<i class="fas fa-circle-check badge-cert" title="Certifié"></i>@endif
+                                            <small>{{ $v['email'] }} @if($v['boutique_url'])· <a href="{{ $v['boutique_url'] }}" target="_blank" class="fw-normal">boutique</a>@endif</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="num" data-value="{{ $v['annonces'] }}"><strong>{{ $fmt($v['annonces']) }}</strong></td>
+                                <td><div class="st-bar"><span style="width: {{ $maxV ? round($v['annonces'] / $maxV * 100) : 0 }}%"></span></div></td>
+                                <td class="num" data-value="{{ $v['approuvees'] }}">{{ $fmt($v['approuvees']) }}</td>
+                                <td class="num" data-value="{{ $v['annonces_total'] }}">{{ $fmt($v['annonces_total']) }}</td>
+                                <td class="num" data-value="{{ $v['vues'] }}">{{ $fmt($v['vues']) }}</td>
+                                <td class="num" data-value="{{ $v['likes'] }}">{{ $fmt($v['likes']) }}</td>
+                                <td data-value="{{ $v['inscrit_le'] ? \Carbon\Carbon::createFromFormat('d/m/Y', $v['inscrit_le'])->format('Ymd') : 0 }}">{{ $v['inscrit_le'] ?? '—' }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+</section>
+
+{{-- ============ CATÉGORIES ============ --}}
+<section id="categories" class="st-section">
+    <h3 class="st-section-title"><i class="fas fa-tags"></i> Catégories et sous-catégories les plus publiées</h3>
+    <div class="st-grid-2">
+        @foreach([
+            ['top_categories', 'categories', 'Catégories', false],
+            ['top_sous_categories', 'sous_categories', 'Sous-catégories', true],
+        ] as [$key, $section, $title, $withParent])
+            <div class="admin-card">
+                <div class="admin-card-header st-card-head">
+                    <h5 class="admin-card-title">{{ $title }}</h5>
+                    <a class="st-export" href="{{ $exportUrl($section) }}"><i class="fas fa-file-csv"></i> Exporter</a>
+                </div>
+                <div class="admin-card-body">
+                    @if(empty($stats[$key]))
+                        <div class="st-empty"><i class="fas fa-tags"></i>Aucune donnée sur cette période.</div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="st-table" data-sortable>
+                                <thead><tr>
+                                    <th data-sort="num">#</th>
+                                    <th data-sort="text">{{ $withParent ? 'Sous-catégorie' : 'Catégorie' }}</th>
+                                    <th data-sort="num" class="num">Annonces</th>
+                                    <th data-sort="num">Part</th>
+                                    <th data-sort="num" class="num">Vues</th>
+                                </tr></thead>
+                                <tbody>
+                                @foreach($stats[$key] as $i => $c)
+                                    <tr>
+                                        <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                        <td data-value="{{ $c['nom'] }}">
+                                            <strong>{{ $c['nom'] }}</strong>
+                                            @if($withParent)<small class="d-block text-muted">{{ $c['categorie'] }}</small>@endif
+                                        </td>
+                                        <td class="num" data-value="{{ $c['annonces'] }}">{{ $fmt($c['annonces']) }}</td>
+                                        <td data-value="{{ $c['part'] }}">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="st-bar flex-grow-1"><span style="width: {{ $c['part'] }}%"></span></div>
+                                                <small class="text-muted">{{ number_format($c['part'], 1, ',', ' ') }} %</small>
+                                            </div>
+                                        </td>
+                                        <td class="num" data-value="{{ $c['vues'] }}">{{ $fmt($c['vues']) }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endforeach
+    </div>
+</section>
+
+{{-- ============ VILLES & MOTS-CLÉS ============ --}}
+<section id="villes-mots" class="st-section">
+    <h3 class="st-section-title"><i class="fas fa-map-marker-alt"></i> Villes et mots-clés</h3>
+    <div class="st-grid-2">
+        <div class="admin-card">
+            <div class="admin-card-header st-card-head">
+                <h5 class="admin-card-title">Villes où l'on publie le plus</h5>
+                <a class="st-export" href="{{ $exportUrl('villes') }}"><i class="fas fa-file-csv"></i> Exporter</a>
+            </div>
+            <div class="admin-card-body">
+                @if(empty($stats['top_villes']))
+                    <div class="st-empty"><i class="fas fa-map"></i>Aucune donnée sur cette période.</div>
+                @else
+                    <div class="st-chart sm mb-3"><canvas id="chartVilles"></canvas></div>
+                    <table class="st-table" data-sortable>
+                        <thead><tr><th data-sort="num">#</th><th data-sort="text">Ville</th><th data-sort="num" class="num">Annonces</th><th data-sort="num" class="num">Part</th></tr></thead>
+                        <tbody>
+                        @foreach($stats['top_villes'] as $i => $v)
+                            <tr>
+                                <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                <td data-value="{{ $v['nom'] }}"><strong>{{ $v['nom'] }}</strong></td>
+                                <td class="num" data-value="{{ $v['annonces'] }}">{{ $fmt($v['annonces']) }}</td>
+                                <td class="num" data-value="{{ $v['part'] }}">{{ number_format($v['part'], 1, ',', ' ') }} %</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <div class="admin-card-header st-card-head">
+                <h5 class="admin-card-title">Mots les plus utilisés dans les titres</h5>
+                <span>
+                    <a class="st-export" href="{{ $exportUrl('mots') }}"><i class="fas fa-file-csv"></i> Mots</a>
+                    <a class="st-export ms-2" href="{{ $exportUrl('expressions') }}"><i class="fas fa-file-csv"></i> Expressions</a>
+                </span>
+            </div>
+            <div class="admin-card-body">
+                @if(empty($stats['top_mots']['mots']))
+                    <div class="st-empty"><i class="fas fa-font"></i>Aucune annonce sur cette période.</div>
+                @else
+                    @php $maxMot = max(array_column($stats['top_mots']['mots'], 'annonces')); @endphp
+                    <div class="st-cloud mb-3">
+                        @foreach($stats['top_mots']['mots'] as $m)
+                            <span style="font-size: {{ 0.8 + ($maxMot ? $m['annonces'] / $maxMot : 0) * 0.7 }}rem" title="{{ $m['annonces'] }} annonces">{{ $m['mot'] }}<small>{{ $m['annonces'] }}</small></span>
+                        @endforeach
+                    </div>
+                    <table class="st-table" data-sortable>
+                        <thead><tr><th data-sort="num">#</th><th data-sort="text">Mot</th><th data-sort="num" class="num">Annonces</th><th data-sort="num" class="num">% des titres</th></tr></thead>
+                        <tbody>
+                        @foreach($stats['top_mots']['mots'] as $i => $m)
+                            <tr>
+                                <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                <td data-value="{{ $m['mot'] }}"><strong>{{ $m['mot'] }}</strong></td>
+                                <td class="num" data-value="{{ $m['annonces'] }}">{{ $fmt($m['annonces']) }}</td>
+                                <td class="num" data-value="{{ $m['part'] }}">{{ number_format($m['part'], 1, ',', ' ') }} %</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+
+                    @if(! empty($stats['top_mots']['expressions']))
+                        <h6 class="mt-4 mb-2 fw-bold">Expressions fréquentes (2 mots)</h6>
+                        <div class="st-cloud">
+                            @foreach($stats['top_mots']['expressions'] as $m)
+                                <span style="background:#fff7ed;color:#9a3412">{{ $m['mot'] }}<small>{{ $m['annonces'] }}</small></span>
+                            @endforeach
+                        </div>
+                    @endif
+                @endif
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============ AUDIENCE ============ --}}
+<section id="audience" class="st-section">
+    <h3 class="st-section-title"><i class="fas fa-eye"></i> Audience</h3>
+
+    <div class="admin-card">
+        <div class="admin-card-header st-card-head">
+            <h5 class="admin-card-title">Annonces les plus vues</h5>
+            <a class="st-export" href="{{ $exportUrl('articles_vus') }}"><i class="fas fa-file-csv"></i> Exporter</a>
+        </div>
+        <div class="admin-card-body">
+            @if(empty($stats['top_articles_vus']))
+                <div class="st-empty"><i class="fas fa-eye-slash"></i>Aucune vue enregistrée sur cette période.</div>
+            @else
+                <div class="table-responsive">
+                    <table class="st-table" data-sortable>
+                        <thead><tr>
+                            <th data-sort="num">#</th>
+                            <th data-sort="text">Annonce</th>
+                            <th data-sort="text">Vendeur</th>
+                            <th data-sort="text">Ville</th>
+                            <th data-sort="num" class="num">Prix</th>
+                            <th data-sort="num" class="num">Vues</th>
+                            <th data-sort="num" class="num">Visiteurs uniques</th>
+                            <th data-sort="num" class="num">Likes</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach($stats['top_articles_vus'] as $i => $a)
+                            <tr>
+                                <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                <td data-value="{{ $a['titre'] }}">
+                                    <div class="st-person">
+                                        @if($a['photo'])<img class="st-thumb" src="{{ $a['photo'] }}" alt="" loading="lazy">@endif
+                                        <div>
+                                            @if($a['url'])<a href="{{ $a['url'] }}" target="_blank">{{ \Illuminate\Support\Str::limit($a['titre'], 50) }}</a>@else{{ $a['titre'] }}@endif
+                                            <small>{{ $a['categorie'] ?? '' }} @if($a['admin_url'])· <a href="{{ $a['admin_url'] }}" class="fw-normal">fiche admin</a>@endif</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-value="{{ $a['vendeur'] }}">{{ $a['vendeur'] ?? '—' }}</td>
+                                <td data-value="{{ $a['lieu'] }}">{{ $a['lieu'] ?? '—' }}</td>
+                                <td class="num" data-value="{{ $a['prix'] ?? 0 }}">{{ $a['prix'] !== null ? $money($a['prix']) : '—' }}</td>
+                                <td class="num" data-value="{{ $a['vues'] }}"><strong>{{ $fmt($a['vues']) }}</strong></td>
+                                <td class="num" data-value="{{ $a['visiteurs'] }}">{{ $fmt($a['visiteurs']) }}</td>
+                                <td class="num" data-value="{{ $a['likes'] }}">{{ $fmt($a['likes']) }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card-header st-card-head">
+            <h5 class="admin-card-title">Boutiques (profils vendeurs) les plus visitées</h5>
+            <a class="st-export" href="{{ $exportUrl('boutiques') }}"><i class="fas fa-file-csv"></i> Exporter</a>
+        </div>
+        <div class="admin-card-body">
+            @if(empty($stats['top_boutiques']))
+                <div class="st-empty"><i class="fas fa-store-slash"></i>Aucune visite enregistrée sur cette période.</div>
+            @else
+                <div class="table-responsive">
+                    <table class="st-table" data-sortable>
+                        <thead><tr>
+                            <th data-sort="num">#</th>
+                            <th data-sort="text">Vendeur</th>
+                            <th data-sort="num" class="num">Visites boutique</th>
+                            <th data-sort="num" class="num">Vues de ses annonces</th>
+                            <th data-sort="num" class="num">Visiteurs uniques</th>
+                            <th data-sort="num" class="num">Annonces en ligne</th>
+                            <th data-sort="num">Son annonce la plus vue</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach($stats['top_boutiques'] as $i => $b)
+                            <tr>
+                                <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                <td data-value="{{ $b['nom'] }}">
+                                    <div class="st-person">
+                                        <img src="{{ $b['photo'] }}" alt="" loading="lazy">
+                                        <div>
+                                            @if($b['boutique_url'])<a href="{{ $b['boutique_url'] }}" target="_blank">{{ $b['nom'] }}</a>@else{{ $b['nom'] }}@endif
+                                            @if($b['certifie'])<i class="fas fa-circle-check badge-cert" title="Certifié"></i>@endif
+                                            <small>@if($b['admin_url'])<a href="{{ $b['admin_url'] }}" class="fw-normal">fiche admin</a>@endif</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="num" data-value="{{ $b['visites_boutique'] }}"><strong>{{ $fmt($b['visites_boutique']) }}</strong></td>
+                                <td class="num" data-value="{{ $b['vues_annonces'] }}">{{ $fmt($b['vues_annonces']) }}</td>
+                                <td class="num" data-value="{{ $b['visiteurs'] }}">{{ $fmt($b['visiteurs']) }}</td>
+                                <td class="num" data-value="{{ $b['annonces_en_ligne'] }}">{{ $fmt($b['annonces_en_ligne']) }}</td>
+                                <td class="st-best" data-value="{{ $b['meilleure_annonce']['vues'] ?? 0 }}">
+                                    @if($b['meilleure_annonce'])
+                                        <div class="st-person">
+                                            @if($b['meilleure_annonce']['photo'])<img class="st-thumb" src="{{ $b['meilleure_annonce']['photo'] }}" alt="" loading="lazy">@endif
+                                            <div>
+                                                @if($b['meilleure_annonce']['url'])
+                                                    <a href="{{ $b['meilleure_annonce']['url'] }}" target="_blank">{{ \Illuminate\Support\Str::limit($b['meilleure_annonce']['titre'], 40) }}</a>
+                                                @else
+                                                    {{ $b['meilleure_annonce']['titre'] }}
+                                                @endif
+                                                <small>{{ $fmt($b['meilleure_annonce']['vues']) }} vues</small>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="admin-card-header st-card-head">
+            <h5 class="admin-card-title">Annonces les plus aimées (ajouts en favoris sur la période)</h5>
+            <a class="st-export" href="{{ $exportUrl('articles_aimes') }}"><i class="fas fa-file-csv"></i> Exporter</a>
+        </div>
+        <div class="admin-card-body">
+            @if(empty($stats['top_articles_aimes']))
+                <div class="st-empty"><i class="fas fa-heart-crack"></i>Aucun like sur cette période.</div>
+            @else
+                <div class="table-responsive">
+                    <table class="st-table" data-sortable>
+                        <thead><tr>
+                            <th data-sort="num">#</th><th data-sort="text">Annonce</th><th data-sort="text">Vendeur</th>
+                            <th data-sort="num" class="num">Likes</th><th data-sort="num" class="num">Vues</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach($stats['top_articles_aimes'] as $i => $a)
+                            <tr>
+                                <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                <td data-value="{{ $a['titre'] }}">
+                                    <div class="st-person">
+                                        @if($a['photo'])<img class="st-thumb" src="{{ $a['photo'] }}" alt="" loading="lazy">@endif
+                                        <div>@if($a['url'])<a href="{{ $a['url'] }}" target="_blank">{{ \Illuminate\Support\Str::limit($a['titre'], 50) }}</a>@else{{ $a['titre'] }}@endif</div>
+                                    </div>
+                                </td>
+                                <td data-value="{{ $a['vendeur'] }}">{{ $a['vendeur'] ?? '—' }}</td>
+                                <td class="num" data-value="{{ $a['likes'] }}"><strong>{{ $fmt($a['likes']) }}</strong></td>
+                                <td class="num" data-value="{{ $a['vues'] }}">{{ $fmt($a['vues']) }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+</section>
+
+{{-- ============ RECHERCHES ============ --}}
+<section id="recherches" class="st-section">
+    <h3 class="st-section-title"><i class="fas fa-search"></i> Ce que cherchent les visiteurs</h3>
+
+    @php $r = $stats['recherches']; @endphp
+    <div class="st-kpis mb-4">
+        <div class="st-kpi" style="--kpi:#0ea5e9">
+            <div class="st-kpi-label"><span>Recherches</span><i class="fas fa-search"></i></div>
+            <div class="st-kpi-value">{{ $fmt($r['total']) }}</div>
+            <div class="st-kpi-sub">par {{ $fmt($r['chercheurs']) }} visiteurs</div>
+        </div>
+        <div class="st-kpi" style="--kpi:#ef4444">
+            <div class="st-kpi-label"><span>Sans résultat</span><i class="fas fa-circle-exclamation"></i></div>
+            <div class="st-kpi-value">{{ number_format($r['sans_resultat_pct'], 1, ',', ' ') }} %</div>
+            <div class="st-kpi-sub">{{ $fmt($r['sans_resultat']) }} recherches n'ont rien trouvé</div>
+        </div>
+        <div class="admin-card mb-0 st-span-2">
+            <div class="admin-card-body py-2"><div class="st-chart sm" style="height:150px"><canvas id="chartSources"></canvas></div></div>
+        </div>
+    </div>
+
+    <div class="st-grid-2">
+        <div class="admin-card">
+            <div class="admin-card-header st-card-head">
+                <h5 class="admin-card-title">Recherches les plus fréquentes</h5>
+                <a class="st-export" href="{{ $exportUrl('recherches') }}"><i class="fas fa-file-csv"></i> Exporter</a>
+            </div>
+            <div class="admin-card-body">
+                @if(empty($r['top']))
+                    <div class="st-empty"><i class="fas fa-search"></i>Aucune recherche enregistrée sur cette période.</div>
+                @else
+                    <div class="table-responsive">
+                        <table class="st-table" data-sortable>
+                            <thead><tr>
+                                <th data-sort="num">#</th><th data-sort="text">Recherche</th>
+                                <th data-sort="num" class="num">Fois</th><th data-sort="num" class="num">Visiteurs</th>
+                                <th data-sort="num" class="num">Résultats moy.</th>
+                            </tr></thead>
+                            <tbody>
+                            @foreach($r['top'] as $i => $t)
+                                <tr>
+                                    <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                    <td data-value="{{ $t['terme'] }}"><strong>{{ $t['terme'] }}</strong></td>
+                                    <td class="num" data-value="{{ $t['recherches'] }}">{{ $fmt($t['recherches']) }}</td>
+                                    <td class="num" data-value="{{ $t['chercheurs'] }}">{{ $fmt($t['chercheurs']) }}</td>
+                                    <td class="num" data-value="{{ $t['resultats_moyens'] }}">
+                                        @if($t['resultats_moyens'] === 0)<span class="text-danger fw-semibold">0</span>@else{{ $fmt($t['resultats_moyens']) }}@endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <div class="admin-card-header st-card-head">
+                <h5 class="admin-card-title">Recherches sans résultat <small class="text-muted fw-normal">— produits demandés mais absents</small></h5>
+                <a class="st-export" href="{{ $exportUrl('recherches_vides') }}"><i class="fas fa-file-csv"></i> Exporter</a>
+            </div>
+            <div class="admin-card-body">
+                @if(empty($r['sans_resultat_top']))
+                    <div class="st-empty"><i class="fas fa-check-circle"></i>Toutes les recherches ont trouvé des annonces.</div>
+                @else
+                    <div class="table-responsive">
+                        <table class="st-table" data-sortable>
+                            <thead><tr>
+                                <th data-sort="num">#</th><th data-sort="text">Recherche</th>
+                                <th data-sort="num" class="num">Fois</th><th data-sort="num" class="num">Visiteurs</th><th data-sort="text">Dernière</th>
+                            </tr></thead>
+                            <tbody>
+                            @foreach($r['sans_resultat_top'] as $i => $t)
+                                <tr>
+                                    <td data-value="{{ $i + 1 }}"><span class="st-rank">{{ $i + 1 }}</span></td>
+                                    <td data-value="{{ $t['terme'] }}"><strong>{{ $t['terme'] }}</strong></td>
+                                    <td class="num" data-value="{{ $t['recherches'] }}">{{ $fmt($t['recherches']) }}</td>
+                                    <td class="num" data-value="{{ $t['chercheurs'] }}">{{ $fmt($t['chercheurs']) }}</td>
+                                    <td data-value="{{ \Carbon\Carbon::createFromFormat('d/m/Y H:i', $t['derniere'])->format('YmdHi') }}"><small>{{ $t['derniere'] }}</small></td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============ HABITUDES ============ --}}
+<section id="habitudes" class="st-section">
+    <h3 class="st-section-title"><i class="fas fa-clock"></i> Jours et heures d'activité</h3>
+    <div class="admin-card">
+        <div class="admin-card-header st-card-head">
+            <h5 class="admin-card-title">Quand l'activité a lieu (heure de Lomé)</h5>
+            <select id="heatmapSelect" class="form-select form-select-sm" style="width:auto">
+                <option value="annonces">Publications d'annonces</option>
+                <option value="inscriptions">Inscriptions</option>
+                @if(isset($stats['heatmaps']['vues']))<option value="vues">Vues et visites</option>@endif
+            </select>
+        </div>
+        <div class="admin-card-body">
+            <div class="table-responsive">
+                <table class="st-heat" id="heatmap">
+                    <thead><tr><th></th>@for($h = 0; $h < 24; $h++)<th>{{ $h }}h</th>@endfor</tr></thead>
+                    <tbody>
+                    @foreach($jours as $d => $jour)
+                        <tr><th>{{ $jour }}</th>@for($h = 0; $h < 24; $h++)<td data-d="{{ $d }}" data-h="{{ $h }}"></td>@endfor</tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="st-heat-legend">Moins <i></i> Plus · <span id="heatmapPeak"></span></div>
+        </div>
+    </div>
+</section>
+
+@endsection
+
+@push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+    const stats = @json($chartData);
+    const nf = new Intl.NumberFormat('fr-FR');
+
+    // ---- Barre de sections collée sous la barre du haut de l'admin ----
+    const topbar = document.querySelector('.top-navbar');
+    const syncNavTop = () => document.documentElement.style.setProperty('--st-nav-top', (topbar ? topbar.offsetHeight : 0) + 'px');
+    syncNavTop();
+    window.addEventListener('resize', syncNavTop);
+
+    // ---- Filtres : dates personnalisées ----
+    const periode = document.getElementById('periode');
+    const toggleDates = () => document.querySelectorAll('.st-custom-dates').forEach(el => el.hidden = periode.value !== 'perso');
+    periode.addEventListener('change', () => {
+        toggleDates();
+        // Laisse le serveur choisir le regroupement adapté à la nouvelle période
+        if (periode.value !== 'perso') {
+            document.getElementById('par').disabled = true;
+            document.getElementById('statsFilters').submit();
+        }
+    });
+    toggleDates();
+
+    // ---- Tri des tableaux ----
+    document.querySelectorAll('table[data-sortable]').forEach(table => {
+        table.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const index = Array.from(th.parentNode.children).indexOf(th);
+                const numeric = th.dataset.sort === 'num';
+                const asc = th.classList.contains('desc') || (!th.classList.contains('asc') && !numeric);
+                table.querySelectorAll('th').forEach(h => h.classList.remove('asc', 'desc'));
+                th.classList.add(asc ? 'asc' : 'desc');
+
+                const tbody = table.tBodies[0];
+                const rows = Array.from(tbody.rows);
+                rows.sort((a, b) => {
+                    const va = a.cells[index]?.dataset.value ?? '';
+                    const vb = b.cells[index]?.dataset.value ?? '';
+                    const cmp = numeric ? (parseFloat(va) || 0) - (parseFloat(vb) || 0) : va.localeCompare(vb, 'fr', { sensitivity: 'base' });
+                    return asc ? cmp : -cmp;
+                });
+                rows.forEach(r => tbody.appendChild(r));
+            });
+        });
+    });
+
+    // ---- Heatmap ----
+    const heatmapSelect = document.getElementById('heatmapSelect');
+    const jours = @json($jours);
+    function drawHeatmap(key) {
+        const grid = stats.heatmaps[key] || [];
+        let max = 0, peak = null;
+        grid.forEach((row, d) => row.forEach((v, h) => { if (v > max) { max = v; peak = [d, h]; } }));
+        document.querySelectorAll('#heatmap td').forEach(td => {
+            const v = grid[td.dataset.d]?.[td.dataset.h] ?? 0;
+            const t = max ? v / max : 0;
+            // Interpolation #eef2ff → #4338ca
+            const c = (a, b) => Math.round(a + (b - a) * t);
+            td.style.background = v ? `rgb(${c(238, 67)}, ${c(242, 56)}, ${c(255, 202)})` : '#f9fafb';
+            td.textContent = v || '';
+            td.title = `${jours[td.dataset.d]} ${td.dataset.h}h : ${nf.format(v)}`;
+        });
+        document.getElementById('heatmapPeak').textContent = peak
+            ? `pic : ${jours[peak[0]]} vers ${peak[1]}h (${nf.format(max)})`
+            : 'aucune activité sur la période';
+    }
+    heatmapSelect.addEventListener('change', () => drawHeatmap(heatmapSelect.value));
+    drawHeatmap(heatmapSelect.value);
+
+    // ---- Graphiques ----
+    if (typeof Chart === 'undefined') {
+        document.querySelectorAll('.st-chart').forEach(el => el.innerHTML = '<div class="st-empty"><i class="fas fa-triangle-exclamation"></i>Graphiques indisponibles (bibliothèque non chargée).</div>');
+        return;
+    }
+
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.color = '#6b7280';
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.tooltip.callbacks.label = ctx => ` ${ctx.dataset.label || ctx.label} : ${nf.format(ctx.parsed.y ?? ctx.parsed)}`;
+
+    const s = stats.series;
+    const line = (label, data, color, extra = {}) => ({
+        label, data, borderColor: color, backgroundColor: color + '22', pointBackgroundColor: color,
+        borderWidth: 2, tension: .3, pointRadius: data.length > 60 ? 0 : 3, fill: false, ...extra,
+    });
+    const lineOptions = {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } } },
+    };
+
+    new Chart(document.getElementById('chartActivity'), {
+        type: 'line',
+        data: { labels: s.labels, datasets: [
+            line('Inscriptions', s.inscriptions, '#6366f1'),
+            line('Annonces publiées', s.annonces, '#f97316'),
+            line('Likes', s.likes, '#ef4444'),
+        ] },
+        options: lineOptions,
+    });
+
+    new Chart(document.getElementById('chartUsers'), {
+        data: { labels: s.labels, datasets: [
+            { type: 'bar', label: 'Nouveaux inscrits', data: s.inscriptions, backgroundColor: '#6366f1', borderRadius: 4, yAxisID: 'y' },
+            { type: 'line', label: 'Total inscrits', data: s.inscrits_cumules, borderColor: '#10b981', backgroundColor: '#10b98122', fill: true, tension: .3, pointRadius: 0, borderWidth: 2, yAxisID: 'y1' },
+        ] },
+        options: { ...lineOptions, scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Nouveaux' } },
+            y1: { position: 'right', grid: { display: false }, ticks: { precision: 0 }, title: { display: true, text: 'Total' } },
+            x: lineOptions.scales.x,
+        } },
+    });
+
+    new Chart(document.getElementById('chartAudience'), {
+        type: 'line',
+        data: { labels: s.labels, datasets: [
+            line('Vues d\'annonces', s.vues, '#3b82f6', { fill: true }),
+            line('Visites de boutiques', s.visites_boutiques, '#8b5cf6'),
+            line('Recherches', s.recherches, '#0ea5e9'),
+        ] },
+        options: lineOptions,
+    });
+
+    const doughnut = (id, data, colors) => {
+        const labels = Object.keys(data), values = Object.values(data);
+        if (!values.some(v => v > 0)) {
+            document.getElementById(id).parentNode.innerHTML = '<div class="st-empty"><i class="fas fa-chart-pie"></i>Aucune donnée</div>';
+            return;
+        }
+        new Chart(document.getElementById(id), {
+            type: 'doughnut',
+            data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { callbacks: { label: ctx => {
+                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                    return ` ${ctx.label} : ${nf.format(ctx.parsed)} (${total ? Math.round(ctx.parsed / total * 100) : 0} %)`;
+                } } },
+            } },
+        });
+    };
+    const r = stats.repartitions;
+    doughnut('chartStatus', r.statut, ['#10b981', '#f59e0b', '#ef4444']);
+    doughnut('chartEtat', r.etat, ['#6366f1', '#a5b4fc']);
+    doughnut('chartLivraison', r.livraison, ['#0ea5e9', '#cbd5e1']);
+
+    const bar = (id, labels, values, color, horizontal = false) => new Chart(document.getElementById(id), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Annonces', data: values, backgroundColor: color, borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: horizontal ? 'y' : 'x', plugins: { legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` ${nf.format(horizontal ? ctx.parsed.x : ctx.parsed.y)}` } } },
+            scales: { x: { beginAtZero: true, grid: { display: horizontal }, ticks: { precision: 0 } }, y: { beginAtZero: true, grid: { display: !horizontal }, ticks: { precision: 0 } } } },
+    });
+    bar('chartPrix', Object.keys(r.tranches_prix), Object.values(r.tranches_prix), '#eab308');
+
+    if (document.getElementById('chartVilles')) {
+        const villes = stats.villes.slice(0, 10);
+        bar('chartVilles', villes.map(v => v.nom), villes.map(v => v.annonces), '#f97316', true);
+    }
+
+    if (Object.keys(r.sources_recherche).length) {
+        new Chart(document.getElementById('chartSources'), {
+            type: 'bar',
+            data: { labels: Object.keys(r.sources_recherche), datasets: [{ label: 'Recherches', data: Object.values(r.sources_recherche), backgroundColor: ['#0ea5e9', '#6366f1', '#14b8a6'], borderRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false }, title: { display: true, text: "D'où viennent les recherches" },
+                tooltip: { callbacks: { label: ctx => ` ${nf.format(ctx.parsed.x)}` } } },
+                scales: { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { grid: { display: false } } } },
+        });
+    } else {
+        document.getElementById('chartSources').parentNode.innerHTML = '<div class="st-empty py-3">Pas encore de recherches enregistrées.</div>';
+    }
+})();
+</script>
+@endpush

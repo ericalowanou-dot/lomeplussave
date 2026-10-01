@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\File;
 
 use Illuminate\Support\Str;
 
+use App\Services\StatTracker;
+
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver; 
 
@@ -130,10 +132,14 @@ class ArticleController extends Controller
             ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
             ->withLikeCounts(auth()->id())
             ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
-            ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > NOW()) DESC')
+            ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > ?) DESC', [now()])
             ->orderBy('created_at', 'desc')
             ->paginate(120)
             ->appends($request->query());
+
+        if ($q !== '' && $articles->currentPage() === 1) {
+            app(StatTracker::class)->recordSearch($q, $articles->total(), $request, $isAjax ? 'recherche_directe' : 'recherche');
+        }
 
         // Récupérer les catégories pour la navigation (avec cache)
         $categories = \Cache::remember('categories_with_souscategories', 3600, function () {
@@ -307,7 +313,7 @@ class ArticleController extends Controller
 
             case 'pro':
 
-                $articlesQuery->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > NOW()) DESC')
+                $articlesQuery->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > ?) DESC', [now()])
 
                     ->orderBy('created_at', 'desc');
 
@@ -317,7 +323,7 @@ class ArticleController extends Controller
 
             default:
 
-                $articlesQuery->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > NOW()) DESC')
+                $articlesQuery->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > ?) DESC', [now()])
 
                     ->orderBy('created_at', 'desc');
 
@@ -353,6 +359,11 @@ class ArticleController extends Controller
             ->paginate($perPage)
 
             ->appends($request->query());
+
+        $searchTerm = trim((string) $request->input('q', ''));
+        if ($searchTerm !== '' && $articles->currentPage() === 1) {
+            app(StatTracker::class)->recordSearch($searchTerm, $articles->total(), $request, 'accueil');
+        }
 
 
 
