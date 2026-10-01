@@ -18,7 +18,8 @@ class Article extends Model
         
         public function usersWhoLiked()
         {
-            return $this->belongsToMany(User::class, 'article_user_like', 'article_id', 'user_id');
+            // withTimestamps : sans lui, attach() n'écrit pas la date du like (statistiques)
+            return $this->belongsToMany(User::class, 'article_user_like', 'article_id', 'user_id')->withTimestamps();
         }
         
         public function isLikeByLoggedInUser()

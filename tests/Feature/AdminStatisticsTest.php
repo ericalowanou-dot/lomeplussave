@@ -357,6 +357,35 @@ class AdminStatisticsTest extends TestCase
         $this->assertSame('2026-09-30', $lastMonth->to->toDateString());
     }
 
+    public function test_like_button_records_the_like_date(): void
+    {
+        $article = $this->makeArticle($this->makeUser());
+        $fan = $this->makeUser();
+
+        $this->actingAs($fan)->postJson(route('articles.like', $article))->assertOk()->assertJson(['liked' => true]);
+
+        $this->assertNotNull(DB::table('article_user_like')->where('article_id', $article->id)->value('created_at'));
+
+        $stats = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => '7j']))->all(refresh: true);
+        $this->assertSame(1, $stats['kpis']['likes']['valeur']);
+        $this->assertSame($article->id, $stats['top_articles_aimes'][0]['id']);
+    }
+
+    public function test_old_likes_without_date_count_only_since_the_beginning(): void
+    {
+        $article = $this->makeArticle($this->makeUser());
+        $fan = $this->makeUser();
+        DB::table('article_user_like')->insert(['article_id' => $article->id, 'user_id' => $fan->id]); // ancien like, sans date
+
+        $week = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => '7j']))->all(refresh: true);
+        $this->assertSame(0, $week['kpis']['likes']['valeur']);
+        $this->assertSame([], $week['top_articles_aimes']);
+
+        $all = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => 'tout']))->all(refresh: true);
+        $this->assertSame(1, $all['kpis']['likes']['valeur']);
+        $this->assertSame($article->id, $all['top_articles_aimes'][0]['id']);
+    }
+
     public function test_normalize_groups_accents_and_case(): void
     {
         $this->assertSame('telephone samsung', StatTracker::normalize('  Téléphone   SAMSUNG! '));

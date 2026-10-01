@@ -194,7 +194,7 @@ class AdminStatistics
 
         $key = 'admin_statistics:v3:' . md5(implode('|', [
             $this->from->toDateString(), $this->to->toDateString(), $this->granularity, $this->top,
-            (int) $this->hasVisites, (int) $this->hasRecherches,
+            (int) $this->hasVisites, (int) $this->hasRecherches, $this->period === 'tout' ? 'tout' : '',
             StatTracker::normalize((string) $this->ville), $this->categorieId, $this->sousCategorieId,
         ]));
 
@@ -408,6 +408,22 @@ class AdminStatistics
         return $query;
     }
 
+    /**
+     * Likes donnés pendant la période. Les anciens likes enregistrés sans date
+     * (avant la correction de withTimestamps) n'ont pas de jour connu : ils ne
+     * comptent que pour « Depuis le début ».
+     */
+    private function likedDuring(Builder $query, array $range, bool $includeUndated = false): Builder
+    {
+        $column = 'article_user_like.created_at';
+
+        if ($includeUndated && $this->period === 'tout') {
+            return $query->where(fn (Builder $w) => $w->whereBetween($column, $range)->orWhereNull($column));
+        }
+
+        return $query->whereBetween($column, $range);
+    }
+
     private function period(): array
     {
         return [$this->from, $this->to];
@@ -436,7 +452,7 @@ class AdminStatistics
         $activeSellers = $this->articles()->whereBetween('articles.created_at', $current)->distinct()->count('articles.user_id');
         $activeSellersPrev = $this->articles()->whereBetween('articles.created_at', $previous)->distinct()->count('articles.user_id');
 
-        $likes = $this->likes()->whereBetween('article_user_like.created_at', $current)->count();
+        $likes = $this->likedDuring($this->likes(), $current, true)->count();
         $likesPrev = $this->likes()->whereBetween('article_user_like.created_at', $previous)->count();
 
         // Part des nouveaux inscrits de la période qui ont publié au moins une annonce
@@ -1083,7 +1099,7 @@ class AdminStatistics
     private function topLikedArticles(): array
     {
         $rows = $this->likes()
-            ->whereBetween('article_user_like.created_at', $this->period())
+            ->tap(fn (Builder $q) => $this->likedDuring($q, $this->period(), true))
             ->selectRaw('article_user_like.article_id as aid, COUNT(*) as likes')
             ->groupBy('article_user_like.article_id')
             ->orderByDesc('likes')
