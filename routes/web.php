@@ -14,6 +14,7 @@ use App\Http\Controllers\DetailArticleController;
 use App\Http\Controllers\UserShopController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminStatisticsController;
+use App\Http\Controllers\AdminStatisticsDetailController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\MessageController;
@@ -193,6 +194,18 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
     Route::get('/statistiques/export/{section}', [AdminStatisticsController::class, 'export'])
         ->name('statistics.export')
         ->where('section', '[a-z_]+');
+    Route::get('/statistiques/details/{type}', [AdminStatisticsDetailController::class, 'details'])
+        ->name('statistics.details')
+        ->where('type', '[a-z\-]+');
+    Route::get('/statistiques/details/{type}/export', [AdminStatisticsDetailController::class, 'export'])
+        ->name('statistics.details.export')
+        ->where('type', '[a-z\-]+');
+    Route::get('/statistiques/annonce/{article}', [AdminStatisticsDetailController::class, 'annonce'])
+        ->name('statistics.annonce')
+        ->whereNumber('article');
+    Route::get('/statistiques/vendeur/{user}', [AdminStatisticsDetailController::class, 'vendeur'])
+        ->name('statistics.vendeur')
+        ->whereNumber('user');
     
     // Gestion des utilisateurs
     Route::get('/users', [AdminController::class, 'users'])->name('users.index');

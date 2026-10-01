@@ -189,8 +189,7 @@ class AdminStatistics
     {
         // Vérifié à chaque affichage et inclus dans la clé : après un `php artisan migrate`,
         // un résultat calculé sans les tables de suivi n'est jamais resservi depuis le cache.
-        $this->hasVisites = Schema::hasTable('stat_visites');
-        $this->hasRecherches = Schema::hasTable('stat_recherches');
+        $this->detectTrackingTables();
 
         $key = 'admin_statistics:v3:' . md5(implode('|', [
             $this->from->toDateString(), $this->to->toDateString(), $this->granularity, $this->top,
@@ -203,6 +202,41 @@ class AdminStatistics
         }
 
         return Cache::remember($key, self::CACHE_TTL, fn () => $this->compute());
+    }
+
+    /**
+     * Détecte la présence des tables de suivi (vues, visites, recherches).
+     */
+    public function detectTrackingTables(): self
+    {
+        $this->hasVisites = Schema::hasTable('stat_visites');
+        $this->hasRecherches = Schema::hasTable('stat_recherches');
+
+        return $this;
+    }
+
+    public function hasVisites(): bool
+    {
+        return $this->hasVisites;
+    }
+
+    public function hasRecherches(): bool
+    {
+        return $this->hasRecherches;
+    }
+
+    /**
+     * Paramètres d'URL de la période et des filtres (pour les liens entre pages).
+     */
+    public function queryParams(): array
+    {
+        return array_filter([
+            'periode' => $this->period,
+            'du' => $this->period === 'perso' ? $this->from->toDateString() : null,
+            'au' => $this->period === 'perso' ? $this->to->toDateString() : null,
+            'ville' => $this->ville,
+            'categorie' => $this->categorieParam(),
+        ], fn ($v) => $v !== null && $v !== '');
     }
 
     public function hasArticleFilter(): bool
@@ -324,7 +358,7 @@ class AdminStatistics
     /**
      * Restreint une requête qui contient la table `articles` aux annonces filtrées.
      */
-    private function filterArticles(Builder $query): Builder
+    public function filterArticles(Builder $query): Builder
     {
         if ($this->ville !== null) {
             $query->whereIn('articles.lieu', $this->lieuValues());
@@ -365,13 +399,13 @@ class AdminStatistics
     }
 
     /** Annonces (filtrées). */
-    private function articles(): Builder
+    public function articles(): Builder
     {
         return $this->filterArticles(DB::table('articles'));
     }
 
     /** Vues d'annonces (filtrées par les annonces vues). */
-    private function articleVisits(): Builder
+    public function articleVisits(): Builder
     {
         $query = DB::table('stat_visites')->where('stat_visites.type', 'article');
 
@@ -384,7 +418,7 @@ class AdminStatistics
     }
 
     /** Visites de boutiques (filtrées : vendeurs ayant au moins une annonce correspondante). */
-    private function shopVisits(): Builder
+    public function shopVisits(): Builder
     {
         $query = DB::table('stat_visites')->where('stat_visites.type', 'boutique');
 
@@ -396,7 +430,7 @@ class AdminStatistics
     }
 
     /** Likes (filtrés par les annonces aimées). */
-    private function likes(): Builder
+    public function likes(): Builder
     {
         $query = DB::table('article_user_like');
 
@@ -413,7 +447,7 @@ class AdminStatistics
      * (avant la correction de withTimestamps) n'ont pas de jour connu : ils ne
      * comptent que pour « Depuis le début ».
      */
-    private function likedDuring(Builder $query, array $range, bool $includeUndated = false): Builder
+    public function likedDuring(Builder $query, array $range, bool $includeUndated = false): Builder
     {
         $column = 'article_user_like.created_at';
 
@@ -424,7 +458,7 @@ class AdminStatistics
         return $query->whereBetween($column, $range);
     }
 
-    private function period(): array
+    public function period(): array
     {
         return [$this->from, $this->to];
     }
@@ -577,7 +611,7 @@ class AdminStatistics
     /**
      * @return array<string, int> date Y-m-d => nombre
      */
-    private function dailyCounts(Builder $query, string $column): array
+    public function dailyCounts(Builder $query, string $column): array
     {
         return $query
             ->whereBetween($column, $this->period())
@@ -592,7 +626,7 @@ class AdminStatistics
      * Intervalles de la courbe selon la granularité : clé => [label, start, end].
      * start / end sont bornés à la période (une semaine à cheval reste dans la sélection).
      */
-    private function buckets(): array
+    public function buckets(): array
     {
         $buckets = [];
         $first = $this->from;
@@ -626,7 +660,7 @@ class AdminStatistics
         return $buckets;
     }
 
-    private function bucketize(array $daily, array $buckets): array
+    public function bucketize(array $daily, array $buckets): array
     {
         $values = array_fill_keys(array_keys($buckets), 0);
 
@@ -690,18 +724,19 @@ class AdminStatistics
         return $result;
     }
 
+    /** Tranches de prix : clé (utilisée dans les liens) => [libellé, min, max]. */
+    public const PRICE_RANGES = [
+        'moins-5000' => ['Moins de 5 000', 0, 5000],
+        '5000-25000' => ['5 000 – 25 000', 5000, 25000],
+        '25000-100000' => ['25 000 – 100 000', 25000, 100000],
+        '100000-500000' => ['100 000 – 500 000', 100000, 500000],
+        'plus-500000' => ['500 000 et plus', 500000, null],
+    ];
+
     private function priceRanges(): array
     {
-        $ranges = [
-            'Moins de 5 000' => [0, 5000],
-            '5 000 – 25 000' => [5000, 25000],
-            '25 000 – 100 000' => [25000, 100000],
-            '100 000 – 500 000' => [100000, 500000],
-            '500 000 et plus' => [500000, null],
-        ];
-
         $result = [];
-        foreach ($ranges as $label => [$min, $max]) {
+        foreach (self::PRICE_RANGES as [$label, $min, $max]) {
             $query = $this->articles()->whereBetween('articles.created_at', $this->period())->where('articles.prix_ht', '>=', $min);
             if ($max !== null) {
                 $query->where('articles.prix_ht', '<', $max);
@@ -888,6 +923,14 @@ class AdminStatistics
 
     private function topVilles(): array
     {
+        return $this->villeRows($this->top);
+    }
+
+    /**
+     * Villes de publication, orthographes fusionnées (toutes si $limit est null).
+     */
+    public function villeRows(?int $limit = null): array
+    {
         $rows = $this->articles()
             ->whereBetween('articles.created_at', $this->period())
             ->selectRaw('articles.lieu as lieu, COUNT(*) as total')
@@ -916,14 +959,19 @@ class AdminStatistics
             'nom' => $v['nom'],
             'annonces' => $v['annonces'],
             'part' => $this->percent($v['annonces'], $periodTotal),
-        ], array_slice($villes, 0, $this->top));
+        ], $limit === null ? $villes : array_slice($villes, 0, $limit));
+    }
+
+    private function topKeywords(): array
+    {
+        return $this->keywordRows($this->top);
     }
 
     /**
      * Mots et expressions (2 mots) les plus présents dans les titres des annonces.
      * On compte le nombre d'annonces qui contiennent le mot, pas ses répétitions.
      */
-    private function topKeywords(): array
+    public function keywordRows(?int $limit = null): array
     {
         $stopwords = array_flip(self::STOPWORDS);
         $words = [];
@@ -985,9 +1033,11 @@ class AdminStatistics
             array_values($list),
         );
 
+        $slice = fn (array $list) => $limit === null ? $list : array_slice($list, 0, $limit, true);
+
         return [
-            'mots' => $format(array_slice($words, 0, $this->top, true)),
-            'expressions' => $format(array_slice($pairs, 0, $this->top, true)),
+            'mots' => $format($slice($words)),
+            'expressions' => $format($slice($pairs)),
         ];
     }
 
@@ -1187,7 +1237,7 @@ class AdminStatistics
     // Outils
     // ------------------------------------------------------------------
 
-    private function loadArticles(array $ids)
+    public function loadArticles(array $ids)
     {
         if (empty($ids)) {
             return collect();
@@ -1199,7 +1249,7 @@ class AdminStatistics
             ->keyBy('id');
     }
 
-    private function articleColumns(?Article $article, int $id): array
+    public function articleColumns(?Article $article, int $id): array
     {
         if (! $article) {
             return [
@@ -1222,7 +1272,7 @@ class AdminStatistics
         ];
     }
 
-    private function userColumns(?User $user, int $id): array
+    public function userColumns(?User $user, int $id): array
     {
         if (! $user) {
             return [
@@ -1247,7 +1297,7 @@ class AdminStatistics
      * Les résultats sont mis en cache : on n'y garde que des chemins (« /boutique/… »),
      * sans l'hôte de la requête qui les a calculés (http/https, www, port…).
      */
-    private function relativeUrl(?string $url): ?string
+    public function relativeUrl(?string $url): ?string
     {
         if ($url === null || $url === '') {
             return $url;
@@ -1261,7 +1311,7 @@ class AdminStatistics
         return ($parts['path'] ?? '/') . (isset($parts['query']) ? '?' . $parts['query'] : '');
     }
 
-    private function metric(int $value, int $previous): array
+    public function metric(int $value, int $previous): array
     {
         if ($previous === 0) {
             $evolution = $value > 0 ? null : 0.0; // null = « nouveau »
@@ -1272,7 +1322,7 @@ class AdminStatistics
         return ['valeur' => $value, 'precedent' => $previous, 'evolution' => $evolution];
     }
 
-    private function percent(int|float $part, int|float $total): float
+    public function percent(int|float $part, int|float $total): float
     {
         return $total > 0 ? round(($part / $total) * 100, 1) : 0.0;
     }

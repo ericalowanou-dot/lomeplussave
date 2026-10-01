@@ -386,6 +386,100 @@ class AdminStatisticsTest extends TestCase
         $this->assertSame($article->id, $all['top_articles_aimes'][0]['id']);
     }
 
+    /**
+     * Petit jeu de données réaliste pour les pages de détail.
+     */
+    private function seedActivity(): array
+    {
+        $seller = $this->makeUser(['name' => 'Kossi Mensah']);
+        $iphone = $this->makeArticle($seller, ['titre' => 'iPhone 13 Pro', 'lieu' => 'Lomé', 'prix_ht' => 300000]);
+        $robe = $this->makeArticle($seller, ['titre' => 'Robe wax', 'lieu' => 'Kara', 'prix_ht' => 15000, 'status' => 'pending']);
+        $fan = $this->makeUser(['name' => 'Afi Fan']);
+
+        $this->actingAs($fan)->get($iphone->url());
+        $this->actingAs($fan)->get($seller->shopUrl());
+        $this->actingAs($fan)->postJson(route('articles.like', $iphone));
+        $this->actingAs($fan)->getJson('/search?q=iphone', ['X-Requested-With' => 'XMLHttpRequest']);
+        auth()->logout();
+
+        return compact('seller', 'iphone', 'robe', 'fan');
+    }
+
+    public function test_every_detail_page_renders_sorts_searches_and_exports(): void
+    {
+        $data = $this->seedActivity();
+        $admin = $this->makeUser(['role' => 'admin']);
+
+        foreach (array_keys(\App\Services\StatisticsDetails::TYPES) as $type) {
+            $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => $type, 'periode' => '7j']))
+                ->assertOk()->assertSee(\App\Services\StatisticsDetails::TYPES[$type][0] === 'Mots-clés des titres' ? 'Mots-clés' : \App\Services\StatisticsDetails::TYPES[$type][0]);
+
+            $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => $type, 'periode' => 'tout', 'q' => 'i', 'sens' => 'asc', 'par_page' => 50, 'ville' => 'Lomé']))
+                ->assertOk();
+
+            $csv = $this->actingAs($admin)->get(route('admin.statistics.details.export', ['type' => $type, 'periode' => '7j']));
+            $csv->assertOk();
+            $this->assertStringStartsWith("\xEF\xBB\xBF", $csv->streamedContent());
+        }
+
+        // Contenu attendu
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'annonces-vues', 'periode' => '7j']))
+            ->assertSee('iPhone 13 Pro')->assertDontSee('Robe wax');
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'likes', 'periode' => '7j']))
+            ->assertSee('Afi Fan')->assertSee('iPhone 13 Pro');
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'annonces', 'periode' => '7j', 'statut' => 'pending']))
+            ->assertSee('Robe wax')->assertDontSee('iPhone 13 Pro');
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'annonces', 'periode' => '7j', 'prix' => 'plus-500000']))
+            ->assertDontSee('iPhone 13 Pro');
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'annonces', 'periode' => '7j', 'mot' => 'iphone']))
+            ->assertSee('iPhone 13 Pro')->assertDontSee('Robe wax');
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'annonces', 'recherche' => 'iphone', 'periode' => 'tout']))
+            ->assertSee('iPhone 13 Pro');
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'boutiques', 'periode' => '7j']))
+            ->assertSee('Kossi Mensah');
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'recherches', 'periode' => '7j']))
+            ->assertSee('iphone');
+        $this->actingAs($admin)->get(route('admin.statistics.details', ['type' => 'villes', 'periode' => '7j', 'tri' => 'nom', 'sens' => 'asc']))
+            ->assertSeeInOrder(['Kara', 'Lomé']);
+
+        // Type inconnu, accès non admin
+        $this->actingAs($admin)->get('/admin/statistiques/details/inconnu')->assertNotFound();
+        $this->actingAs($data['fan'])->get(route('admin.statistics.details', ['type' => 'annonces']))->assertForbidden();
+    }
+
+    public function test_article_and_seller_fiches(): void
+    {
+        $data = $this->seedActivity();
+        $admin = $this->makeUser(['role' => 'admin']);
+
+        $this->actingAs($admin)->get(route('admin.statistics.annonce', ['article' => $data['iphone']->id, 'periode' => '7j']))
+            ->assertOk()
+            ->assertSee('iPhone 13 Pro')
+            ->assertSee('Qui a aimé cette annonce')
+            ->assertSee('Afi Fan');
+
+        $this->actingAs($admin)->get(route('admin.statistics.vendeur', ['user' => $data['seller']->id, 'periode' => '7j', 'tri' => 'prix', 'sens' => 'asc']))
+            ->assertOk()
+            ->assertSee('Kossi Mensah')
+            ->assertSee('Son annonce la plus vue')
+            ->assertSeeInOrder(['Robe wax', 'iPhone 13 Pro']);
+
+        $this->actingAs($admin)->get('/admin/statistiques/annonce/999999')->assertNotFound();
+    }
+
+    public function test_summary_page_links_to_details_and_fiches(): void
+    {
+        $data = $this->seedActivity();
+        $admin = $this->makeUser(['role' => 'admin']);
+
+        $html = $this->actingAs($admin)->get(route('admin.statistics.index', ['periode' => '7j']))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Boutique la plus visitée', $html);
+        $this->assertStringContainsString(route('admin.statistics.vendeur', ['user' => $data['seller']->id, 'periode' => '7j']), html_entity_decode($html));
+        $this->assertStringContainsString(route('admin.statistics.annonce', ['article' => $data['iphone']->id, 'periode' => '7j']), html_entity_decode($html));
+        $this->assertStringContainsString(route('admin.statistics.details', ['type' => 'likes', 'periode' => '7j']), html_entity_decode($html));
+    }
+
     public function test_normalize_groups_accents_and_case(): void
     {
         $this->assertSame('telephone samsung', StatTracker::normalize('  Téléphone   SAMSUNG! '));
