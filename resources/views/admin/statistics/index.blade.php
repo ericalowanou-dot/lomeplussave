@@ -387,8 +387,7 @@
 
     <div class="st-zoom-hint" id="zoomHint">
         <i class="fas fa-hand-pointer"></i>
-        <span class="d-none d-md-inline">Glissez la souris sur une courbe pour sélectionner une période, ou cliquez sur un point.</span>
-        <span class="d-md-none">Écartez deux doigts sur une courbe pour zoomer, ou touchez un point.</span>
+        <span id="zoomHintText">Glissez la souris sur une courbe pour sélectionner une période, ou cliquez sur un point.</span>
         Les trois courbes suivent la même sélection.
     </div>
 
@@ -1307,6 +1306,9 @@
                 options: timeOptions(),
             })));
 
+            if (!finePointer) {
+                document.getElementById('zoomHintText').textContent = 'Écartez deux doigts sur une courbe pour zoomer, ou touchez un point.';
+            }
             if (!window.ChartZoom) {
                 document.getElementById('zoomHint').innerHTML = '<i class="fas fa-info-circle"></i> Cliquez sur un point pour sélectionner cette période.';
             }
