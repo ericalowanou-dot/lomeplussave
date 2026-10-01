@@ -263,6 +263,21 @@ class AdminStatisticsTest extends TestCase
         $this->assertSame(3, end($stats['series']['inscrits_cumules']));
     }
 
+    public function test_cached_result_is_not_reused_after_tracking_tables_are_created(): void
+    {
+        $request = Request::create('/', 'GET', ['periode' => '7j']);
+
+        // Calcul (mis en cache) avant le `migrate` des tables de suivi
+        \Illuminate\Support\Facades\Schema::rename('stat_visites', 'stat_visites_tmp');
+        $before = AdminStatistics::fromRequest($request)->all();
+        $this->assertFalse($before['tracking']['visites']);
+
+        // Tables créées : le résultat sans suivi ne doit pas être resservi
+        \Illuminate\Support\Facades\Schema::rename('stat_visites_tmp', 'stat_visites');
+        $after = AdminStatistics::fromRequest($request)->all();
+        $this->assertTrue($after['tracking']['visites']);
+    }
+
     public function test_normalize_groups_accents_and_case(): void
     {
         $this->assertSame('telephone samsung', StatTracker::normalize('  Téléphone   SAMSUNG! '));

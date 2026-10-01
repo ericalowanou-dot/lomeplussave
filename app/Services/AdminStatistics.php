@@ -142,8 +142,14 @@ class AdminStatistics
      */
     public function all(bool $refresh = false): array
     {
+        // Vérifié à chaque affichage et inclus dans la clé : après un `php artisan migrate`,
+        // un résultat calculé sans les tables de suivi n'est jamais resservi depuis le cache.
+        $this->hasVisites = Schema::hasTable('stat_visites');
+        $this->hasRecherches = Schema::hasTable('stat_recherches');
+
         $key = 'admin_statistics:v2:' . md5(implode('|', [
             $this->from->toDateString(), $this->to->toDateString(), $this->granularity, $this->top,
+            (int) $this->hasVisites, (int) $this->hasRecherches,
         ]));
 
         if ($refresh) {
@@ -155,9 +161,6 @@ class AdminStatistics
 
     private function compute(): array
     {
-        $this->hasVisites = Schema::hasTable('stat_visites');
-        $this->hasRecherches = Schema::hasTable('stat_recherches');
-
         return [
             'generated_at' => now()->format('d/m/Y H:i'),
             'tracking' => [
