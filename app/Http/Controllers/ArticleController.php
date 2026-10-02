@@ -13,6 +13,7 @@ use App\Models\Categorie;
 use App\Models\SousCategorie;
 
 use App\Events\ArticlePending;
+use App\Services\AdminMailNotifier;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -904,6 +905,7 @@ class ArticleController extends Controller
 
             // Déclencher l'événement pour notifier l'admin
             event(new ArticlePending($article));
+            AdminMailNotifier::articleCreated($article, $request->user());
 
 
 
@@ -1331,7 +1333,11 @@ class ArticleController extends Controller
                 $article->submitForReview();
             }
 
+            $changedFields = array_keys($article->getDirty());
+
             $article->save();
+
+            AdminMailNotifier::articleUpdated($article, $request->user(), $changedFields, $needsReview);
 
 
 

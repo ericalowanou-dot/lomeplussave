@@ -113,4 +113,16 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Lome+'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Adresse de l'administrateur
+    |--------------------------------------------------------------------------
+    |
+    | Reçoit un mail quand un vendeur publie ou modifie un article, ou envoie
+    | un message à l'administration.
+    |
+    */
+
+    'admin_notification_address' => env('ADMIN_NOTIFICATION_EMAIL', 'lomeplus80@gmail.com'),
+
 ];

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Message;
 use App\Models\User;
+use App\Services\AdminMailNotifier;
 
 class MessageController extends Controller
 {
@@ -113,6 +114,8 @@ class MessageController extends Controller
             ]);
 
             $message->recipients()->sync([$admin->id]);
+
+            AdminMailNotifier::messageReceived($message, $user);
 
             return redirect()->route('messages.inbox')->with('success', 'Message envoyé à l\'administrateur.');
         } catch (\Exception $e) {
