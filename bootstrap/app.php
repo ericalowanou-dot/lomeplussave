@@ -11,6 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Avant StartSession : pas de session enregistrée pour les robots
+        $middleware->web(prepend: [
+            \App\Http\Middleware\NoSessionForBots::class,
+        ]);
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'check.blocked' => \App\Http\Middleware\CheckBlockedUser::class,

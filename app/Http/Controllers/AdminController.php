@@ -223,10 +223,7 @@ class AdminController extends Controller
      */
     public function deleteUser(User $user)
     {
-        // Supprimer d'abord tous les articles de l'utilisateur
-        $user->articles()->delete();
-        
-        // Puis supprimer l'utilisateur
+        // Supprime l'utilisateur ; ses annonces et leurs photos sont supprimées par le modèle User
         $user->delete();
 
         return redirect()->back()->with('success', 'Utilisateur supprimé avec succès.');

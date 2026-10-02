@@ -15,6 +15,54 @@ class Article extends Model
 {
     use HasFactory;
 
+        public const PHOTO_FIELDS = ['photo', 'photo1', 'photo2', 'photo3', 'photo4', 'photo5', 'photo6'];
+
+        protected static function booted(): void
+        {
+            // Supprimer l'annonce supprime aussi ses photos (sinon le disque se remplit avec le temps).
+            // afterCommit : si la suppression est annulée par une transaction, les fichiers restent.
+            static::deleted(function (Article $article) {
+                \Illuminate\Support\Facades\DB::afterCommit(fn () => $article->deletePhotoFiles());
+            });
+        }
+
+        /**
+         * Supprime du disque les photos de l'annonce, sauf si une autre annonce les utilise encore.
+         * Ne touche qu'aux fichiers situés dans public/articles.
+         */
+        public function deletePhotoFiles(): int
+        {
+            $folder = realpath(public_path('articles'));
+            if (! $folder) {
+                return 0;
+            }
+
+            $deleted = 0;
+            foreach (self::PHOTO_FIELDS as $field) {
+                $path = $this->getAttribute($field);
+                if (! $path || Str::startsWith($path, ['http://', 'https://'])) {
+                    continue;
+                }
+
+                $relative = ltrim(str_replace('\\', '/', $path), '/');
+                $file = realpath(public_path($relative));
+                if (! $file || ! str_starts_with($file, $folder . DIRECTORY_SEPARATOR) || ! is_file($file)) {
+                    continue;
+                }
+
+                $stillUsed = static::query()
+                    ->whereKeyNot($this->getKey())
+                    ->where(fn ($q) => collect(self::PHOTO_FIELDS)->each(fn ($f) => $q->orWhere($f, $path)))
+                    ->exists();
+
+                if (! $stillUsed && @unlink($file)) {
+                    $deleted++;
+                }
+            }
+
+            return $deleted;
+        }
+
         
         public function usersWhoLiked()
         {

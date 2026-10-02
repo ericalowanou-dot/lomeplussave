@@ -52,6 +52,60 @@ class ImageOptimizer
         }
     }
 
+    /** Au-delà, on refuse l'image même si la mémoire PHP est illimitée (~100 mégapixels). */
+    private const MAX_PIXELS = 100_000_000;
+
+    /**
+     * Vérifie, avant de la décoder, qu'une image tient dans la mémoire disponible.
+     * GD décompresse toute l'image en mémoire (~5 octets par pixel) : une photo de
+     * 108 mégapixels demande plus de 500 Mo et ferait planter la requête (erreur 500).
+     *
+     * @return string|null Message à afficher à l'utilisateur, ou null si l'image est acceptable.
+     */
+    public static function memoryProblem(UploadedFile $file): ?string
+    {
+        $size = @getimagesize($file->getRealPath());
+        if (! $size || empty($size[0]) || empty($size[1])) {
+            return null; // format non lisible ici (SVG, HEIC…) : laissé au traitement normal
+        }
+
+        [$width, $height] = $size;
+        $pixels = $width * $height;
+        $needed = $pixels * 5;
+
+        $limit = self::memoryLimitBytes();
+        $available = $limit === null ? PHP_INT_MAX : $limit - memory_get_usage(true) - 32 * 1024 * 1024;
+
+        if ($pixels <= self::MAX_PIXELS && $needed <= $available) {
+            return null;
+        }
+
+        return sprintf(
+            'La photo « %s » est trop grande (%d × %d pixels, %s mégapixels). Réduisez sa taille ou faites une capture d\'écran de la photo, puis réessayez.',
+            $file->getClientOriginalName(),
+            $width,
+            $height,
+            number_format($pixels / 1_000_000, 0, ',', ' ')
+        );
+    }
+
+    private static function memoryLimitBytes(): ?int
+    {
+        $value = trim((string) ini_get('memory_limit'));
+        if ($value === '' || $value === '-1') {
+            return null;
+        }
+
+        $number = (int) $value;
+
+        return match (strtolower(substr($value, -1))) {
+            'g' => $number * 1024 ** 3,
+            'm' => $number * 1024 ** 2,
+            'k' => $number * 1024,
+            default => $number,
+        };
+    }
+
     /**
      * Optimise une image d'article
      */

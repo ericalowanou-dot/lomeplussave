@@ -115,8 +115,8 @@ class ArticleController extends Controller
                       ->orWhere('description', 'like', "%$q%")
                       ->orWhere('lieu', 'like', "%$q%")
                       ->orWhereHas('user', function ($userQuery) use ($q) {
+                          // Pas l'email : taper « gmail » ressortait toutes les annonces des vendeurs Gmail
                           $userQuery->where('name', 'like', "%$q%")
-                                    ->orWhere('email', 'like', "%$q%")
                                     ->orWhere('ville', 'like', "%$q%");
                       })
                       ->orWhereHas('sousCategorie', function ($subQuery) use ($q) {
@@ -628,6 +628,15 @@ class ArticleController extends Controller
                 }
                 return back()->withErrors($err)->withInput();
             }
+
+            // Image trop grande pour être traitée en mémoire : message clair plutôt qu'une erreur 500
+            if ($msg = \App\Services\ImageOptimizer::memoryProblem($photo)) {
+                $err = ['photos' => [$msg]];
+                if ($wantsJson) {
+                    return $jsonError($err, $msg);
+                }
+                return back()->withErrors($err)->withInput();
+            }
         }
 
 
@@ -981,7 +990,11 @@ class ArticleController extends Controller
 
         } else {
 
-            $article->usersWhoLiked()->attach($user->id); // Liker
+            try {
+                $article->usersWhoLiked()->attach($user->id); // Liker
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                // Double clic : l'autre requête a déjà enregistré ce like (index unique)
+            }
 
             $liked = true;
 
@@ -1169,6 +1182,13 @@ class ArticleController extends Controller
 
                 ->withInput();
 
+        }
+
+        // Image trop grande pour être traitée en mémoire : message clair plutôt qu'une erreur 500
+        foreach ((array) $request->file('photos', []) as $photo) {
+            if ($photo instanceof \Illuminate\Http\UploadedFile && ($msg = \App\Services\ImageOptimizer::memoryProblem($photo))) {
+                return back()->withErrors(['photos' => $msg])->withInput();
+            }
         }
 
 

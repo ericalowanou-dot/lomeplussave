@@ -25,6 +25,10 @@ class AdminMiddleware
             abort(403, 'Accès non autorisé. Seuls les administrateurs peuvent accéder à cette section.');
         }
 
+        // Sans tâche cron : nettoyage des sessions de visiteurs et du cache expiré,
+        // une fois par jour, après l'envoi de la page (n'allonge pas son chargement).
+        \App\Services\Maintenance::runDailyIfDue();
+
         return $next($request);
     }
 }

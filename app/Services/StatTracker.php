@@ -144,14 +144,23 @@ class StatTracker
         ]);
     }
 
+    /**
+     * Robot, aperçu de lien (WhatsApp, Facebook…) ou script : pas un vrai visiteur.
+     */
+    public static function isBot(?string $userAgent): bool
+    {
+        $userAgent = (string) $userAgent;
+
+        return $userAgent === '' || (bool) preg_match(self::BOT_PATTERN, $userAgent);
+    }
+
     private function shouldTrack(Request $request, ?int $ownerId): bool
     {
         if (! $request->isMethod('GET')) {
             return false;
         }
 
-        $userAgent = (string) $request->userAgent();
-        if ($userAgent === '' || preg_match(self::BOT_PATTERN, $userAgent)) {
+        if (self::isBot($request->userAgent())) {
             return false;
         }
 

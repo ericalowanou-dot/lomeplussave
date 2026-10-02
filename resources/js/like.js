@@ -7,6 +7,11 @@ document.addEventListener('click', function (e) {
     const articleId = button.getAttribute('data-article-id');
     if (!articleId) return;
 
+    // Un seul envoi à la fois : un double clic rapide créait deux likes identiques
+    if (button.dataset.likeBusy === '1') return;
+    button.dataset.likeBusy = '1';
+    button.setAttribute('aria-busy', 'true');
+
     const likeIcon = button.querySelector('.like-icon, .like-icon-inline') || button.querySelector('i');
     const likeCount = document.getElementById(`count-js-${articleId}`);
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -56,5 +61,9 @@ document.addEventListener('click', function (e) {
         })
         .catch((error) => {
             console.error('Erreur lors de la requête AJAX :', error);
+        })
+        .finally(() => {
+            delete button.dataset.likeBusy;
+            button.removeAttribute('aria-busy');
         });
 });

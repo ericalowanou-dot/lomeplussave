@@ -15,6 +15,15 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    protected static function booted(): void
+    {
+        // Supprimer un compte supprime ses annonces une par une, pour effacer aussi leurs photos
+        // (la suppression en cascade de la base ne déclenche pas cet effacement).
+        static::deleting(function (User $user) {
+            $user->articles()->get()->each->delete();
+        });
+    }
+
     public function getProfilPhotoUrl(){
         if ($this->photo_profil) {
             // Si le chemin commence déjà par users/profil, on l'utilise tel quel
