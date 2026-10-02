@@ -18,7 +18,8 @@ class NoSessionForBots
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (StatTracker::isBot($request->userAgent())) {
+        // Détection stricte : un vrai visiteur classé « robot » ne pourrait plus se connecter
+        if (StatTracker::isCrawler($request->userAgent())) {
             config(['session.driver' => 'array']);
         }
 

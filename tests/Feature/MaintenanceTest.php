@@ -211,6 +211,39 @@ class MaintenanceTest extends TestCase
         $this->assertSame(1, DB::table('sessions')->count());
     }
 
+    /**
+     * Un vrai visiteur ne doit JAMAIS être pris pour un robot (sinon il ne peut plus se connecter).
+     */
+    public function test_real_browsers_are_never_treated_as_crawlers(): void
+    {
+        $humans = [
+            'Mozilla/5.0 (Linux; Android 11; CUBOT X50 Build/RP1A.200720.011) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+            'Mozilla/5.0 (Linux; Android 13; SM-A145F Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0 Mobile Safari/537.36 Telegram-Android/10.6.2 (Samsung SM-A145F; Android 13; SDK 33; AVERAGE)',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/455.0.0.36.103]',
+            'Mozilla/5.0 (Linux; Android 12; TECNO KH7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Mobile Safari/537.36 Instagram 310.0.0.40.109 Android',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+            'Opera/9.80 (Android; Opera Mini/36.2.2254/191.320; U; fr) Presto/2.12.423 Version/12.16',
+        ];
+        foreach ($humans as $ua) {
+            $this->assertFalse(\App\Services\StatTracker::isCrawler($ua), $ua);
+        }
+
+        $crawlers = [
+            'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)',
+            'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+            'WhatsApp/2.23.20.0 A',
+            'TelegramBot (like TwitterBot)',
+            'Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)',
+            'curl/8.4.0',
+            '',
+        ];
+        foreach ($crawlers as $ua) {
+            $this->assertTrue(\App\Services\StatTracker::isCrawler($ua), $ua);
+        }
+    }
+
     public function test_daily_maintenance_runs_once_per_day_from_admin(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

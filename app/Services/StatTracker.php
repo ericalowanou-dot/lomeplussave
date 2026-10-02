@@ -145,7 +145,22 @@ class StatTracker
     }
 
     /**
-     * Robot, aperçu de lien (WhatsApp, Facebook…) ou script : pas un vrai visiteur.
+     * Détection STRICTE des robots, pour les décisions qui peuvent gêner un vrai visiteur
+     * (ex. ne pas enregistrer de session). Seuls des robots connus ou déclarés comme tels :
+     * « bot » seul ne suffit pas (téléphones Cubot), ni « Telegram » (navigateur intégré).
+     */
+    private const CRAWLER_PATTERN = '/googlebot|bingbot|yandex(bot|images)|baiduspider|duckduckbot|slurp|applebot|petalbot|ahrefsbot|semrushbot|mj12bot|dotbot|bytespider|gptbot|claudebot|facebookexternalhit|facebookcatalog|meta-externalagent|twitterbot|linkedinbot|pinterestbot|whatsapp\/|telegrambot|discordbot|slackbot|skypeuripreview|uptimerobot|pingdom|headlesschrome|lighthouse|curl\/|wget\/|python-requests|go-http-client|compatible;[^)]*bot|\+https?:\/\//i';
+
+    public static function isCrawler(?string $userAgent): bool
+    {
+        $userAgent = (string) $userAgent;
+
+        return $userAgent === '' || (bool) preg_match(self::CRAWLER_PATTERN, $userAgent);
+    }
+
+    /**
+     * Détection LARGE (robot, aperçu de lien, script…) : pour les statistiques seulement,
+     * où se tromper sur un vrai visiteur a pour seul effet de ne pas compter sa visite.
      */
     public static function isBot(?string $userAgent): bool
     {
