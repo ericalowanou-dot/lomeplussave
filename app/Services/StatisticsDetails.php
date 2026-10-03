@@ -795,7 +795,7 @@ class StatisticsDetails
         }
 
         $source = $this->request->query('source');
-        $sources = ['accueil' => 'Barre d\'accueil', 'recherche' => 'Page de recherche', 'recherche_directe' => 'Recherche en direct'];
+        $sources = ['accueil' => 'Barre d\'accueil', 'recherche' => 'Page de recherche', 'recherche_directe' => 'Recherche en direct', 'appli' => 'Appli mobile'];
         if (array_key_exists($source, $sources)) {
             $query->where('source', $source);
             $filtres['source'] = 'Origine : ' . $sources[$source];

@@ -23,8 +23,8 @@ class UpdateArticleRequest extends ArticleRequest
 
     protected function failedValidation(Validator $validator): void
     {
-        if (! $this->expectsJson()) {
-            session()->flash('error_solutions', [
+        if (! $this->expectsJson() && $this->hasSession()) {
+            $this->session()->flash('error_solutions', [
                 'Vérifiez que tous les champs obligatoires sont remplis',
                 'Assurez-vous que les images sont au bon format',
                 'Vérifiez que vous ne dépassez pas 6 images',

@@ -19,6 +19,9 @@ use App\Listeners\CreateAdminNotificationForReport;
 use App\Listeners\CreateAdminNotificationForUserReport;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -75,6 +78,11 @@ class AppServiceProvider extends ServiceProvider
                 ? auth()->user()->favoris()->pluck('articles.id')->toArray()
                 : []);
         });
+
+        // API mobile : 120 requêtes/min par compte (ou par adresse IP sans connexion),
+        // et 10 tentatives/min pour la connexion et l'inscription (anti force brute).
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('api-auth', fn (Request $request) => Limit::perMinute(10)->by(strtolower((string) $request->input('email')) . '|' . $request->ip()));
 
         // Enregistrer les listeners pour les notifications admin
         Event::listen(UserRegistered::class, CreateAdminNotification::class);

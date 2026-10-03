@@ -711,7 +711,7 @@ class AdminStatistics
         ];
 
         if ($this->hasRecherches) {
-            $labels = ['accueil' => 'Barre d\'accueil', 'recherche' => 'Page de recherche', 'recherche_directe' => 'Recherche en direct'];
+            $labels = ['accueil' => 'Barre d\'accueil', 'recherche' => 'Page de recherche', 'recherche_directe' => 'Recherche en direct', 'appli' => 'Appli mobile'];
             $result['sources_recherche'] = DB::table('stat_recherches')
                 ->whereBetween('created_at', $this->period())
                 ->selectRaw('source, COUNT(*) as total')

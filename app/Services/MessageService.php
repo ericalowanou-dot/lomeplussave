@@ -17,6 +17,7 @@ class MessageService
         return Message::with('sender')
             ->whereHas('recipients', fn ($q) => $q->where('recipient_id', $user->id))
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate($perPage);
     }
 

@@ -4,12 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Events\UserRegistered;
-use Illuminate\Auth\Events\Registered;
+use App\Services\AccountService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 // use Illuminate\Validation\Rules; // Commenté - validation simplifiée à 6 caractères minimum
 use Illuminate\View\View;
 
@@ -28,24 +26,13 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AccountService $accounts): RedirectResponse
     {
         try {
-            $request->validate([
-                'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-                // Validation simplifiée : seulement 6 caractères minimum
-                'password' => ['required', 'string', 'min:6'],
+            $request->validate(AccountService::registrationRules() + [
                 'phone_full' => ['required', 'string', 'max:20'],
                 'whatsapp_full' => ['required', 'string', 'max:20'],
-            ], [
-                'name.required' => 'Le nom est obligatoire.',
-                'name.max' => 'Le nom ne peut pas dépasser 255 caractères.',
-                'email.required' => 'L\'email est obligatoire.',
-                'email.email' => 'L\'email doit être une adresse email valide.',
-                'email.unique' => 'Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.',
-                'password.required' => 'Le mot de passe est obligatoire.',
-                'password.min' => 'Le mot de passe doit contenir au moins 6 caractères. Veuillez ajouter des caractères pour atteindre 6 caractères minimum.',
+            ], AccountService::registrationMessages() + [
                 'phone_full.required' => 'Le numéro de téléphone est obligatoire.',
                 'whatsapp_full.required' => 'Le numéro WhatsApp est obligatoire.',
             ]);
@@ -62,16 +49,7 @@ class RegisteredUserController extends Controller
         }
 
         try {
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'telephone' => $request->phone_full,
-                'whatsapp' => $request->whatsapp_full, 
-                'password' => Hash::make($request->password),
-            ]);
-
-            event(new Registered($user));
-            event(new UserRegistered($user));
+            $user = $accounts->register($request->name, $request->email, $request->password, $request->phone_full, $request->whatsapp_full);
 
             Auth::login($user);
 
