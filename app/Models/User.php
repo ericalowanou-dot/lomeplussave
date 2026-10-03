@@ -138,16 +138,36 @@ class User extends Authenticatable
         return ($this->coins ?? 0) >= $amount;
     }
 
-    public function spendCoins(int $amount): void
+    /**
+     * Débite des coins en une seule requête, seulement si le solde en base suffit.
+     * Deux clics simultanés ne peuvent donc pas dépenser deux fois les mêmes coins.
+     *
+     * @return bool Faux si le solde est insuffisant (rien n'est débité).
+     */
+    public function spendCoins(int $amount): bool
     {
-        $this->coins = max(0, ($this->coins ?? 0) - $amount);
-        $this->save();
+        if ($amount <= 0) {
+            return false;
+        }
+
+        $debited = static::whereKey($this->getKey())
+            ->where('coins', '>=', $amount)
+            ->decrement('coins', $amount);
+
+        $this->coins = (int) static::whereKey($this->getKey())->value('coins');
+        $this->syncOriginalAttribute('coins');
+
+        return $debited === 1;
     }
 
     public function addCoins(int $amount): void
     {
-        $this->coins = ($this->coins ?? 0) + max(0, $amount);
-        $this->save();
+        if ($amount > 0) {
+            static::whereKey($this->getKey())->increment('coins', $amount);
+        }
+
+        $this->coins = (int) static::whereKey($this->getKey())->value('coins');
+        $this->syncOriginalAttribute('coins');
     }
 
     public function likedArticles()

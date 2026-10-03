@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Services\StatTracker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class DetailArticleController extends Controller
@@ -21,6 +22,7 @@ class DetailArticleController extends Controller
         }
 
         $article = $this->loadArticle((int) $matches[1]);
+        Gate::authorize('view', $article);
 
         // Canonical : redirige si catégorie / slug obsolètes
         $params = $article->routeParameters();
@@ -43,6 +45,7 @@ class DetailArticleController extends Controller
     public function showLegacy(int $id): RedirectResponse
     {
         $article = Article::with(['sousCategorie.categorie'])->findOrFail($id);
+        Gate::authorize('view', $article);
 
         return redirect($article->url(), 301);
     }

@@ -211,11 +211,14 @@ class AdminStatisticsTest extends TestCase
         $this->makeArticle($top, ['titre' => 'iPhone 11 propre', 'lieu' => 'Lomé']);
         $this->makeArticle($top, ['titre' => 'iPhone 12', 'lieu' => 'lome']);
         $this->makeArticle($top, ['titre' => 'Samsung Galaxy', 'lieu' => 'Kara']);
-        $viewed = $this->makeArticle($small, ['titre' => 'Robe wax', 'lieu' => 'LOMÉ', 'status' => 'pending']);
+        $viewed = $this->makeArticle($small, ['titre' => 'Robe wax', 'lieu' => 'LOMÉ']);
 
         $visitor = $this->makeUser();
-        $this->actingAs($visitor)->get($viewed->url());
+        $this->actingAs($visitor)->get($viewed->url())->assertOk();
         $this->actingAs($visitor)->get($small->shopUrl());
+
+        // Vue pendant qu'elle était en ligne, puis modifiée par le vendeur : repassée en attente
+        $viewed->forceFill(['status' => 'pending'])->save();
 
         $stats = AdminStatistics::fromRequest(Request::create('/', 'GET', ['periode' => '7j']))->all(refresh: true);
 

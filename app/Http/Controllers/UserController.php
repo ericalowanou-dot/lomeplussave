@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Article;
+use App\Services\CoinService;
+use App\Services\InsufficientCoinsException;
 
 class UserController extends Controller
 {
@@ -87,7 +89,7 @@ public function updateAjax(Request $request)
     }
 }
 
-public function spendCoinsForBoost(Request $request, Article $article)
+public function spendCoinsForBoost(Request $request, Article $article, CoinService $coins)
 {
     try {
         $request->validate([
@@ -122,27 +124,11 @@ public function spendCoinsForBoost(Request $request, Article $article)
             ], 403);
         }
 
-        $cost = (int) $request->days; // 1 coin = 1 jour
-        if (!$user->hasCoins($cost)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solde de coins insuffisant.',
-                'solutions' => [
-                    'Vous avez besoin de ' . $cost . ' coins pour ' . $cost . ' jour(s)',
-                    'Achetez plus de coins pour continuer',
-                    'Contactez-nous pour obtenir des coins : lomeplus80@gmail.com'
-                ]
-            ], 400);
+        try {
+            $coins->boostArticle($user, $article, (int) $request->days); // 1 coin = 1 jour
+        } catch (InsufficientCoinsException $e) {
+            return $this->insufficientCoins($e->needed);
         }
-
-        $user->spendCoins($cost);
-
-        $current = $article->boosted_until ? $article->boosted_until->copy() : now();
-        if ($article->boosted_until && $article->boosted_until->isFuture()) {
-            $current = $article->boosted_until->copy();
-        }
-        $article->boosted_until = $current->addDays((int) $request->days);
-        $article->save();
 
         return response()->json(['success' => true, 'boosted_until' => $article->boosted_until->toDateTimeString(), 'coins' => $user->coins]);
     } catch (\Exception $e) {
@@ -159,7 +145,7 @@ public function spendCoinsForBoost(Request $request, Article $article)
     }
 }
 
-public function spendCoinsForCertification(Request $request)
+public function spendCoinsForCertification(Request $request, CoinService $coins)
 {
     try {
         $request->validate([
@@ -194,28 +180,11 @@ public function spendCoinsForCertification(Request $request)
             ], 403);
         }
 
-        $cost = (int) $request->days; // 1 coin = 1 jour
-        if (!$user->hasCoins($cost)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solde de coins insuffisant.',
-                'solutions' => [
-                    'Vous avez besoin de ' . $cost . ' coins pour ' . $cost . ' jour(s)',
-                    'Achetez plus de coins pour continuer',
-                    'Contactez-nous pour obtenir des coins : lomeplus80@gmail.com'
-                ]
-            ], 400);
+        try {
+            $coins->certify($user, (int) $request->days); // 1 coin = 1 jour
+        } catch (InsufficientCoinsException $e) {
+            return $this->insufficientCoins($e->needed);
         }
-
-        $user->spendCoins($cost);
-
-        $current = $user->certifie_until ? $user->certifie_until->copy() : now();
-        if ($user->certifie_until && $user->certifie_until->isFuture()) {
-            $current = $user->certifie_until->copy();
-        }
-        $user->certifie_until = $current->addDays((int) $request->days);
-        $user->certifie = 1;
-        $user->save();
 
         return response()->json(['success' => true, 'certifie_until' => optional($user->certifie_until)->toDateTimeString(), 'coins' => $user->coins]);
     } catch (\Exception $e) {
@@ -230,6 +199,19 @@ public function spendCoinsForCertification(Request $request)
             ]
         ], 500);
     }
+}
+
+private function insufficientCoins(int $cost)
+{
+    return response()->json([
+        'success' => false,
+        'message' => 'Solde de coins insuffisant.',
+        'solutions' => [
+            'Vous avez besoin de ' . $cost . ' coins pour ' . $cost . ' jour(s)',
+            'Achetez plus de coins pour continuer',
+            'Contactez-nous pour obtenir des coins : lomeplus80@gmail.com'
+        ]
+    ], 400);
 }
 
 public function myArticles()

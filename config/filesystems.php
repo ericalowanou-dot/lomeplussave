@@ -28,6 +28,9 @@ return [
     |
     */
 
+    // Disque des photos du site (voir le disque « uploads » ci-dessous).
+    'media' => env('MEDIA_DISK', 'uploads'),
+
     'disks' => [
 
         'local' => [
@@ -42,6 +45,17 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/public'),
             'url' => env('APP_URL').'/storage',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // Photos envoyées par les vendeurs et l'admin (annonces, profils, catégories, publicités).
+        // Aujourd'hui dans public/ ; pour passer sur un stockage cloud, définir MEDIA_DISK=s3
+        // (et les variables AWS_*) après avoir copié les fichiers : aucun code à modifier.
+        'uploads' => [
+            'driver' => 'local',
+            'root' => public_path(),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

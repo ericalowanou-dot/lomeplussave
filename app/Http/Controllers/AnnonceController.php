@@ -118,8 +118,12 @@ public function index(Request $request)
 
     public function show($id)
     {
-        $article = Article::findOrFail($id); // recuperer un article par son id
-        return view('pages.detail_article', compact('article'));
+        // Ancienne page : la vue attend des données qu'elle ne recevait plus (erreur 500).
+        // On renvoie vers la fiche officielle de l'annonce.
+        $article = Article::with('sousCategorie.categorie')->findOrFail($id);
+        \Illuminate\Support\Facades\Gate::authorize('view', $article);
+
+        return redirect($article->url());
 
 
     }
@@ -129,7 +133,7 @@ public function index(Request $request)
 
     public function maPaginnation(){
 
-        $articles = Article::paginate(5);
+        $articles = Article::approved()->paginate(5);
             
         return view('pages.pagination', compact('articles'));
     }

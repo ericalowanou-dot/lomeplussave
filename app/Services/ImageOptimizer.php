@@ -89,6 +89,37 @@ class ImageOptimizer
         );
     }
 
+    /**
+     * Formats acceptés pour les photos d'annonce. Pas de SVG : un SVG peut contenir
+     * du script, exécuté sur le domaine du site quand on ouvre l'image.
+     */
+    public const ARTICLE_EXTENSIONS = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'avif'];
+
+    public const ARTICLE_MAX_KB = 30720;
+
+    /**
+     * Contrôle complet d'une photo d'annonce (format, poids, taille en mémoire).
+     *
+     * @return string|null Message à afficher, ou null si la photo est acceptable.
+     */
+    public static function articlePhotoProblem(UploadedFile $file): ?string
+    {
+        if (! $file->isValid()) {
+            return 'Une ou plusieurs photos sont invalides.';
+        }
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (! in_array($extension, self::ARTICLE_EXTENSIONS, true)) {
+            return 'Le format de fichier n\'est pas accepté. Formats acceptés : ' . implode(', ', self::ARTICLE_EXTENSIONS) . '.';
+        }
+
+        if ($file->getSize() > self::ARTICLE_MAX_KB * 1024) {
+            return 'Une ou plusieurs photos dépassent la taille maximale de 30 Mo. L\'application optimisera automatiquement vos images.';
+        }
+
+        return self::memoryProblem($file);
+    }
+
     private static function memoryLimitBytes(): ?int
     {
         $value = trim((string) ini_get('memory_limit'));

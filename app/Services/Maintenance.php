@@ -126,6 +126,11 @@ class Maintenance
      */
     public function orphanPhotos(): array
     {
+        // Outil manuel prévu pour les photos stockées sur ce serveur (public/articles).
+        if (! \App\Services\MediaStorage::isLocal()) {
+            return [];
+        }
+
         $folder = public_path('articles');
         if (! is_dir($folder)) {
             return [];

@@ -12,8 +12,11 @@ use App\Models\Categorie;
 
 use App\Models\SousCategorie;
 
-use App\Events\ArticlePending;
-use App\Services\AdminMailNotifier;
+use App\Http\Requests\Articles\StoreArticleRequest;
+use App\Http\Requests\Articles\UpdateArticleRequest;
+use App\Services\Articles\ArticleService;
+use App\Services\Articles\PhotoStorageException;
+use Illuminate\Support\Facades\Gate;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -21,14 +24,8 @@ use Illuminate\Http\JsonResponse;
 
 use Illuminate\Support\Facades\DB;
 
-use Illuminate\Support\Facades\File;
-
-use Illuminate\Support\Str;
-
 use App\Services\StatTracker;
 
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver; 
 
 
 
@@ -434,523 +431,37 @@ class ArticleController extends Controller
 
 
 
-    public function store(Request $request)
+    public function store(StoreArticleRequest $request, ArticleService $articles)
     {
         $wantsJson = $request->wantsJson() || $request->ajax();
-        $jsonError = function (array $errors, ?string $message = null, array $solutions = []) {
-            $payload = ['errors' => $errors];
-            if ($message !== null) {
-                $payload['message'] = $message;
-            }
-            if ($solutions !== []) {
-                $payload['error_solutions'] = $solutions;
-            }
-            return response()->json($payload, 422);
-        };
 
         try {
-            return $this->storeArticle($request, $wantsJson, $jsonError);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e;
+            $articles->publish($request->user(), $request->articleAttributes(), $request->photos());
+        } catch (PhotoStorageException $e) {
+            report($e);
+
+            return $this->photoStorageFailure($e, $wantsJson);
         } catch (\Throwable $e) {
             report($e);
 
-            if ($wantsJson) {
-                return response()->json([
-                    'message' => 'Une erreur serveur est survenue lors de la publication. Réessayez dans quelques instants.',
-                    'errors' => [
-                        'general' => ['Impossible de publier l\'annonce pour le moment.'],
-                    ],
-                    'error_solutions' => [
-                        'Vérifiez votre connexion Internet',
-                        'Réduisez le nombre ou la taille des photos',
-                        'Rechargez la page et réessayez',
-                    ],
-                ], 500);
-            }
-
-            throw $e;
-        }
-    }
-
-    protected function storeArticle(Request $request, bool $wantsJson, callable $jsonError)
-    {
-        $photos = $request->file('photos');
-
-        
-
-        // Si photos est null, essayer de récupérer comme tableau
-
-        if ($photos === null) {
-
-            $photos = $request->file('photos', []);
-
-        }
-
-        
-
-        // Si photos n'est toujours pas un tableau, le convertir
-
-        if (!is_array($photos)) {
-
-            $photos = $photos ? [$photos] : [];
-
-        }
-
-        
-
-        // Filtrer les fichiers valides (non null et valides)
-
-        $validPhotos = [];
-
-        foreach ($photos as $photo) {
-
-            if ($photo !== null && 
-
-                is_object($photo) && 
-
-                method_exists($photo, 'isValid') && 
-
-                $photo->isValid() &&
-
-                $photo->getError() === UPLOAD_ERR_OK) {
-
-                $validPhotos[] = $photo;
-
-            }
-
-        }
-
-        
-
-        $photos = $validPhotos;
-
-
-
-        if (empty($photos)) {
-            $err = ['photos' => ['Au moins une photo est obligatoire. Veuillez sélectionner au moins une image.']];
-            if ($wantsJson) {
-                return $jsonError($err, $err['photos'][0]);
-            }
-            return back()->withErrors($err)->withInput();
-        }
-
-        if (count($photos) > 6) {
-            $err = ['photos' => ['Vous ne pouvez pas télécharger plus de 6 photos.']];
-            if ($wantsJson) {
-                return $jsonError($err, $err['photos'][0]);
-            }
-            return back()->withErrors($err)->withInput();
-        }
-
-
-
-        $validated = $request->validate([
-
-            'categorie' => 'required|exists:categories,id',
-
-            'sous_categorie_id' => 'required|exists:sous_categories,id',
-
-            'titre' => 'required|string|max:255',
-
-            'prix_ht' => 'required|numeric|min:0|max:999999999',
-
-            'lieu' => 'required|string|max:255',
-
-            'description' => 'required|string|min:20|max:1500',
-
-            'etat' => 'required|in:neuf,occasion',
-
-            'livraison' => 'nullable|boolean',
-
-        ], [
-
-            'categorie.required' => 'La catégorie est obligatoire.',
-
-            'categorie.exists' => 'La catégorie sélectionnée n\'existe pas.',
-
-            'sous_categorie_id.required' => 'La sous-catégorie est obligatoire.',
-
-            'sous_categorie_id.exists' => 'La sous-catégorie sélectionnée n\'existe pas.',
-
-            'titre.required' => 'Le titre est obligatoire.',
-
-            'titre.max' => 'Le titre ne peut pas dépasser 255 caractères.',
-
-            'prix_ht.required' => 'Le prix est obligatoire.',
-
-            'prix_ht.numeric' => 'Le prix doit être un nombre.',
-
-            'prix_ht.min' => 'Le prix doit être supérieur ou égal à 0.',
-
-            'lieu.required' => 'Le lieu est obligatoire.',
-
-            'description.required' => 'La description est obligatoire.',
-
-            'description.min' => 'La description doit contenir au moins 20 caractères.',
-
-            'description.max' => 'La description ne peut pas dépasser 1500 caractères.',
-
-            'etat.required' => 'L\'état du produit est obligatoire.',
-
-            'etat.in' => 'L\'état doit être "neuf" ou "occasion".',
-
-        ]);
-
-
-
-        // Valider chaque photo individuellement
-
-        foreach ($photos as $idx => $photo) {
-            if (!$photo->isValid()) {
-                $err = ['photos' => ['Une ou plusieurs photos sont invalides.']];
-                if ($wantsJson) {
-                    return $jsonError($err, $err['photos'][0]);
-                }
-                return back()->withErrors($err)->withInput();
-            }
-
-            $allowedMimes = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif', 'svg', 'avif'];
-            $extension = strtolower($photo->getClientOriginalExtension());
-            if (!in_array($extension, $allowedMimes)) {
-                $msg = 'Le format de fichier n\'est pas accepté. Formats acceptés : ' . implode(', ', $allowedMimes) . '.';
-                $err = ['photos' => [$msg]];
-                if ($wantsJson) {
-                    return $jsonError($err, $msg);
-                }
-                return back()->withErrors($err)->withInput();
-            }
-
-            if ($photo->getSize() > 30720 * 1024) {
-                $msg = 'Une ou plusieurs photos dépassent la taille maximale de 30 Mo. L\'application optimisera automatiquement vos images.';
-                $err = ['photos' => [$msg]];
-                if ($wantsJson) {
-                    return $jsonError($err, $msg);
-                }
-                return back()->withErrors($err)->withInput();
-            }
-
-            // Image trop grande pour être traitée en mémoire : message clair plutôt qu'une erreur 500
-            if ($msg = \App\Services\ImageOptimizer::memoryProblem($photo)) {
-                $err = ['photos' => [$msg]];
-                if ($wantsJson) {
-                    return $jsonError($err, $msg);
-                }
-                return back()->withErrors($err)->withInput();
-            }
-        }
-
-
-
-        $categoryId = (int) $validated['categorie'];
-
-        $sousCategorie = SousCategorie::select('id', 'categorie_id')->find($validated['sous_categorie_id']);
-
-        if (!$sousCategorie || (int) $sousCategorie->categorie_id !== $categoryId) {
-            $msg = 'La sous-catégorie sélectionnée n\'appartient pas à la catégorie choisie.';
-            $err = ['sous_categorie_id' => [$msg]];
-            if ($wantsJson) {
-                return $jsonError($err, $msg);
-            }
-            return back()->withErrors($err)->withInput();
-        }
-
-        $images = array_fill(0, 6, null);
-
-        $storedFiles = [];
-
-
-
-        $destinationPath = public_path('articles');
-
-        if (!File::exists($destinationPath)) {
-
-            File::makeDirectory($destinationPath, 0777, true);
-
-        }
-
-        
-
-        // Vérifier et corriger les permissions si nécessaire
-
-        if (!is_writable($destinationPath)) {
-
-            try {
-
-                chmod($destinationPath, 0777);
-
-                \Log::info('Permissions du dossier articles corrigées', ['path' => $destinationPath]);
-
-            } catch (\Exception $permException) {
-
-                \Log::error('Impossible de corriger les permissions du dossier', [
-
-                    'path' => $destinationPath,
-
-                    'error' => $permException->getMessage()
-
-                ]);
-
-            }
-
-        }
-
-        
-
-        // Vérifier une dernière fois que le dossier est accessible
-
-        if (!is_writable($destinationPath)) {
-            \Log::error('Le dossier articles n\'est toujours pas accessible en écriture après correction', [
-                'path' => $destinationPath,
-                'permissions' => substr(sprintf('%o', fileperms($destinationPath)), -4)
-            ]);
-            $msg = 'Erreur de permissions : le dossier de destination n\'est pas accessible en écriture. Veuillez contacter l\'administrateur.';
-            $err = ['photos' => [$msg]];
-            if ($wantsJson) {
-                return $jsonError($err, $msg);
-            }
-            return back()->withErrors($err)->withInput();
-        }
-
-
-
-        try {
-
-            $imageOptimizer = new \App\Services\ImageOptimizer();
-
-            
-
-            $idx = 0;
-
-            foreach ($photos as $photo) {
-
-                if ($idx >= 6) {
-
-                    break;
-
-                }
-
-
-
-                $filename = now()->format('YmdHis') . '_' . Str::random(16) . '.' . $photo->getClientOriginalExtension();
-
-                
-
-                // Optimiser et compresser l'image avant de la sauvegarder
-
-                if (!$imageOptimizer->optimizeArticleImage($photo, $destinationPath, $filename)) {
-
-                    // Si l'optimisation échoue, sauvegarder l'image originale
-
-                    $photo->move($destinationPath, $filename);
-
-                }
-
-
-
-                $relativePath = 'articles/' . $filename;
-
-                $images[$idx] = $relativePath;
-
-                $storedFiles[] = $relativePath;
-
-                $idx++;
-
-            }
-
-        } catch (\Throwable $exception) {
-
-            // Logger l'erreur complète
-
-            \Log::error('Erreur lors du traitement des images', [
-
-                'message' => $exception->getMessage(),
-
-                'file' => $exception->getFile(),
-
-                'line' => $exception->getLine(),
-
-                'trace' => $exception->getTraceAsString(),
-
-                'stored_files' => $storedFiles,
-
-                'destination_path' => $destinationPath,
-
-                'path_exists' => File::exists($destinationPath),
-
-                'path_writable' => File::exists($destinationPath) ? is_writable($destinationPath) : false
-
-            ]);
-
-            
-
-            // Nettoyer les fichiers partiellement créés
-
-            foreach ($storedFiles as $path) {
-
-                $fullPath = public_path($path);
-
-                if (File::exists($fullPath)) {
-
-                    try {
-
-                        File::delete($fullPath);
-
-                    } catch (\Exception $deleteException) {
-
-                        \Log::warning('Impossible de supprimer le fichier après erreur', [
-
-                            'path' => $path,
-
-                            'error' => $deleteException->getMessage()
-
-                        ]);
-
-                    }
-
-                }
-
-            }
-
-
-
-            report($exception);
-
-
-
-            // Message d'erreur plus détaillé
-
-            $errorMessage = 'Une erreur est survenue lors du téléchargement des images.';
-            $exceptionMessage = strtolower($exception->getMessage());
-
-            if (str_contains($exceptionMessage, 'gd') || str_contains($exceptionMessage, 'driver')) {
-
-                $errorMessage = 'L\'extension GD n\'est pas disponible. Veuillez activer GD dans votre configuration PHP et redémarrer Apache.';
-
-            } elseif (str_contains($exceptionMessage, 'permission') || str_contains($exceptionMessage, 'writable')) {
-
-                $errorMessage = 'Erreur de permissions : le dossier de destination n\'est pas accessible en écriture.';
-
-            } elseif (str_contains($exceptionMessage, 'read') || str_contains($exceptionMessage, 'invalid')) {
-
-                $errorMessage = 'Impossible de lire les images. Vérifiez que les fichiers ne sont pas corrompus.';
-
-            }
-
-
-
-            $err = ['photos' => [$errorMessage]];
-            $solutions = $this->getErrorSolutions($exceptionMessage);
-            if ($wantsJson) {
-                return $jsonError($err, $errorMessage, $solutions);
-            }
-            return back()->withErrors($err)->with('error_solutions', $solutions)->withInput();
-        }
-
-        if (is_null($images[0])) {
-            $err = ['photos' => ['La première image est obligatoire.']];
-            if ($wantsJson) {
-                return $jsonError($err, $err['photos'][0]);
-            }
-            return back()->withErrors($err)->withInput();
-        }
-
-
-
-        DB::beginTransaction();
-
-
-
-        try {
-
-            $article = new Article();
-
-
-
-            $article->photo  = $images[0];
-
-            $article->photo1 = $images[1];
-
-            $article->photo2 = $images[2];
-
-            $article->photo3 = $images[3];
-
-            $article->photo4 = $images[4];
-
-            $article->photo5 = $images[5];
-
-
-
-            $article->user_id = auth()->id();
-
-            $article->titre = $validated['titre'];
-
-            $article->prix_ht = $validated['prix_ht'];
-
-            $article->lieu = $validated['lieu'];
-
-            $article->description = $validated['description'];
-
-            $article->sous_categorie_id = $validated['sous_categorie_id'];
-
-            $article->neuf = $validated['etat'] === 'neuf';
-
-            $article->livraison = $request->boolean('livraison');
-
-            $article->status = 'pending'; // Nouveaux articles en attente d'approbation
-
-
-
-            $article->save();
-
-            // Déclencher l'événement pour notifier l'admin
-            event(new ArticlePending($article));
-            AdminMailNotifier::articleCreated($article, $request->user());
-
-
-
-            DB::commit();
-
-        } catch (\Throwable $exception) {
-
-            DB::rollBack();
-
-
-
-            foreach ($storedFiles as $path) {
-
-                $fullPath = public_path($path);
-
-                if (File::exists($fullPath)) {
-
-                    File::delete($fullPath);
-
-                }
-
-            }
-
-
-
-            report($exception);
-
-
-
-            $msg = 'Impossible d\'enregistrer l\'article pour le moment. Veuillez réessayer.';
-            $err = ['general' => [$msg]];
             $solutions = [
                 'Vérifiez que tous les champs sont correctement remplis',
-                'Assurez-vous que les images ne dépassent pas 5 Mo chacune',
                 'Vérifiez votre connexion Internet',
                 'Réessayez dans quelques instants',
             ];
             if ($wantsJson) {
-                return $jsonError($err, $msg, $solutions);
+                return response()->json([
+                    'message' => 'Une erreur serveur est survenue lors de la publication. Réessayez dans quelques instants.',
+                    'errors' => ['general' => ['Impossible de publier l\'annonce pour le moment.']],
+                    'error_solutions' => $solutions,
+                ], 500);
             }
-            return back()->withErrors($err)->with('error_solutions', $solutions)->withInput();
 
+            return back()
+                ->withErrors(['general' => ['Impossible d\'enregistrer l\'article pour le moment. Veuillez réessayer.']])
+                ->with('error_solutions', $solutions)
+                ->withInput();
         }
-
-
 
         if ($wantsJson) {
             return response()->json([
@@ -959,611 +470,161 @@ class ArticleController extends Controller
                 'message' => 'Article ajouté avec succès !',
             ]);
         }
-        return redirect()->route('mes_annonces')->with('success', 'Article ajouté avec succès !'); 
 
+        return redirect()->route('mes_annonces')->with('success', 'Article ajouté avec succès !');
     }
 
-
-
-
-    public function toggleLike(Request $request, Article $article)
-
+    public function toggleLike(Request $request, Article $article, ArticleService $articles): JsonResponse
     {
-
-        $user = auth()->user();
-
-
-
-        if (!$user) {
-
-            return response()->json(['error' => 'Unauthorized'], 401);
-
-        }
-
-
-
-        // Vérifier si l'utilisateur a déjà liké
-
-        if ($article->usersWhoLiked()->where('user_id', $user->id)->exists()) {
-
-            $article->usersWhoLiked()->detach($user->id); // Déliker
-
-            $liked = false;
-
-        } else {
-
-            try {
-                $article->usersWhoLiked()->attach($user->id); // Liker
-            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                // Double clic : l'autre requête a déjà enregistré ce like (index unique)
-            }
-
-            $liked = true;
-
-        }
-
-
-
-        return response()->json([
-
-            'liked' => $liked,
-
-            'likeCount' => $article->usersWhoLiked()->count(),
-
-        ]);
-
+        return response()->json($articles->toggleLike($article, $request->user()));
     }
-
-         
 
     public function edit(Article $article)
-
     {
-
-        if (auth()->id() !== $article->user_id) {
-
-            abort(403, 'Accès refusé');
-
-        }
-
-        
-
-        // Récupérer les catégories et sous-catégories comme pour la création
+        Gate::authorize('update', $article);
 
         $categories = Categorie::with('sousCategories')->get();
 
-        
-
         // Grouper les sous-catégories par catégorie
-
         $sousCategories = $categories->mapWithKeys(function ($category) {
-
             return [$category->id => $category->sousCategories];
-
         });
 
-        
-
         return view('pages.articles.edit', [
-
             'article' => $article,
-
             'categories' => $categories,
-
             'sousCategoriesGrouped' => $sousCategories,
-
         ]);
-
     }
 
- 
-
-
-
-    public function update(Request $request, Article $article)
-
+    public function update(UpdateArticleRequest $request, Article $article, ArticleService $articles)
     {
-
-        // Vérifier que l'utilisateur est propriétaire
-
-        if (auth()->id() !== $article->user_id) {
-
-            abort(403, 'Vous n\'avez pas l\'autorisation de modifier cet article.');
-
-        }
-
-
-
         try {
-
-            $validated = $request->validate([
-
-                'categorie' => 'required|exists:categories,id',
-
-                'sous_categorie_id' => 'required|exists:sous_categories,id',
-
-                'titre' => 'required|string|max:255',
-
-                'prix_ht' => 'required|numeric|min:0|max:999999999',
-
-                'lieu' => 'required|string|max:255',
-
-                'description' => 'required|string|min:20|max:1500',
-
-                'etat' => 'required|in:neuf,occasion',
-
-                'livraison' => 'nullable|boolean',
-
-                'photos' => 'nullable|array|max:6',
-
-                'photos.*' => 'image|mimes:jpeg,png,jpg,gif,webp,bmp,heic,heif,svg,avif|max:30720',
-
-            ], [
-
-                'categorie.required' => 'La catégorie est obligatoire.',
-
-                'categorie.exists' => 'La catégorie sélectionnée n\'existe pas.',
-
-                'sous_categorie_id.required' => 'La sous-catégorie est obligatoire.',
-
-                'sous_categorie_id.exists' => 'La sous-catégorie sélectionnée n\'existe pas.',
-
-                'titre.required' => 'Le titre est obligatoire.',
-
-                'titre.max' => 'Le titre ne peut pas dépasser 255 caractères.',
-
-                'prix_ht.required' => 'Le prix est obligatoire.',
-
-                'prix_ht.numeric' => 'Le prix doit être un nombre.',
-
-                'prix_ht.min' => 'Le prix doit être supérieur ou égal à 0.',
-
-                'lieu.required' => 'Le lieu est obligatoire.',
-
-                'description.required' => 'La description est obligatoire.',
-
-                'description.min' => 'La description doit contenir au moins 20 caractères.',
-
-                'description.max' => 'La description ne peut pas dépasser 1500 caractères.',
-
-                'etat.required' => 'L\'état du produit est obligatoire.',
-
-                'etat.in' => 'L\'état doit être "neuf" ou "occasion".',
-
-                'photos.max' => 'Vous ne pouvez pas télécharger plus de 6 images.',
-
-                'photos.*.image' => 'Tous les fichiers doivent être des images.',
-
-                'photos.*.mimes' => 'Les images doivent être au format : jpeg, png, jpg, gif, webp, bmp, heic, heif, svg ou avif.',
-
-                'photos.*.max' => 'Chaque image ne doit pas dépasser 30 Mo. L\'application optimisera automatiquement vos images.',
-
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-
-            return back()
-
-                ->withErrors($e->errors())
-
-                ->with('error_solutions', [
-
-                    'Vérifiez que tous les champs obligatoires sont remplis',
-
-                    'Assurez-vous que les images sont au bon format',
-
-                    'Vérifiez que vous ne dépassez pas 6 images',
-
-                    'Vérifiez que le prix est un nombre valide'
-
-                ])
-
-                ->withInput();
-
-        }
-
-
-
-        // Vérifier que la sous-catégorie appartient à la catégorie
-
-        $categoryId = (int) $validated['categorie'];
-
-        $sousCategorie = SousCategorie::select('id', 'categorie_id')->find($validated['sous_categorie_id']);
-
-
-
-        if (!$sousCategorie || (int) $sousCategorie->categorie_id !== $categoryId) {
-
-            return back()
-
-                ->withErrors([
-
-                    'sous_categorie_id' => 'La sous-catégorie sélectionnée n\'appartient pas à la catégorie choisie.'
-
-                ])
-
-                ->withInput();
-
-        }
-
-        // Image trop grande pour être traitée en mémoire : message clair plutôt qu'une erreur 500
-        foreach ((array) $request->file('photos', []) as $photo) {
-            if ($photo instanceof \Illuminate\Http\UploadedFile && ($msg = \App\Services\ImageOptimizer::memoryProblem($photo))) {
-                return back()->withErrors(['photos' => $msg])->withInput();
-            }
-        }
-
-
-
-        DB::beginTransaction();
-
-
-
-        try {
-
-            // Mettre à jour les images si de nouvelles sont fournies
-
-            if ($request->hasFile('photos')) {
-
-                $photos = $request->file('photos');
-
-                
-
-                // Filtrer les fichiers valides
-
-                $validPhotos = [];
-
-                foreach ($photos as $photo) {
-
-                    if ($photo !== null && 
-
-                        is_object($photo) && 
-
-                        method_exists($photo, 'isValid') && 
-
-                        $photo->isValid() &&
-
-                        $photo->getError() === UPLOAD_ERR_OK) {
-
-                        $validPhotos[] = $photo;
-
-                    }
-
-                }
-
-
-
-                if (count($validPhotos) > 0) {
-
-                    $destinationPath = public_path('articles');
-
-                    if (!File::exists($destinationPath)) {
-
-                        File::makeDirectory($destinationPath, 0777, true);
-
-                    }
-
-
-
-                    $imageOptimizer = new \App\Services\ImageOptimizer();
-
-                    $images = [$article->photo, $article->photo1, $article->photo2, $article->photo3, $article->photo4, $article->photo5];
-
-                    
-
-                    $idx = 0;
-
-                    foreach ($validPhotos as $photo) {
-
-                        if ($idx >= 6) break;
-
-
-
-                        // Supprimer l'ancienne image si elle existe
-
-                        if (isset($images[$idx]) && $images[$idx]) {
-
-                            $oldPath = public_path($images[$idx]);
-
-                            if (File::exists($oldPath)) {
-
-                                try {
-
-                                    File::delete($oldPath);
-
-                                } catch (\Exception $e) {
-
-                                    \Log::warning('Impossible de supprimer l\'ancienne image: ' . $e->getMessage());
-
-                                }
-
-                            }
-
-                        }
-
-
-
-                        $filename = now()->format('YmdHis') . '_' . Str::random(16) . '.' . $photo->getClientOriginalExtension();
-
-                        
-
-                        // Optimiser et sauvegarder
-
-                        if (!$imageOptimizer->optimizeArticleImage($photo, $destinationPath, $filename)) {
-
-                            $photo->move($destinationPath, $filename);
-
-                        }
-
-
-
-                        $relativePath = 'articles/' . $filename;
-
-                        $article->{'photo' . ($idx === 0 ? '' : $idx)} = $relativePath;
-
-                        $idx++;
-
-                    }
-
-                }
-
-            }
-
-
-
-            // Mettre à jour les champs
-
-            $article->titre = $validated['titre'];
-
-            $article->prix_ht = $validated['prix_ht'];
-
-            $article->lieu = $validated['lieu'];
-
-            $article->description = $validated['description'];
-
-            $article->sous_categorie_id = $validated['sous_categorie_id'];
-
-            $article->neuf = $validated['etat'] === 'neuf';
-
-            $article->livraison = $request->boolean('livraison');
-
-            // Remodération anti-fraude : approved/blocked → pending, sans toucher created_at
-            $needsReview = in_array($article->status, ['approved', 'blocked'], true);
-            if ($needsReview) {
-                $article->submitForReview();
-            }
-
-            $changedFields = array_keys($article->getDirty());
-
-            $article->save();
-
-            AdminMailNotifier::articleUpdated($article, $request->user(), $changedFields, $needsReview);
-
-
-
-            DB::commit();
-
-
-
-            $successMessage = $needsReview
-                ? 'Article modifié. Il a été renvoyé en validation : un administrateur doit le réexaminer avant republication.'
-                : 'Article modifié avec succès.';
-
-            return redirect()->route('mes_annonces')->with('success', $successMessage);
-
-            
-
+            $needsReview = $articles->update($article, $request->user(), $request->articleAttributes(), $request->photos());
+        } catch (PhotoStorageException $e) {
+            report($e);
+
+            return $this->photoStorageFailure($e, false);
         } catch (\Throwable $exception) {
-
-            DB::rollBack();
-
-            
-
             \Log::error('Erreur lors de la modification de l\'article', [
-
                 'article_id' => $article->id,
-
                 'error_message' => $exception->getMessage(),
-
                 'error_file' => $exception->getFile(),
-
                 'error_line' => $exception->getLine(),
-
-                'error_trace' => $exception->getTraceAsString()
-
             ]);
 
-
-
             return back()
-
-                ->withErrors([
-
-                    'general' => 'Une erreur est survenue lors de la modification de l\'article.'
-
-                ])
-
+                ->withErrors(['general' => 'Une erreur est survenue lors de la modification de l\'article.'])
                 ->with('error_solutions', [
-
                     'Vérifiez que tous les champs sont correctement remplis',
-
-                    'Assurez-vous que les images ne dépassent pas 5 Mo chacune',
-
                     'Vérifiez votre connexion Internet',
-
-                    'Réessayez dans quelques instants'
-
+                    'Réessayez dans quelques instants',
                 ])
-
                 ->withInput();
-
         }
 
+        $successMessage = $needsReview
+            ? 'Article modifié. Il a été renvoyé en validation : un administrateur doit le réexaminer avant republication.'
+            : 'Article modifié avec succès.';
+
+        return redirect()->route('mes_annonces')->with('success', $successMessage);
     }
 
     /**
-     * Retourne les solutions d'erreur selon le type d'erreur
+     * Une photo n'a pas pu être écrite sur le disque : message clair plutôt qu'une erreur 500.
      */
-    private function getErrorSolutions(string $exceptionMessage): array
+    private function photoStorageFailure(PhotoStorageException $e, bool $wantsJson)
     {
-        if (str_contains($exceptionMessage, 'gd') || str_contains($exceptionMessage, 'driver')) {
-            return [
-                'L\'extension GD n\'est pas disponible. Veuillez activer GD dans votre configuration PHP',
-                'Redémarrez Apache après avoir activé GD dans le fichier php.ini',
-                'Vérifiez que vous avez modifié le bon fichier php.ini (celui utilisé par Apache, pas CLI)',
-                'Consultez les logs Laravel pour plus de détails (storage/logs/laravel.log)'
-            ];
-        }
-        
-        return [
+        $exceptionMessage = strtolower($e->getMessage());
+        $errorMessage = str_contains($exceptionMessage, 'permission') || str_contains($exceptionMessage, 'writable')
+            ? 'Erreur de permissions : le dossier de destination n\'est pas accessible en écriture.'
+            : 'Une erreur est survenue lors du téléchargement des images.';
+
+        $solutions = [
             'Vérifiez que les images sont au format JPG, PNG ou WEBP',
-            'Assurez-vous que chaque image ne dépasse pas 5 Mo',
             'Réduisez la taille des images si nécessaire',
-            'Vérifiez les permissions du dossier public/articles',
-            'Consultez les logs Laravel pour plus de détails (storage/logs/laravel.log)'
+            'Réessayez dans quelques instants',
+            'Si le problème persiste, contactez-nous : lomeplus80@gmail.com',
         ];
+
+        if ($wantsJson) {
+            return response()->json([
+                'message' => $errorMessage,
+                'errors' => ['photos' => [$errorMessage]],
+                'error_solutions' => $solutions,
+            ], 422);
+        }
+
+        return back()->withErrors(['photos' => [$errorMessage]])->with('error_solutions', $solutions)->withInput();
     }
 
-    
-
-    public function destroy(Article $article)
-
+    public function destroy(Article $article, ArticleService $articles)
     {
-
-        if (auth()->id() !== $article->user_id) {
-
-            abort(403, 'Vous n\'avez pas l\'autorisation de supprimer cet article.');
-
-        }
-
-        
+        Gate::authorize('delete', $article);
 
         try {
-
-            $article->delete();
+            $articles->delete($article);
 
             return redirect()->route('mes_annonces')->with('success', 'Article supprimé avec succès.');
-
         } catch (\Exception $e) {
-
             \Log::error('Erreur lors de la suppression de l\'article: ' . $e->getMessage());
 
             return back()
-
                 ->with('error', 'Impossible de supprimer l\'article pour le moment.')
-
                 ->with('error_solutions', [
-
                     'Réessayez dans quelques instants',
-
-                    'Si le problème persiste, contactez-nous : lomeplus80@gmail.com'
-
+                    'Si le problème persiste, contactez-nous : lomeplus80@gmail.com',
                 ]);
-
         }
-
     }
-
-    
 
     public function transfer(Article $article)
-
     {
-
-        if (auth()->id() !== $article->user_id) {
-
-            abort(403, 'Accès refusé');
-
-        }
+        Gate::authorize('transfer', $article);
 
         $users = User::where('id', '!=', auth()->id())->orderBy('name')->get(['id', 'name', 'email']);
-        return view('pages.articles.transfer', compact('article', 'users'));
 
+        return view('pages.articles.transfer', compact('article', 'users'));
     }
 
-    
-
-    public function doTransfer(Request $request, Article $article)
-
+    public function doTransfer(Request $request, Article $article, ArticleService $articles)
     {
-
-        if (auth()->id() !== $article->user_id) {
-
-            abort(403, 'Vous n\'avez pas l\'autorisation de transférer cet article.');
-
-        }
-
-        
+        Gate::authorize('transfer', $article);
 
         try {
-
             $request->validate([
-
                 'user_id' => 'required|exists:users,id',
-
             ], [
-
                 'user_id.required' => 'Veuillez sélectionner un utilisateur.',
-
                 'user_id.exists' => 'L\'utilisateur sélectionné n\'existe pas.',
-
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
-
             return back()
-
                 ->withErrors($e->errors())
-
                 ->with('error_solutions', [
-
                     'Sélectionnez un utilisateur valide dans la liste',
-
-                    'Vérifiez que l\'utilisateur existe dans le système'
-
+                    'Vérifiez que l\'utilisateur existe dans le système',
                 ])
-
                 ->withInput();
-
         }
 
-        
-
         try {
-
-            $article->user_id = $request->user_id;
-
-            $article->save();
+            $articles->transfer($article, User::findOrFail($request->user_id));
 
             return redirect()->route('mes_annonces')->with('success', 'Article transféré avec succès.');
-
         } catch (\Exception $e) {
-
             \Log::error('Erreur lors du transfert de l\'article: ' . $e->getMessage());
 
             return back()
-
                 ->with('error', 'Impossible de transférer l\'article pour le moment.')
-
                 ->with('error_solutions', [
-
                     'Vérifiez que l\'utilisateur de destination existe',
-
                     'Réessayez dans quelques instants',
-
-                    'Si le problème persiste, contactez-nous : lomeplus80@gmail.com'
-
+                    'Si le problème persiste, contactez-nous : lomeplus80@gmail.com',
                 ])
-
                 ->withInput();
-
         }
-
     }
-
-    
-
-       
 
     public function show($id)
 

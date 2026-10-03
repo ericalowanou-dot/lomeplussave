@@ -5,29 +5,20 @@ namespace Tests\Concerns;
 use App\Models\Article;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Données de base communes aux tests du site : catégories, annonces, vendeurs.
- * Les photos envoyées pendant un test sont effacées à la fin du test.
+ * Les photos sont écrites sur un disque factice : aucun test ne touche public/.
  */
 trait BuildsMarketplace
 {
     protected int $categorieId;
     protected int $sousCategorieId;
 
-    /** @var array<string, true> */
-    private array $uploadsBefore = [];
-
     protected function setUpMarketplace(): void
     {
-        $this->uploadsBefore = array_fill_keys($this->listUploads(), true);
-        $this->beforeApplicationDestroyed(function () {
-            foreach ($this->listUploads() as $file) {
-                if (! isset($this->uploadsBefore[$file])) {
-                    @unlink(public_path($file));
-                }
-            }
-        });
+        Storage::fake('uploads');
 
         $this->categorieId = DB::table('categories')->insertGetId(['nom' => 'Électronique', 'created_at' => now(), 'updated_at' => now()]);
         $this->sousCategorieId = DB::table('sous_categories')->insertGetId([
@@ -83,20 +74,7 @@ trait BuildsMarketplace
 
     protected function uploadExists(?string $path): bool
     {
-        return $path !== null && $path !== '' && is_file(public_path($path));
-    }
-
-    /** @return list<string> */
-    private function listUploads(): array
-    {
-        $files = [];
-        foreach (['articles', 'users/profil'] as $dir) {
-            foreach (glob(public_path($dir) . '/*') ?: [] as $file) {
-                $files[] = $dir . '/' . basename($file);
-            }
-        }
-
-        return $files;
+        return $path !== null && $path !== '' && Storage::disk('uploads')->exists($path);
     }
 
     protected function admin(): User

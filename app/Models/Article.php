@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory; 
 use App\Models\User;
 use App\Models\SousCategorie;
-use Illuminate\Support\Facades\File;
+use App\Services\MediaStorage;
 use Illuminate\Support\Str;
 
 
@@ -28,34 +28,33 @@ class Article extends Model
 
         /**
          * Supprime du disque les photos de l'annonce, sauf si une autre annonce les utilise encore.
-         * Ne touche qu'aux fichiers situés dans public/articles.
+         * Ne touche qu'aux dossiers d'images du site (voir MediaStorage::DIRECTORIES).
          */
         public function deletePhotoFiles(): int
         {
-            $folder = realpath(public_path('articles'));
-            if (! $folder) {
-                return 0;
-            }
+            return $this->deleteUnusedPhotoFiles(
+                array_filter(array_map(fn ($field) => $this->getAttribute($field), self::PHOTO_FIELDS))
+            );
+        }
 
+        /**
+         * Efface les fichiers donnés s'ils ne sont plus utilisés par aucune annonce en base.
+         *
+         * @param  array<string>  $paths
+         */
+        public function deleteUnusedPhotoFiles(array $paths): int
+        {
             $deleted = 0;
-            foreach (self::PHOTO_FIELDS as $field) {
-                $path = $this->getAttribute($field);
+            foreach (array_unique($paths) as $path) {
                 if (! $path || Str::startsWith($path, ['http://', 'https://'])) {
                     continue;
                 }
 
-                $relative = ltrim(str_replace('\\', '/', $path), '/');
-                $file = realpath(public_path($relative));
-                if (! $file || ! str_starts_with($file, $folder . DIRECTORY_SEPARATOR) || ! is_file($file)) {
-                    continue;
-                }
-
                 $stillUsed = static::query()
-                    ->whereKeyNot($this->getKey())
                     ->where(fn ($q) => collect(self::PHOTO_FIELDS)->each(fn ($f) => $q->orWhere($f, $path)))
                     ->exists();
 
-                if (! $stillUsed && @unlink($file)) {
+                if (! $stillUsed && MediaStorage::delete($path)) {
                     $deleted++;
                 }
             }
@@ -244,24 +243,7 @@ class Article extends Model
          */
         public function getPhotoUrlAttribute()
         {
-            $path = $this->photo;
-
-            if (!$path) {
-                return asset('images/placeholder.png');
-            }
-
-            if (Str::startsWith($path, ['http://', 'https://'])) {
-                return $path;
-            }
-
-            $normalizedPath = ltrim(str_replace('\\', '/', $path), '/');
-            $absolutePath = public_path($normalizedPath);
-
-            if (File::exists($absolutePath)) {
-                return asset($normalizedPath);
-            }
-
-            return asset('images/placeholder.png');
+            return MediaStorage::url($this->photo);
         }
 
         /**
@@ -280,7 +262,7 @@ class Article extends Model
             
             // Si aucune photo, retourner au moins le placeholder
             if (empty($photos)) {
-                $photos[] = asset('images/placeholder.png');
+                $photos[] = MediaStorage::url(null);
             }
             
             return $photos;
@@ -297,27 +279,12 @@ class Article extends Model
                 return $this->buildPhotoUrl($this->{$photoFields[$index]});
             }
             
-            return asset('images/placeholder.png');
+            return MediaStorage::url(null);
         }
 
         protected function buildPhotoUrl($path)
         {
-            if (!$path) {
-                return asset('images/placeholder.png');
-            }
-
-            if (Str::startsWith($path, ['http://', 'https://'])) {
-                return $path;
-            }
-
-            $normalizedPath = ltrim(str_replace('\\', '/', $path), '/');
-            $absolutePath = public_path($normalizedPath);
-
-            if (File::exists($absolutePath)) {
-                return asset($normalizedPath);
-            }
-
-            return asset('images/placeholder.png');
+            return MediaStorage::url($path);
         }
 
         /**
