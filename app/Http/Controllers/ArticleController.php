@@ -14,6 +14,7 @@ use App\Models\SousCategorie;
 
 use App\Http\Requests\Articles\StoreArticleRequest;
 use App\Http\Requests\Articles\UpdateArticleRequest;
+use App\Services\Articles\ArticleSearch;
 use App\Services\Articles\ArticleService;
 use App\Services\Articles\PhotoStorageException;
 use Illuminate\Support\Facades\Gate;
@@ -87,7 +88,7 @@ class ArticleController extends Controller
 
 
 
-    public function search(Request $request){
+    public function search(Request $request, ArticleSearch $search){
 
         // Validation (assouplie en AJAX live : q optionnel si on nettoie)
         $isAjax = $request->ajax() || $request->wantsJson();
@@ -104,34 +105,7 @@ class ArticleController extends Controller
 
         $q = trim((string) $request->input('q', ''));
 
-        // Recherche optimisée avec eager loading
-        $articlesQuery = Article::where('status', 'approved');
-
-        if ($q !== '') {
-            $articlesQuery->where(function($query) use ($q) {
-                $query->where('titre', 'like', "%$q%")
-                      ->orWhere('description', 'like', "%$q%")
-                      ->orWhere('lieu', 'like', "%$q%")
-                      ->orWhereHas('user', function ($userQuery) use ($q) {
-                          // Pas l'email : taper « gmail » ressortait toutes les annonces des vendeurs Gmail
-                          $userQuery->where('name', 'like', "%$q%")
-                                    ->orWhere('ville', 'like', "%$q%");
-                      })
-                      ->orWhereHas('sousCategorie', function ($subQuery) use ($q) {
-                          $subQuery->where('nom', 'like', "%$q%")
-                                   ->orWhereHas('categorie', function ($catQuery) use ($q) {
-                                       $catQuery->where('nom', 'like', "%$q%");
-                                   });
-                      });
-            });
-        }
-
-        $articles = $articlesQuery
-            ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
-            ->withLikeCounts(auth()->id())
-            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
-            ->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > ?) DESC', [now()])
-            ->orderBy('created_at', 'desc')
+        $articles = $search->search($q)
             ->paginate(120)
             ->appends($request->query());
 
@@ -165,7 +139,7 @@ class ArticleController extends Controller
 
   
 
-    public function index(Request $request){
+    public function index(Request $request, ArticleSearch $search){
 
         // Récupérer toutes les catégories avec leurs sous-catégories (avec cache)
 
@@ -177,185 +151,16 @@ class ArticleController extends Controller
 
       
 
-        $articlesQuery = Article::query();
-
-        // 🔹 Recherche texte (barre "Rechercher...")
-        if ($request->filled('q')) {
-            $q = trim((string) $request->input('q'));
-            if ($q !== '') {
-                $articlesQuery->where(function ($query) use ($q) {
-                    $query->where('titre', 'like', "%{$q}%")
-                        ->orWhere('description', 'like', "%{$q}%")
-                        ->orWhere('lieu', 'like', "%{$q}%");
-                });
-            }
-        }
-
-
-
-         // ð¹ Filtrer par sous-catégorie spécifique (prioritaire sur catégorie)
-
-        if ($request->filled('sous_categorie')) {
-
-            $articlesQuery->where('sous_categorie_id', $request->sous_categorie);
-
-        }
-
-        // ð¹ Filtrer par catégorie (via sous-catégorie) - avec cache
-
-        elseif ($request->filled('categorie')) {
-
-            $sousCategoriesIds = \Cache::remember("souscategories_categorie_{$request->categorie}", 3600, function () use ($request) {
-
-                return SousCategorie::where('categorie_id', $request->categorie)->pluck('id');
-
-            });
-
-            $articlesQuery->whereIn('sous_categorie_id', $sousCategoriesIds);
-
-        }
-
-
-
-        // ð¹ Filtrer par prix minimum
-
-        if ($request->filled('prix_min')) {
-
-            $articlesQuery->where('prix_ht', '>=', $request->prix_min);
-
-        }
-
-
-
-        // ð¹ Filtrer par prix maximum
-
-        if ($request->filled('prix_max')) {
-
-            $articlesQuery->where('prix_ht', '<=', $request->prix_max);
-
-        }
-
-
-
-        // ð¹ Filtrer par ville (lieu de l'article)
-
-        if ($request->filled('ville')) {
-
-            $articlesQuery->where('lieu', $request->ville);
-
-        }
-
-
-
-        // ð¹ Filtrer par état (neuf / occasion)
-
-        if ($request->filled('etat') && in_array($request->etat, ['neuf', 'occasion'])) {
-
-            $articlesQuery->where('neuf', $request->etat === 'neuf');
-
-        }
-
-
-
-        // ð¹ Produits Pro uniquement
-
-        if ($request->boolean('pro_only')) {
-
-            $articlesQuery->whereNotNull('boosted_until')
-
-                ->where('boosted_until', '>', now());
-
-        }
-
-
-
-        // ð¹ Livraison disponible
-
-        if ($request->boolean('livraison_only')) {
-
-            $articlesQuery->where('livraison', true);
-
-        }
-
-
-
-        // N'afficher que les articles approuvés sur le site public
-
-        $articlesQuery->where('status', 'approved');
-
-
-
-        // ð¹ Tri
-
-        $orderBy = $request->get('order_by', 'recent');
-
-
-
-        switch ($orderBy) {
-
-            case 'prix_asc':
-
-                $articlesQuery->orderBy('prix_ht', 'asc')
-
-                    ->orderBy('created_at', 'desc');
-
-                break;
-
-            case 'prix_desc':
-
-                $articlesQuery->orderBy('prix_ht', 'desc')
-
-                    ->orderBy('created_at', 'desc');
-
-                break;
-
-            case 'pro':
-
-                $articlesQuery->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > ?) DESC', [now()])
-
-                    ->orderBy('created_at', 'desc');
-
-                break;
-
-            case 'recent':
-
-            default:
-
-                $articlesQuery->orderByRaw('(boosted_until IS NOT NULL AND boosted_until > ?) DESC', [now()])
-
-                    ->orderBy('created_at', 'desc');
-
-                break;
-
-        }
-
-
-
         // 🔹 Nombre d'articles par page
         // Défaut initial du projet.
-
         $perPage = $request->get('per_page', 120);
-
         $allowedPerPage = [12, 24, 40, 48, 80, 96, 120];
-
         if (!in_array((int)$perPage, $allowedPerPage)) {
-
             $perPage = 120;
-
         }
 
-
-
-        $articles = $articlesQuery
-
-            ->select('id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison')
-
-            ->withLikeCounts(auth()->id())
-
-            ->with(['user:id,name,photo_profil,certifie,ville', 'sousCategorie:id,nom,categorie_id', 'sousCategorie.categorie:id,nom'])
-
+        $articles = $search->browse($request->only(ArticleSearch::BROWSE_FILTERS))
             ->paginate($perPage)
-
             ->appends($request->query());
 
         $searchTerm = trim((string) $request->input('q', ''));
