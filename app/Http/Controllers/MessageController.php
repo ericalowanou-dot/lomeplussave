@@ -5,19 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Message;
 use App\Models\User;
-use App\Services\AdminMailNotifier;
+use App\Services\MessageService;
+use App\Services\NoSupportAdminException;
+use Illuminate\Support\Facades\Gate;
 
 class MessageController extends Controller
 {
-    public function inbox(Request $request)
+    public function inbox(Request $request, MessageService $messages)
     {
-        $user = $request->user();
-        $messages = Message::with('sender')
-            ->whereHas('recipients', function($q) use ($user){
-                $q->where('recipient_id', $user->id);
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $messages = $messages->inbox($request->user());
 
         return view('messages.inbox', compact('messages'));
     }
@@ -25,23 +21,11 @@ class MessageController extends Controller
     /**
      * Afficher un message spécifique
      */
-    public function show(Request $request, Message $message)
+    public function show(Request $request, Message $message, MessageService $messages)
     {
-        $user = $request->user();
-        
-        // Vérifier que l'utilisateur est destinataire du message
-        $isRecipient = $message->recipients()->where('recipient_id', $user->id)->exists();
-        
-        if (!$isRecipient && $message->sender_id !== $user->id) {
-            abort(403, 'Accès non autorisé à ce message.');
-        }
+        Gate::authorize('view', $message);
 
-        // Marquer le message comme lu si l'utilisateur est destinataire
-        if ($isRecipient) {
-            $message->recipients()->updateExistingPivot($user->id, [
-                'read_at' => now()
-            ]);
-        }
+        $messages->markRead($message, $request->user());
 
         $message->load(['sender', 'recipients']);
 
@@ -54,35 +38,23 @@ class MessageController extends Controller
         $parentMessage = null;
         if ($message) {
             $parentMessage = Message::findOrFail($message);
-            
-            // Vérifier que l'utilisateur peut répondre à ce message
-            $user = $request->user();
-            $isRecipient = $parentMessage->recipients()->where('recipient_id', $user->id)->exists();
-            if (!$isRecipient && $parentMessage->sender_id !== $user->id && !$user->isAdmin()) {
-                abort(403, 'Vous ne pouvez pas répondre à ce message.');
+
+            if (! $request->user()->isAdmin()) {
+                Gate::authorize('reply', $parentMessage);
             }
         }
-        
+
         return view('messages.compose', ['message' => $parentMessage]);
     }
 
-    public function send(Request $request)
+    public function send(Request $request, MessageService $messages)
     {
-        $user = $request->user();
-        
-        // Vérifier si c'est une réponse
         $parentMessage = null;
         if ($request->has('parent_message_id')) {
             $parentMessage = Message::findOrFail($request->parent_message_id);
-            
-            // Vérifier que l'utilisateur peut répondre à ce message
-            $isRecipient = $parentMessage->recipients()->where('recipient_id', $user->id)->exists();
-            if (!$isRecipient && $parentMessage->sender_id !== $user->id) {
-                abort(403, 'Vous ne pouvez pas répondre à ce message.');
-            }
+            Gate::authorize('reply', $parentMessage);
         }
 
-        // Validation du message
         $request->validate([
             'body' => 'required|string|min:2',
         ], [
@@ -90,10 +62,11 @@ class MessageController extends Controller
             'body.min' => 'Le message doit contenir au moins 2 caractères.',
         ]);
 
-        // Destinataire admin : uniquement les comptes avec role=admin
-        $admin = User::where('role', 'admin')->first();
+        try {
+            $messages->sendToSupport($request->user(), $request->body, $parentMessage);
 
-        if (!$admin) {
+            return redirect()->route('messages.inbox')->with('success', 'Message envoyé à l\'administrateur.');
+        } catch (NoSupportAdminException $e) {
             return back()
                 ->with('error', 'Impossible de trouver l\'administrateur.')
                 ->with('error_solutions', [
@@ -102,22 +75,6 @@ class MessageController extends Controller
                     'Vérifiez votre connexion Internet'
                 ])
                 ->withInput();
-        }
-
-        try {
-            $message = Message::create([
-                'sender_id' => $user->id,
-                'subject' => $parentMessage ? 'Re: ' . ($parentMessage->subject ?? 'Message') : null,
-                'body' => $request->body,
-                'parent_message_id' => $parentMessage ? $parentMessage->id : null,
-                'is_group_message' => false,
-            ]);
-
-            $message->recipients()->sync([$admin->id]);
-
-            AdminMailNotifier::messageReceived($message, $user);
-
-            return redirect()->route('messages.inbox')->with('success', 'Message envoyé à l\'administrateur.');
         } catch (\Exception $e) {
             \Log::error('Erreur lors de l\'envoi du message: ' . $e->getMessage());
             return back()

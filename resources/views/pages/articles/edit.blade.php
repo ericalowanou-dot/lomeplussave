@@ -518,7 +518,7 @@
 
                                                 <span class="photo-badge">{{ $index === 0 ? 'Principale' : 'Photo ' . ($index + 1) }}</span>
 
-                                                <img src="{{ asset($photo) }}" alt="Photo actuelle {{ $index + 1 }}" onerror="this.src='{{ asset('images/placeholder.png') }}';">
+                                                <img src="{{ \App\Services\MediaStorage::url($photo) }}" alt="Photo actuelle {{ $index + 1 }}" onerror="this.src='{{ asset('images/placeholder.png') }}';">
 
                                                 <div class="photo-overlay">
 

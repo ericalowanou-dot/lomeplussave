@@ -152,7 +152,7 @@
           <div class="categories-navigation">
             @foreach($categories as $categorie)
               <button class="categories-item-navigation" data-id="{{ $categorie->id }}">
-                <img src="{{ $categorie->image ? asset($categorie->image) : asset('images/placeholder.png') }}" alt="{{ $categorie->nom }}">
+                <img src="{{ \App\Services\MediaStorage::url($categorie->image) }}" alt="{{ $categorie->nom }}">
                 <p class="categories-nom-navigation">{{ $categorie->nom }}</p>
               </button>
             @endforeach

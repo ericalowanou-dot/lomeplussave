@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Services\MediaStorage;
 use App\Models\Categorie;
 use App\Models\Article;
 
@@ -28,15 +29,16 @@ class SousCategorie extends Model
      */
     public function getImageUrlAttribute()
     {
-        if ($this->image) {
-            // Si le chemin commence déjà par souscategories/images, on l'utilise tel quel
-            if (str_starts_with($this->image, 'souscategories/images/')) {
-                return asset($this->image);
-            }
-            // Sinon, on adapte les anciens chemins
-            return asset('souscategories/images/' . basename($this->image));
+        if (! $this->image) {
+            return MediaStorage::url(null);
         }
-        return asset('images/placeholder.png');
+
+        // Les anciens chemins venaient d'un autre dossier : on garde le nom du fichier
+        $path = str_starts_with($this->image, 'souscategories/images/') || str_starts_with($this->image, 'http')
+            ? $this->image
+            : 'souscategories/images/' . basename($this->image);
+
+        return MediaStorage::url($path);
     }
 
 }

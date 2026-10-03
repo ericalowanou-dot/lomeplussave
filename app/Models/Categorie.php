@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Services\MediaStorage;
 use HasFactory;
 use App\Models\SousCategorie;
 use App\Models\Article; 
@@ -47,15 +48,16 @@ class Categorie extends Model
      */
     public function getImageUrlAttribute()
     {
-        if ($this->image) {
-            // Si le chemin commence déjà par categories/images, on l'utilise tel quel
-            if (str_starts_with($this->image, 'categories/images/')) {
-                return asset($this->image);
-            }
-            // Sinon, on adapte les anciens chemins
-            return asset('categories/images/' . basename($this->image));
+        if (! $this->image) {
+            return MediaStorage::url(null);
         }
-        return asset('images/placeholder.png');
+
+        // Les anciens chemins venaient d'un autre dossier : on garde le nom du fichier
+        $path = str_starts_with($this->image, 'categories/images/') || str_starts_with($this->image, 'http')
+            ? $this->image
+            : 'categories/images/' . basename($this->image);
+
+        return MediaStorage::url($path);
     }
 
 }

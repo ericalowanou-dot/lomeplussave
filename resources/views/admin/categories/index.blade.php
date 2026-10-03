@@ -30,7 +30,7 @@
                     <tr>
                         <td style="width: 80px;">
                             @if($categorie->image)
-                                <img src="{{ $categorie->image ? asset($categorie->image) : asset('images/placeholder.png') }}" alt="" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;">
+                                <img src="{{ \App\Services\MediaStorage::url($categorie->image) }}" alt="" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;">
                             @else
                                 <span class="text-muted">—</span>
                             @endif

@@ -341,7 +341,7 @@
                                     <tr>
                                         <td>
                                             <a href="{{ route('admin.articles.show', $article) }}" class="d-block rounded overflow-hidden" style="width:44px; height:44px; background:#f0f0f0;">
-                                                <img src="{{ $article->photo ? asset($article->photo) : asset('images/placeholder.png') }}" alt="" class="w-100 h-100 object-fit-cover" style="object-fit:cover;" onerror="this.src='{{ asset('images/placeholder.png') }}';">
+                                                <img src="{{ \App\Services\MediaStorage::url($article->photo) }}" alt="" class="w-100 h-100 object-fit-cover" style="object-fit:cover;" onerror="this.src='{{ asset('images/placeholder.png') }}';">
                                             </a>
                                         </td>
                                         <td>

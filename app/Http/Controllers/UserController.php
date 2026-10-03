@@ -39,36 +39,12 @@ public function updateAjax(Request $request)
     try {
         $user->name = $request->name;
 
-        // 📌 Vérifie si l'utilisateur a uploadé une nouvelle photo
-        if ($request->hasFile('photo')) {
-            // Supprimer l'ancienne photo si elle existe
-            if ($user->photo_profil && file_exists(public_path($user->photo_profil))) {
-                unlink(public_path($user->photo_profil));
-            }
-
-            // Chemin du dossier public/users/profil
-            $destinationPath = public_path('users/profil');
-
-            // Créer le dossier s'il n'existe pas
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0777, true);
-            }
-
-            // Générer un nom unique
-            $filename = time() . '_' . uniqid() . '.' . $request->file('photo')->getClientOriginalExtension();
-
-            // Optimiser et compresser l'image avant de la sauvegarder
-            $imageOptimizer = new \App\Services\ImageOptimizer();
-            if (!$imageOptimizer->optimizeProfileImage($request->file('photo'), $destinationPath, $filename)) {
-                // Si l'optimisation échoue, sauvegarder l'image originale
-                $request->file('photo')->move($destinationPath, $filename);
-            }
-
-            // Mettre à jour le champ photo_profil dans la base avec le chemin relatif
-            $user->photo_profil = 'users/profil/' . $filename;
-        }
-
         $user->save();
+
+        // Nouvelle photo : l'ancienne n'est effacée qu'une fois la nouvelle enregistrée
+        if ($request->hasFile('photo')) {
+            $user->replaceProfilePhoto($request->file('photo'));
+        }
 
         return response()->json([
             'success' => true,

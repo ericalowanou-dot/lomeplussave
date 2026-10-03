@@ -201,7 +201,7 @@
 
                                     <button class="thumb-mobile {{ $idx === 0 ? 'active' : '' }}" type="button" data-bs-target="#carouselArticle" data-bs-slide-to="{{ $idx }}" aria-label="Voir l'image {{ $idx + 1 }} de {{ $article->titre }}">
 
-                                        <img src="{{ $image ? asset($image) : asset('images/placeholder.png') }}" alt="Vignette {{ $idx + 1 }} : {{ $article->titre }}" loading="lazy" onerror="this.src='{{ asset('images/placeholder.png') }}';" />
+                                        <img src="{{ \App\Services\MediaStorage::url($image) }}" alt="Vignette {{ $idx + 1 }} : {{ $article->titre }}" loading="lazy" onerror="this.src='{{ asset('images/placeholder.png') }}';" />
 
                                     </button>
 
@@ -225,7 +225,7 @@
 
                                         <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
 
-                                            <img src="{{ $image ? asset($image) : asset('images/placeholder.png') }}" class="d-block rounded image-clickable" alt="Image de l'article" data-image-index="{{ $index }}" style="cursor: pointer;" loading="{{ $loop->first ? 'eager' : 'lazy' }}" onerror="this.src='{{ asset('images/placeholder.png') }}';">
+                                            <img src="{{ \App\Services\MediaStorage::url($image) }}" class="d-block rounded image-clickable" alt="Image de l'article" data-image-index="{{ $index }}" style="cursor: pointer;" loading="{{ $loop->first ? 'eager' : 'lazy' }}" onerror="this.src='{{ asset('images/placeholder.png') }}';">
 
                                         </div>
 
@@ -269,7 +269,7 @@
 
                                 <button class="thumb {{ $idx === 0 ? 'active' : '' }}" type="button" data-bs-target="#carouselArticle" data-bs-slide-to="{{ $idx }}" aria-label="Slide {{ $idx + 1 }}">
 
-                                    <img src="{{ $image ? asset($image) : asset('images/placeholder.png') }}" alt="Vignette {{ $idx + 1 }} : {{ $article->titre }}" loading="lazy" onerror="this.src='{{ asset('images/placeholder.png') }}';" />
+                                    <img src="{{ \App\Services\MediaStorage::url($image) }}" alt="Vignette {{ $idx + 1 }} : {{ $article->titre }}" loading="lazy" onerror="this.src='{{ asset('images/placeholder.png') }}';" />
 
                                 </button>
 
@@ -4322,7 +4322,7 @@
                             }
 
                             $lightboxImages = array_map(function ($img) {
-                                return $img ? asset($img) : asset('images/placeholder.png');
+                                return \App\Services\MediaStorage::url($img);
                             }, $lightboxImages);
                         @endphp
 

@@ -57,7 +57,7 @@
             <div class="card" id="cat-{{ $categorie->id }}">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <img src="{{ $categorie->image ? asset($categorie->image) : asset('images/placeholder.png') }}" alt="">
+                        <img src="{{ \App\Services\MediaStorage::url($categorie->image) }}" alt="">
                         <strong>{{ $categorie->nom }}</strong>
                     </div>
                     <div class="actions">

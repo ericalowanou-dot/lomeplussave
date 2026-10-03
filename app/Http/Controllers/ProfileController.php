@@ -35,27 +35,11 @@ class ProfileController extends Controller
                 $user->email_verified_at = null;
             }
 
-            if ($request->hasFile('photo')) {
-                if ($user->photo_profil && file_exists(public_path($user->photo_profil))) {
-                    @unlink(public_path($user->photo_profil));
-                }
-
-                $destinationPath = public_path('users/profil');
-                if (! file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
-                }
-
-                $filename = time().'_'.uniqid().'.'.$request->file('photo')->getClientOriginalExtension();
-                $imageOptimizer = new \App\Services\ImageOptimizer();
-
-                if (! $imageOptimizer->optimizeProfileImage($request->file('photo'), $destinationPath, $filename)) {
-                    $request->file('photo')->move($destinationPath, $filename);
-                }
-
-                $user->photo_profil = 'users/profil/'.$filename;
-            }
-
             $user->save();
+
+            if ($request->hasFile('photo')) {
+                $user->replaceProfilePhoto($request->file('photo'));
+            }
 
             return Redirect::route('profile.edit')->with('status', 'profile-updated');
         } catch (\Exception $e) {

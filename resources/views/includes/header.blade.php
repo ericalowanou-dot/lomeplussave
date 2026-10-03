@@ -456,7 +456,7 @@
 
                             @if(auth()->user()->photo_profil ?? false)
 
-                                <img src="{{ asset(auth()->user()->photo_profil) }}" alt="avatar" class="avatar-header" id="avatar">
+                                <img src="{{ auth()->user()->getProfilPhotoUrl() }}" alt="avatar" class="avatar-header" id="avatar">
 
                             @else
 

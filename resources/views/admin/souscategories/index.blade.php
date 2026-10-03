@@ -31,7 +31,7 @@
                     <tr>
                         <td style="width: 80px;">
                             @if($sousCategorie->image)
-                                <img src="{{ $sousCategorie->image ? asset($sousCategorie->image) : asset('images/placeholder.png') }}" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;">
+                                <img src="{{ \App\Services\MediaStorage::url($sousCategorie->image) }}" class="img-thumbnail" style="width:60px;height:60px;object-fit:cover;">
                             @else
                                 <span class="text-muted">—</span>
                         @endif

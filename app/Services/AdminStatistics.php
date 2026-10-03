@@ -1303,6 +1303,11 @@ class AdminStatistics
             return $url;
         }
 
+        // Photo servie par le stockage cloud : l'adresse complète est stable, on la garde
+        if (MediaStorage::isRemoteUrl($url)) {
+            return $url;
+        }
+
         $parts = parse_url($url);
         if ($parts === false || ! isset($parts['host'])) {
             return $url;

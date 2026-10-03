@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\MediaStorage;
+
 use App\Models\User;
 use App\Models\Article;
 use App\Models\Publicite;
@@ -521,21 +523,7 @@ class AdminController extends Controller
             ]);
 
             // Gérer l'upload de l'image
-            $destinationPath = public_path('media/spotlight');
-            
-            // Créer le dossier s'il n'existe pas
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0777, true);
-            }
-
-            // Générer un nom unique
-            $filename = time() . '_' . uniqid() . '.' . $request->file('image')->getClientOriginalExtension();
-            
-            // Déplacer l'image (chemin neutre pour éviter les bloqueurs de pubs)
-            $request->file('image')->move($destinationPath, $filename);
-            
-            // Sauvegarder le chemin relatif
-            $imagePath = 'media/spotlight/' . $filename;
+            $imagePath = MediaStorage::storeImage($request->file('image'), 'media/spotlight', 'raw');
 
             // Vérifier si is_active est coché (checkbox)
             // Les checkboxes en HTML envoient "on" si cochées, rien sinon
@@ -660,26 +648,10 @@ class AdminController extends Controller
             // Si nouvelle image, supprimer l'ancienne et uploader la nouvelle
             if ($request->hasFile('image')) {
                 // Supprimer l'ancienne image
-                if ($publicite->image && file_exists(public_path($publicite->image))) {
-                    unlink(public_path($publicite->image));
-                }
+                MediaStorage::delete($publicite->image);
                 
                 // Upload de la nouvelle image
-                $destinationPath = public_path('media/spotlight');
-                
-                // Créer le dossier s'il n'existe pas
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
-                }
-
-                // Générer un nom unique
-                $filename = time() . '_' . uniqid() . '.' . $request->file('image')->getClientOriginalExtension();
-                
-                // Déplacer l'image (chemin neutre pour éviter les bloqueurs de pubs)
-                $request->file('image')->move($destinationPath, $filename);
-                
-                // Sauvegarder le chemin relatif
-                $data['image'] = 'media/spotlight/' . $filename;
+                $data['image'] = MediaStorage::storeImage($request->file('image'), 'media/spotlight', 'raw');
             }
 
             $publicite->update($data);
@@ -720,9 +692,7 @@ class AdminController extends Controller
     public function deletePublicite(Publicite $publicite)
     {
         // Supprimer l'image associée
-        if ($publicite->image && file_exists(public_path($publicite->image))) {
-            unlink(public_path($publicite->image));
-        }
+        MediaStorage::delete($publicite->image);
 
         try {
             $publicite->delete();

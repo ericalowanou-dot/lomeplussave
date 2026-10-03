@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Services\MediaStorage;
 use App\Models\Categorie;
 use App\Models\Article;
 use App\Models\User;
@@ -47,22 +49,7 @@ class CategorieController extends Controller
         $imageName = null;
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-
-            // Déplacement vers le dossier public/categories/images
-            $destinationPath = public_path('categories/images');
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0777, true);
-            }
-            
-            // Optimiser et compresser l'image avant de la sauvegarder
-            $imageOptimizer = new \App\Services\ImageOptimizer();
-            if (!$imageOptimizer->optimizeCategoryImage($image, $destinationPath, $imageName)) {
-                // Si l'optimisation échoue, sauvegarder l'image originale
-                $image->move($destinationPath, $imageName);
-            }
-            
-            $imageName = 'categories/images/' . $imageName; // Chemin relatif complet
+            $imageName = MediaStorage::storeImage($image, 'categories/images', 'category');
         }
 
         Categorie::create([
@@ -182,24 +169,9 @@ class CategorieController extends Controller
         try {
             if ($request->hasFile('photo')) {
                 // Supprimer l'ancienne image si elle existe
-                if ($categorie->image && file_exists(public_path($categorie->image))) {
-                    unlink(public_path($categorie->image));
-                }
+                MediaStorage::delete($categorie->image);
                 
-                $nomImage = time() . '_' . uniqid() . '.' . $request->photo->extension();
-                $destinationPath = public_path('categories/images');
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
-                }
-                
-                // Optimiser et compresser l'image avant de la sauvegarder
-                $imageOptimizer = new \App\Services\ImageOptimizer();
-                if (!$imageOptimizer->optimizeCategoryImage($request->photo, $destinationPath, $nomImage)) {
-                    // Si l'optimisation échoue, sauvegarder l'image originale
-                    $request->photo->move($destinationPath, $nomImage);
-                }
-                
-                $categorie->image = 'categories/images/' . $nomImage;
+                $categorie->image = MediaStorage::storeImage($request->photo, 'categories/images', 'category');
             }
 
             $categorie->nom = $request->nom;
@@ -257,25 +229,10 @@ class CategorieController extends Controller
         try {
             if ($request->hasFile('image')) {
                 // Supprimer l'ancienne image si elle existe
-                if ($categorie->image && file_exists(public_path($categorie->image))) {
-                    unlink(public_path($categorie->image));
-                }
+                MediaStorage::delete($categorie->image);
                 
                 $image = $request->file('image');
-                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                $destinationPath = public_path('categories/images');
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
-                }
-                
-                // Optimiser et compresser l'image avant de la sauvegarder
-                $imageOptimizer = new \App\Services\ImageOptimizer();
-                if (!$imageOptimizer->optimizeCategoryImage($image, $destinationPath, $imageName)) {
-                    // Si l'optimisation échoue, sauvegarder l'image originale
-                    $image->move($destinationPath, $imageName);
-                }
-                
-                $categorie->image = 'categories/images/' . $imageName;
+                $categorie->image = MediaStorage::storeImage($image, 'categories/images', 'category');
             }
 
             $categorie->nom = $request->nom;

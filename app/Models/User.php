@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Illuminate\Http\UploadedFile;
+use App\Services\MediaStorage;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 
 class User extends Authenticatable
@@ -26,14 +28,31 @@ class User extends Authenticatable
 
     public function getProfilPhotoUrl(){
         if ($this->photo_profil) {
-            // Si le chemin commence déjà par users/profil, on l'utilise tel quel
-            if (str_starts_with($this->photo_profil, 'users/profil/')) {
-                return asset($this->photo_profil);
-            }
-            // Sinon, on adapte les anciens chemins
-            return asset('users/profil/' . basename($this->photo_profil));
+            // Les anciens comptes ont parfois un chemin d'un autre dossier : on garde le nom du fichier
+            $path = str_starts_with($this->photo_profil, 'users/profil/') || str_starts_with($this->photo_profil, 'http')
+                ? $this->photo_profil
+                : 'users/profil/' . basename($this->photo_profil);
+
+            return MediaStorage::url($path, self::DEFAULT_AVATAR);
         }
-        return asset('assets/icons/user_default.svg');
+        return asset(self::DEFAULT_AVATAR);
+    }
+
+    public const DEFAULT_AVATAR = 'assets/icons/user_default.svg';
+
+    /**
+     * Remplace la photo de profil ; l'ancienne n'est effacée qu'une fois la nouvelle enregistrée.
+     */
+    public function replaceProfilePhoto(UploadedFile $file): void
+    {
+        $old = $this->photo_profil;
+
+        $this->photo_profil = MediaStorage::storeImage($file, 'users/profil', 'profile');
+        $this->save();
+
+        if ($old && $old !== $this->photo_profil) {
+            MediaStorage::delete($old);
+        }
     }
 
     /**
@@ -41,7 +60,7 @@ class User extends Authenticatable
      */
     public static function defaultProfilPhotoUrl(): string
     {
-        return asset('assets/icons/user_default.svg');
+        return asset(self::DEFAULT_AVATAR);
     }
 
     public function estCertifie()

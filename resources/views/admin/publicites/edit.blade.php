@@ -31,7 +31,7 @@
                     <div class="mb-3">
                         <label for="image" class="form-label">Image</label>
                         <div class="mb-2">
-                            <img src="{{ asset($publicite->image) }}" 
+                            <img src="{{ \App\Services\MediaStorage::url($publicite->image) }}" 
                                  alt="Image actuelle" 
                                  class="img-thumbnail" 
                                  style="max-width:300px;max-height:200px;"

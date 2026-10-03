@@ -253,7 +253,7 @@
             <tr>
                 <td>
                     @if($categorie->image)
-                        <img src="{{ $categorie->image ? asset($categorie->image) : asset('images/placeholder.png') }}" alt="photo" style="height:40px;">
+                        <img src="{{ \App\Services\MediaStorage::url($categorie->image) }}" alt="photo" style="height:40px;">
                     @endif
                 </td>
                 <td>{{ $categorie->nom }}</td>

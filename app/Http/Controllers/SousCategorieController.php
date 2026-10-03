@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\MediaStorage;
+
 use Illuminate\Http\Request;
 
 use App\Models\SousCategorie;
@@ -56,20 +58,7 @@ class SousCategorieController extends Controller
         try {
             $imageName = null;
             if ($request->hasFile('image')) {
-                $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
-                $destinationPath = public_path('souscategories/images');
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
-                }
-                
-                // Optimiser et compresser l'image avant de la sauvegarder
-                $imageOptimizer = new \App\Services\ImageOptimizer();
-                if (!$imageOptimizer->optimizeCategoryImage($request->image, $destinationPath, $imageName)) {
-                    // Si l'optimisation échoue, sauvegarder l'image originale
-                    $request->image->move($destinationPath, $imageName);
-                }
-                
-                $imageName = 'souscategories/images/' . $imageName; // Chemin relatif complet
+                $imageName = MediaStorage::storeImage($request->image, 'souscategories/images', 'category');
             }
 
             SousCategorie::create([
@@ -152,17 +141,9 @@ class SousCategorieController extends Controller
         try {
             if ($request->hasFile('image')) {
                 // Supprimer l'ancienne image si elle existe
-                if ($sousCategorie->image && file_exists(public_path($sousCategorie->image))) {
-                    unlink(public_path($sousCategorie->image));
-                }
+                MediaStorage::delete($sousCategorie->image);
                 
-                $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
-                $destinationPath = public_path('souscategories/images');
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0777, true);
-                }
-                $request->image->move($destinationPath, $imageName);
-                $sousCategorie->image = 'souscategories/images/' . $imageName;
+                $sousCategorie->image = MediaStorage::storeImage($request->image, 'souscategories/images', 'raw');
             }
 
             $sousCategorie->nom = $request->nom;

@@ -27,7 +27,7 @@
                                 @foreach($photos as $idx => $photo)
                                     <div class="col-6 col-md-4">
                                         <div class="gallery-item rounded overflow-hidden border" style="aspect-ratio:1; background:#f8f9fa;">
-                                            <img src="{{ asset($photo) }}" alt="Photo {{ $idx + 1 }}"
+                                            <img src="{{ \App\Services\MediaStorage::url($photo) }}" alt="Photo {{ $idx + 1 }}"
                                                  class="img-fluid w-100 h-100 object-fit-cover"
                                                  style="object-fit: cover;"
                                                  onerror="this.src='{{ asset('images/placeholder.png') }}';">

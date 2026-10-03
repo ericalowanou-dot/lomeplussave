@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use App\Models\Article;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 
 
@@ -45,8 +45,7 @@ class CommentController extends Controller
     
     public function destroy(Comment $comment)
     {
-        // Vérifier que l'utilisateur est l'auteur ou un admin
-        if (auth()->id() !== $comment->user_id && !auth()->user()->isAdmin()) {
+        if (Gate::denies('delete', $comment)) {
             return response()->json(['success' => false, 'message' => 'Non autorisé'], 403);
         }
         
@@ -60,8 +59,7 @@ class CommentController extends Controller
     
     public function update(Request $request, Comment $comment)
     {
-        // Vérifier que l'utilisateur est l'auteur
-        if (auth()->id() !== $comment->user_id) {
+        if (Gate::denies('update', $comment)) {
             return response()->json(['success' => false, 'message' => 'Non autorisé'], 403);
         }
         
@@ -86,38 +84,15 @@ class CommentController extends Controller
         ]);
     }
 
-    public function show($id)
-    {
-
-        $article->load('comments.user')->orderBy('desc'); // Charge les commentaires et les utilisateurs qui les ont publiés
-        return view('articles.show', compact('article'));
-
-    }
-
     public function report(Request $request, Comment $comment)
     {
         if (!auth()->check()) {
             return response()->json(['success' => false, 'message' => 'Vous devez être connecté pour signaler un commentaire'], 401);
         }
 
-        // Vérifier si l'utilisateur a déjà signalé ce commentaire
-        $existingReport = \DB::table('comment_reports')
-            ->where('comment_id', $comment->id)
-            ->where('user_id', auth()->id())
-            ->first();
-
-        if ($existingReport) {
+        if (! $comment->reportBy($request->user(), $request->input('reason'))) {
             return response()->json(['success' => false, 'message' => 'Vous avez déjà signalé ce commentaire'], 400);
         }
-
-        // Créer le signalement
-        DB::table('comment_reports')->insert([
-            'comment_id' => $comment->id,
-            'user_id' => auth()->id(),
-            'reason' => $request->input('reason', 'Contenu inapproprié'),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
 
         return response()->json([
             'success' => true,

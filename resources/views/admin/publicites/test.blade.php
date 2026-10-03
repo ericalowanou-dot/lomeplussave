@@ -92,7 +92,7 @@
                             <td>
                                 @if(file_exists(public_path($pub->image)))
                                     <span class="badge bg-success">✅ Existe</span>
-                                    <br><a href="{{ asset($pub->image) }}" target="_blank" class="btn btn-sm btn-link">Voir</a>
+                                    <br><a href="{{ \App\Services\MediaStorage::url($pub->image) }}" target="_blank" class="btn btn-sm btn-link">Voir</a>
                                 @else
                                     <span class="badge bg-danger">❌ Manquante</span>
                                     <br><small>{{ $pub->image }}</small>

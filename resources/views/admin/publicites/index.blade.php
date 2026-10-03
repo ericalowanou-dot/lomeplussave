@@ -80,7 +80,7 @@
                         @foreach($publicites as $publicite)
                         <tr>
                             <td>
-                                <img src="{{ asset($publicite->image) }}" 
+                                <img src="{{ \App\Services\MediaStorage::url($publicite->image) }}" 
                                      alt="{{ $publicite->titre ?? 'Publicité' }}" 
                                      class="img-thumbnail" 
                                      style="width:70px;height:70px;object-fit:cover;"
@@ -252,7 +252,7 @@
             <li><strong>Image :</strong> 
                 @if(file_exists(public_path($testPub->image)))
                     <span class="text-success">✅ Existe</span> - 
-                    <a href="{{ asset($testPub->image) }}" target="_blank">Voir</a>
+                    <a href="{{ \App\Services\MediaStorage::url($testPub->image) }}" target="_blank">Voir</a>
                 @else
                     <span class="text-danger">❌ Non trouvée</span> ({{ $testPub->image }})
                 @endif

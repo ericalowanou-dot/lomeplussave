@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Services\MediaStorage;
 
 class Publicite extends Model
 {
@@ -184,13 +185,9 @@ class Publicite extends Model
         $candidates[] = 'advertisements/' . basename($path);
         $candidates[] = 'publicites/' . basename($path);
 
-        foreach (array_unique($candidates) as $candidate) {
-            if (is_file(public_path($candidate))) {
-                return asset($candidate);
-            }
-        }
+        $found = MediaStorage::firstExisting($candidates);
 
-        return $this->placeholderImageUrl();
+        return $found ? MediaStorage::url($found) : $this->placeholderImageUrl();
     }
 
     protected function placeholderImageUrl(): string
