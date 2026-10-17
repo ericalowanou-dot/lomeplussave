@@ -35,6 +35,7 @@ Limites : 10 tentatives de connexion par minute et 120 requêtes par minute (ré
 | DELETE | `/articles/{id}` 🔒 | suppression (photos effacées) |
 | POST | `/articles/{id}/like` 🔒 | bascule like/unlike → `{liked, likeCount}` |
 | POST | `/articles/{id}/boost` 🔒 | `days` : 1 coin = 1 jour |
+| POST | `/articles/{id}/contact` | `canal` (`appel` ou `whatsapp`) → 204. À envoyer **en même temps** que l'ouverture de l'appel ou de WhatsApp, sans attendre la réponse ni afficher d'erreur. Jeton facultatif (s'il est envoyé, l'admin voit qui a contacté). |
 
 🔒 = jeton obligatoire. Les routes publiques acceptent aussi le jeton : `liked` est alors renseigné,
 et le vendeur voit ses propres annonces non validées.
@@ -65,6 +66,7 @@ Une annonce en attente ou bloquée renvoie **404** à tout autre utilisateur que
 | POST | `/messages` 🔒 | `body, parent_message_id?` → envoyé à l'admin |
 | GET | `/categories` | avec sous-catégories |
 | GET | `/shops/{userId}` | boutique : `vendeur` + annonces en ligne + `motifs_signalement` |
+| POST | `/shops/{userId}/contact` | `canal` (`appel` ou `whatsapp`) → 204, depuis la boutique (mêmes règles que pour une annonce) |
 | POST | `/shops/{userId}/report` 🔒 | `reason` (une clé de `motifs_signalement`), `message?` |
 | POST | `/reports` | signaler un problème : `message (10+), subject?` |
 

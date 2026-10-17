@@ -329,9 +329,9 @@
 
                             <div class="cta-seller-mobile">
 
-                                <a href="tel:{{ $article->user->telephone }}" class="btn btn-warning">📞 Appeler</a>
+                                <a href="tel:{{ $article->user->telephone }}" data-contact-canal="appel" data-contact-vendeur="{{ $article->user->id }}" data-contact-article="{{ $article->id }}" class="btn btn-warning">📞 Appeler</a>
 
-                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $article->user->whatsapp) }}?text={{ $whatsappMessageEncoded }}" target="_blank" class="btn btn-success">
+                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $article->user->whatsapp) }}?text={{ $whatsappMessageEncoded }}" data-contact-canal="whatsapp" data-contact-vendeur="{{ $article->user->id }}" data-contact-article="{{ $article->id }}" target="_blank" class="btn btn-success">
 
                                     <img src="{{ asset('images/whatsapp_icon.png') }}" alt="WhatsApp" width="20"> WhatsApp
 
@@ -555,9 +555,9 @@
 
                             <div class="cta-seller d-none d-lg-flex gap-2">
 
-                                <a href="tel:{{ $article->user->telephone }}" class="btn btn-warning w-50">📞 Appeler</a>
+                                <a href="tel:{{ $article->user->telephone }}" data-contact-canal="appel" data-contact-vendeur="{{ $article->user->id }}" data-contact-article="{{ $article->id }}" class="btn btn-warning w-50">📞 Appeler</a>
 
-                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $article->user->whatsapp) }}?text={{ $whatsappMessageEncoded }}" target="_blank" class="btn btn-success w-50">
+                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $article->user->whatsapp) }}?text={{ $whatsappMessageEncoded }}" data-contact-canal="whatsapp" data-contact-vendeur="{{ $article->user->id }}" data-contact-article="{{ $article->id }}" target="_blank" class="btn btn-success w-50">
 
                                     <img src="{{ asset('images/whatsapp_icon.png') }}" alt="WhatsApp" width="20"> WhatsApp
 
@@ -5759,5 +5759,7 @@
         });
 
     </script>
+
+    @include('partials.contact-vendeur-script')
 
 @endsection

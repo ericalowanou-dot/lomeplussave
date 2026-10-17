@@ -390,7 +390,7 @@
     
     <div class="call-buttons">
         @if($user->telephone)
-        <a href="tel:{{ $user->telephone }}" class="btn btn-warning">
+        <a href="tel:{{ $user->telephone }}" class="btn btn-warning" data-contact-canal="appel" data-contact-vendeur="{{ $user->id }}">
             <i class="bi bi-telephone-fill"></i>
             <span>Appeler</span>
         </a>
@@ -398,6 +398,7 @@
         
         @if($user->whatsapp)
         <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $user->whatsapp) }}" 
+           data-contact-canal="whatsapp" data-contact-vendeur="{{ $user->id }}"
            target="_blank" 
            rel="noopener noreferrer"
            class="btn btn-whatsapp">
@@ -536,5 +537,7 @@
         </script>
         @endunless
     @endauth
+
+    @include('partials.contact-vendeur-script')
 
 @endsection

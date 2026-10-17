@@ -36,6 +36,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('/articles/{article}/comments', [CommentController::class, 'index'])->whereNumber('article')->name('comments.index');
         Route::get('/shops/{user}', [CatalogController::class, 'shop'])->whereNumber('user')->name('shops.show');
         Route::post('/reports', [CatalogController::class, 'reportProblem'])->name('reports.store');
+        Route::post('/articles/{article}/contact', [ArticleController::class, 'contact'])->whereNumber('article')->name('articles.contact');
+        Route::post('/shops/{user}/contact', [CatalogController::class, 'contactShop'])->whereNumber('user')->name('shops.contact');
     });
 
     // ── Utilisateur connecté ───────────────────────────────────

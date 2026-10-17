@@ -16,6 +16,7 @@ use App\Services\Articles\ArticleSearch;
 use App\Services\StatTracker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
@@ -53,6 +54,20 @@ class CatalogController extends Controller
             'vendeur' => new SellerResource($user),
             'motifs_signalement' => UserReport::REASONS,
         ]);
+    }
+
+    /** L'utilisateur a touché « Appeler » ou « WhatsApp » dans la boutique (statistiques admin). */
+    public function contactShop(Request $request, User $user): Response
+    {
+        if ($user->isBlocked()) {
+            abort(404);
+        }
+
+        $data = $request->validate(['canal' => ['required', Rule::in(StatTracker::CONTACT_CHANNELS)]]);
+
+        app(StatTracker::class)->recordContact($user, null, $data['canal'], 'appli', $request);
+
+        return response()->noContent();
     }
 
     public function reportShop(Request $request, User $user): JsonResponse

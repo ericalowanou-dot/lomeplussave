@@ -25,6 +25,11 @@ class StatTracker
     /** Délai pendant lequel une saisie progressive est fusionnée (secondes). */
     private const SEARCH_MERGE_WINDOW = 60;
 
+    /** Fenêtre de dédoublonnage des contacts (double clic, retour arrière…), en secondes. */
+    private const CONTACT_WINDOW = 600;
+
+    public const CONTACT_CHANNELS = ['appel', 'whatsapp'];
+
     private const BOT_PATTERN = '/bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview|curl|wget|python|headless|lighthouse|pingdom|monitor/i';
 
     public function recordArticleView(Article $article, Request $request): void
@@ -46,6 +51,44 @@ class StatTracker
             }
 
             $this->insertVisit('boutique', null, (int) $vendeur->id, $request);
+        });
+    }
+
+    /**
+     * Enregistre un clic « Appeler » ou « WhatsApp » vers un vendeur, depuis une
+     * annonce ($article) ou depuis sa boutique ($article null). Un même visiteur
+     * n'est compté qu'une fois par fenêtre de dix minutes et par canal.
+     */
+    public function recordContact(User $vendeur, ?Article $article, string $canal, string $source, Request $request): void
+    {
+        $this->safely(function () use ($vendeur, $article, $canal, $source, $request) {
+            if (! in_array($canal, self::CONTACT_CHANNELS, true) || ! $this->isCountedVisitor($request, (int) $vendeur->id)) {
+                return;
+            }
+
+            $hash = $this->visitorHash($request);
+
+            $alreadyCounted = DB::table('stat_contacts')
+                ->where('visiteur_hash', $hash)
+                ->where('created_at', '>=', now()->subSeconds(self::CONTACT_WINDOW))
+                ->where('canal', $canal)
+                ->where('vendeur_id', $vendeur->id)
+                ->where('article_id', $article?->id)
+                ->exists();
+
+            if ($alreadyCounted) {
+                return;
+            }
+
+            DB::table('stat_contacts')->insert([
+                'canal' => $canal,
+                'source' => $source,
+                'article_id' => $article?->id,
+                'vendeur_id' => $vendeur->id,
+                'visiteur_id' => $request->user()?->id,
+                'visiteur_hash' => $hash,
+                'created_at' => now(),
+            ]);
         });
     }
 
@@ -171,10 +214,14 @@ class StatTracker
 
     private function shouldTrack(Request $request, ?int $ownerId): bool
     {
-        if (! $request->isMethod('GET')) {
-            return false;
-        }
+        return $request->isMethod('GET') && $this->isCountedVisitor($request, $ownerId);
+    }
 
+    /**
+     * Ni robot, ni admin, ni le propriétaire lui-même.
+     */
+    private function isCountedVisitor(Request $request, ?int $ownerId): bool
+    {
         if (self::isBot($request->userAgent())) {
             return false;
         }

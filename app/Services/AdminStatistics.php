@@ -74,6 +74,7 @@ class AdminStatistics
 
     private bool $hasVisites = false;
     private bool $hasRecherches = false;
+    private bool $hasContacts = false;
 
     /** Valeurs brutes de `articles.lieu` correspondant à la ville filtrée (mémoïsé). */
     private ?array $lieuValues = null;
@@ -211,6 +212,7 @@ class AdminStatistics
     {
         $this->hasVisites = Schema::hasTable('stat_visites');
         $this->hasRecherches = Schema::hasTable('stat_recherches');
+        $this->hasContacts = Schema::hasTable('stat_contacts');
 
         return $this;
     }
@@ -223,6 +225,11 @@ class AdminStatistics
     public function hasRecherches(): bool
     {
         return $this->hasRecherches;
+    }
+
+    public function hasContacts(): bool
+    {
+        return $this->hasContacts;
     }
 
     /**

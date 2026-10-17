@@ -12,6 +12,7 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\AnnonceController;
 use App\Http\Controllers\DetailArticleController;
 use App\Http\Controllers\UserShopController;
+use App\Http\Controllers\ContactVendeurController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminStatisticsController;
 use App\Http\Controllers\AdminStatisticsDetailController;
@@ -46,6 +47,11 @@ Route::post('/spotlight/{publicite}/view', [AdminController::class, 'trackPublic
 Route::post('/spotlight/{publicite}/click', [AdminController::class, 'trackPubliciteClick'])->name('spotlight.click');
 Route::post('/publicite/{publicite}/view', [AdminController::class, 'trackPubliciteView'])->name('publicite.view');
 Route::post('/publicite/{publicite}/click', [AdminController::class, 'trackPubliciteClick'])->name('publicite.click');
+
+// Clics « Appeler » / « WhatsApp » vers un vendeur (statistiques admin)
+Route::post('/contact-vendeur', [ContactVendeurController::class, 'store'])
+    ->middleware('throttle:60,1')
+    ->name('contact-vendeur.store');
 
 
 // pour les articles

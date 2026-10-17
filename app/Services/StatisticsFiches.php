@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Models\User;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -165,7 +166,21 @@ class StatisticsFiches
             ),
             'annonces_total' => $articles()->count(),
             'annonces_en_ligne' => $articles()->where('status', 'approved')->count(),
+            'appels' => $this->stats->metric(0, 0),
+            'whatsapp' => $this->stats->metric(0, 0),
         ];
+
+        // Clics « Appeler » / « WhatsApp » (annonces et boutique, site et appli)
+        $contacts = fn (?string $canal = null) => DB::table('stat_contacts')->where('stat_contacts.vendeur_id', $user->id)
+            ->when($canal, fn ($q) => $q->where('stat_contacts.canal', $canal));
+        if ($this->stats->hasContacts()) {
+            foreach (['appels' => 'appel', 'whatsapp' => 'whatsapp'] as $key => $canal) {
+                $kpis[$key] = $this->stats->metric(
+                    $contacts($canal)->whereBetween('created_at', $period)->count(),
+                    $contacts($canal)->whereBetween('created_at', $previous)->count(),
+                );
+            }
+        }
 
         $buckets = $this->stats->buckets();
         $zero = array_fill(0, count($buckets), 0);
@@ -176,12 +191,15 @@ class StatisticsFiches
             'vues_annonces' => $this->stats->hasVisites()
                 ? $this->stats->bucketize($this->stats->dailyCounts($visits('article'), 'stat_visites.created_at'), $buckets) : $zero,
             'likes' => $this->stats->bucketize($this->stats->dailyCounts($likes(), 'article_user_like.created_at'), $buckets),
+            'contacts' => $this->stats->hasContacts()
+                ? $this->stats->bucketize($this->stats->dailyCounts($contacts(), 'stat_contacts.created_at'), $buckets) : $zero,
         ];
 
         // Ses annonces, avec leur audience sur la période
         $sorts = [
             'vues' => 'vues',
             'likes' => 'likes',
+            'contacts' => 'contacts',
             'publie_le' => 'articles.created_at',
             'prix' => 'articles.prix_ht',
         ];
@@ -199,6 +217,13 @@ class StatisticsFiches
         }
         $list->selectSub(fn (Builder $q) => $q->from('article_user_like')->selectRaw('COUNT(*)')
             ->whereColumn('article_user_like.article_id', 'articles.id'), 'likes');
+        if ($this->stats->hasContacts()) {
+            $list->selectSub(fn (Builder $q) => $q->from('stat_contacts')->selectRaw('COUNT(*)')
+                ->whereColumn('stat_contacts.article_id', 'articles.id')
+                ->whereBetween('stat_contacts.created_at', $period), 'contacts');
+        } else {
+            $list->selectRaw('0 as contacts');
+        }
 
         $annonces = $list->orderBy($sorts[$sort], $direction)
             ->orderByDesc('articles.id')
@@ -227,6 +252,40 @@ class StatisticsFiches
             'tri' => $sort,
             'sens' => $direction,
             'meilleure' => $best,
+            'contacts' => $this->recentContacts($user, $period),
         ];
+    }
+
+    /**
+     * Derniers contacts reçus par le vendeur sur la période : qui (si connecté), quand,
+     * par quel canal et depuis quelle annonce.
+     */
+    private function recentContacts(User $user, array $period)
+    {
+        if (! $this->stats->hasContacts()) {
+            return null;
+        }
+
+        $rows = DB::table('stat_contacts')
+            ->where('vendeur_id', $user->id)
+            ->whereBetween('created_at', $period)
+            ->orderByDesc('created_at')->orderByDesc('id')
+            ->paginate(self::PER_PAGE, ['*'], 'contacts_page')
+            ->withQueryString();
+
+        $items = collect($rows->items());
+        $visiteurs = User::whereIn('id', $items->pluck('visiteur_id')->filter()->unique())->get(['id', 'name', 'telephone', 'whatsapp'])->keyBy('id');
+        $annonces = Article::whereIn('id', $items->pluck('article_id')->filter()->unique())->get(['id', 'titre'])->keyBy('id');
+
+        $rows->setCollection($items->map(fn ($row) => (object) [
+            'date' => Carbon::parse($row->created_at),
+            'canal' => $row->canal,
+            'source' => $row->source,
+            'article_id' => $row->article_id,
+            'annonce' => $row->article_id ? $annonces->get($row->article_id) : null,
+            'visiteur' => $row->visiteur_id ? $visiteurs->get($row->visiteur_id) : null,
+        ]));
+
+        return $rows;
     }
 }

@@ -15,7 +15,9 @@ use App\Services\InsufficientCoinsException;
 use App\Services\StatTracker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 /**
  * Annonces dans l'appli : mêmes règles que le site (ArticleService, ArticleSearch, ArticlePolicy).
@@ -73,6 +75,21 @@ class ArticleController extends Controller
         app(StatTracker::class)->recordArticleView($article, $request);
 
         return new ArticleResource(ArticleResource::markLikedBy($article, $request->user()));
+    }
+
+    /** L'utilisateur a touché « Appeler » ou « WhatsApp » sur l'annonce (statistiques admin). */
+    public function contact(Request $request, int $article): Response
+    {
+        $data = $request->validate(['canal' => ['required', Rule::in(StatTracker::CONTACT_CHANNELS)]]);
+
+        $article = Article::with('user')->findOrFail($article);
+        Gate::authorize('view', $article);
+
+        if ($article->user) {
+            app(StatTracker::class)->recordContact($article->user, $article, $data['canal'], 'appli', $request);
+        }
+
+        return response()->noContent();
     }
 
     /** Publication (multipart/form-data, photos[] : 1 à 6 images). */
