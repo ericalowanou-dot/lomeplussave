@@ -92,6 +92,16 @@
         <td><span class="st-badge {{ $value }}">{{ \App\Services\StatisticsDetails::statutLabel($value) }}</span></td>
         @break
 
+    @case('canal')
+        <td>
+            @if($value === 'whatsapp')
+                <span class="st-badge approved"><i class="fab fa-whatsapp"></i> WhatsApp</span>
+            @else
+                <span class="st-badge pending"><i class="fas fa-phone"></i> Appel</span>
+            @endif
+        </td>
+        @break
+
     @case('bool')
         <td><span class="st-badge {{ $value ? 'yes' : 'no' }}">{{ $value ? 'oui' : 'non' }}</span></td>
         @break

@@ -43,6 +43,10 @@ class AdminStatisticsController extends Controller
         'recherches_vides' => ['Recherches sans résultat', [
             'Recherche' => 'terme', 'Recherches' => 'recherches', 'Visiteurs' => 'chercheurs', 'Dernière' => 'derniere',
         ]],
+        'contactes' => ['Vendeurs les plus contactés', [
+            'Vendeur' => 'nom', 'Email' => 'email', 'Contacts' => 'contacts', 'Appels' => 'appels', 'WhatsApp' => 'whatsapp',
+            'Visiteurs différents' => 'contacteurs', 'Dernier contact' => 'dernier', 'Boutique' => 'boutique_url',
+        ]],
         'evolution' => ['Évolution', []],
     ];
 
@@ -71,7 +75,7 @@ class AdminStatisticsController extends Controller
 
         if ($section === 'evolution') {
             $columns = ['Période' => 'label', 'Inscriptions' => 'inscriptions', 'Annonces' => 'annonces', 'Likes' => 'likes',
-                'Vues annonces' => 'vues', 'Visites boutiques' => 'visites_boutiques', 'Recherches' => 'recherches', 'Inscrits cumulés' => 'inscrits_cumules'];
+                'Vues annonces' => 'vues', 'Visites boutiques' => 'visites_boutiques', 'Recherches' => 'recherches', 'Appels' => 'appels', 'WhatsApp' => 'whatsapp', 'Inscrits cumulés' => 'inscrits_cumules'];
             $rows = [];
             foreach ($stats['series']['labels'] as $i => $label) {
                 $row = ['label' => $label];
@@ -93,6 +97,7 @@ class AdminStatisticsController extends Controller
                 'articles_aimes' => $stats['top_articles_aimes'],
                 'recherches' => $stats['recherches']['top'],
                 'recherches_vides' => $stats['recherches']['sans_resultat_top'],
+                'contactes' => $stats['top_contactes'],
             };
         }
 

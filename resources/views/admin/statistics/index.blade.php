@@ -23,10 +23,15 @@
     // Menu : thème => [libellé, icône, [élément => libellé]]
     $groups = [
         'ensemble' => ["Vue d'ensemble", 'fa-gauge', ['chiffres' => 'Chiffres clés']],
+        'contacts' => ['Appels et WhatsApp', 'fa-phone', [
+            'chiffres' => 'Chiffres des contacts',
+            'vendeurs' => 'Vendeurs les plus contactés',
+            'journal' => 'Derniers contacts : qui a contacté qui',
+        ]],
         'courbes' => ['Courbes', 'fa-chart-line', [
             'activite' => 'Activité générale',
             'inscriptions' => 'Inscriptions et total cumulé',
-            'audience' => 'Audience : vues, boutiques, recherches',
+            'audience' => 'Audience : vues, boutiques, recherches, contacts',
             'habitudes' => 'Jours et heures d\'activité',
         ]],
         'annonces' => ['Annonces', 'fa-newspaper', [
@@ -97,10 +102,10 @@
 
 @include('admin.statistics.partials._filters', ['showGrouping' => true, 'meta' => 'calculé le ' . $stats['generated_at']])
 
-@if(! $tracking['visites'] || ! $tracking['recherches'])
+@if(! $tracking['visites'] || ! $tracking['recherches'] || ! $tracking['contacts'])
     <div class="st-notice">
         <i class="fas fa-database mt-1"></i>
-        <div>Les tables de suivi n'existent pas encore. Lancez <code>php artisan migrate</code> pour activer le suivi des vues, des visites de boutiques et des recherches.</div>
+        <div>Les tables de suivi n'existent pas encore. Lancez <code>php artisan migrate</code> pour activer le suivi des vues, des visites de boutiques, des recherches et des appels / WhatsApp.</div>
     </div>
 @endif
 
@@ -137,6 +142,7 @@
             $topCategorie = $stats['top_categories'][0] ?? null;
             $topVille = $stats['top_villes'][0] ?? null;
             $topRecherche = $r['top'][0] ?? null;
+            $topContacte = $stats['top_contactes'][0] ?? null;
             $champions = [
                 ['Boutique la plus visitée', 'fa-shop', '#ede9fe', '#6d28d9', $topBoutique['photo'] ?? null, $topBoutique['nom'] ?? null,
                     $topBoutique ? $fmt($topBoutique['visites_boutique']) . ' visites de la boutique' : null,
@@ -147,6 +153,9 @@
                 ['Annonce la plus aimée', 'fa-heart', '#fee2e2', '#b91c1c', $topAimee['photo'] ?? null, $topAimee['titre'] ?? null,
                     $topAimee ? $fmt($topAimee['likes']) . ' likes' : null,
                     $topAimee ? $ficheAnnonce($topAimee['id']) : null],
+                ['Vendeur le plus contacté', 'fa-phone', '#dcfce7', '#15803d', $topContacte['photo'] ?? null, $topContacte['nom'] ?? null,
+                    $topContacte ? $fmt($topContacte['appels']) . ' appels · ' . $fmt($topContacte['whatsapp']) . ' WhatsApp' : null,
+                    $topContacte ? $ficheVendeur($topContacte['id']) . '#qui-a-contacte' : null],
                 ['Vendeur le plus actif', 'fa-trophy', '#fef3c7', '#92400e', $topVendeur['photo'] ?? null, $topVendeur['nom'] ?? null,
                     $topVendeur ? $fmt($topVendeur['annonces']) . ' annonces publiées' : null,
                     $topVendeur ? $ficheVendeur($topVendeur['id']) : null],
@@ -188,6 +197,8 @@
                 ['Visites de boutiques', 'fa-shop', '#8b5cf6', $kpis['visites_boutiques'], 'pages boutique consultées', $detailUrl('boutiques'), false],
                 ['Recherches', 'fa-search', '#0ea5e9', $kpis['recherches'], $pct($r['sans_resultat_pct']) . ' sans résultat', $detailUrl('recherches'), true],
                 ['Likes (favoris)', 'fa-heart', '#ef4444', $kpis['likes'], 'ajouts en favoris', $detailUrl('likes'), false],
+                ['Appels aux vendeurs', 'fa-phone', '#f59e0b', $kpis['appels'], 'clics « Appeler » · voir qui a appelé', $detailUrl('contacts', ['canal' => 'appel']), false],
+                ['Contacts WhatsApp', 'fa-comment-dots', '#22c55e', $kpis['whatsapp'], 'clics « WhatsApp » · voir qui a écrit', $detailUrl('contacts', ['canal' => 'whatsapp']), false],
             ];
         @endphp
         <div class="st-kpis">
@@ -209,6 +220,171 @@
                 <div class="st-kpi-value">{{ $money($kpis['prix_median']) }}</div>
                 <div class="st-kpi-sub">prix médian · moyenne {{ $money($kpis['prix_moyen']) }}</div>
             </a>
+        </div>
+    </div>
+</section>
+
+{{-- ================= Appels et WhatsApp ================= --}}
+<section class="st-panel" data-panel="contacts" hidden>
+    <h3 class="st-panel-title"><i class="fas fa-phone"></i> Appels et WhatsApp <small class="text-muted fw-normal fs-6">— clics « Appeler » et « WhatsApp » vers les vendeurs</small></h3>
+
+    <div class="st-block" id="st-contacts-chiffres">
+        <div class="st-kpis">
+            <a class="st-kpi" href="{{ $detailUrl('contacts', ['canal' => 'appel']) }}" style="--kpi:#f59e0b" title="Voir qui a appelé">
+                <div class="st-kpi-label"><span>Appels</span><i class="fas fa-phone"></i></div>
+                <div class="st-kpi-value">{{ $fmt($kpis['appels']['valeur']) }}</div>
+                <div class="st-kpi-sub">{!! $trend($kpis['appels']) !!} vs {{ $fmt($kpis['appels']['precedent']) }}</div>
+            </a>
+            <a class="st-kpi" href="{{ $detailUrl('contacts', ['canal' => 'whatsapp']) }}" style="--kpi:#22c55e" title="Voir qui a écrit">
+                <div class="st-kpi-label"><span>WhatsApp</span><i class="fab fa-whatsapp"></i></div>
+                <div class="st-kpi-value">{{ $fmt($kpis['whatsapp']['valeur']) }}</div>
+                <div class="st-kpi-sub">{!! $trend($kpis['whatsapp']) !!} vs {{ $fmt($kpis['whatsapp']['precedent']) }}</div>
+            </a>
+            <a class="st-kpi" href="{{ $detailUrl('contacts') }}" style="--kpi:#0ea5e9" title="Voir le journal des contacts">
+                <div class="st-kpi-label"><span>Visiteurs qui ont contacté</span><i class="fas fa-user-check"></i></div>
+                <div class="st-kpi-value">{{ $fmt($kpis['contacteurs']) }}</div>
+                <div class="st-kpi-sub">personnes différentes</div>
+            </a>
+            @php
+                $vuesTotal = $kpis['vues_annonces']['valeur'];
+                $contactsTotal = $kpis['appels']['valeur'] + $kpis['whatsapp']['valeur'];
+            @endphp
+            <a class="st-kpi" href="{{ $detailUrl('vendeurs-contactes') }}" style="--kpi:#8b5cf6" title="Voir le classement des vendeurs">
+                <div class="st-kpi-label"><span>Vendeurs contactés</span><i class="fas fa-store"></i></div>
+                <div class="st-kpi-value">{{ $fmt($kpis['vendeurs_contactes']) }}</div>
+                <div class="st-kpi-sub">
+                    @if($vuesTotal > 0)
+                        {{ number_format($contactsTotal / $vuesTotal * 100, 1, ',', ' ') }} contacts pour 100 vues d'annonces
+                    @else
+                        ont reçu au moins un contact
+                    @endif
+                </div>
+            </a>
+        </div>
+        <div class="st-chips mt-3">
+            <a class="st-chip" href="{{ $detailUrl('contacts') }}"><i class="fas fa-list"></i> Tout le journal</a>
+            <a class="st-chip" href="{{ $detailUrl('contacts', ['canal' => 'appel']) }}"><i class="fas fa-phone"></i> Seulement les appels</a>
+            <a class="st-chip" href="{{ $detailUrl('contacts', ['canal' => 'whatsapp']) }}"><i class="fab fa-whatsapp"></i> Seulement WhatsApp</a>
+            <a class="st-chip" href="{{ $detailUrl('contacts', ['origine' => 'appli']) }}"><i class="fas fa-mobile-alt"></i> Depuis l'appli</a>
+            <a class="st-chip" href="{{ $detailUrl('contacts', ['origine' => 'site']) }}"><i class="fas fa-globe"></i> Depuis le site</a>
+            <a class="st-chip" href="#courbes/audience"><i class="fas fa-chart-line"></i> Courbe dans le temps</a>
+        </div>
+    </div>
+
+    <div class="st-block" id="st-contacts-vendeurs">
+        <div class="admin-card mt-4">
+            <div class="admin-card-header st-card-head">
+                <h5 class="admin-card-title"><a href="{{ $detailUrl('vendeurs-contactes') }}">Vendeurs les plus contactés</a></h5>
+                <span class="st-card-actions"><a class="st-see-all" href="{{ $detailUrl('vendeurs-contactes') }}">Voir tout <i class="fas fa-arrow-right"></i></a><a class="st-export" href="{{ $exportUrl('contactes') }}"><i class="fas fa-file-csv"></i> Exporter</a></span>
+            </div>
+            <div class="admin-card-body">
+                @if(empty($stats['top_contactes']))
+                    <div class="st-empty"><i class="fas fa-phone-slash"></i>Aucun appel ni WhatsApp enregistré sur cette période.</div>
+                @else
+                    @php $maxC = max(array_column($stats['top_contactes'], 'contacts')); @endphp
+                    <div class="table-responsive">
+                        <table class="st-table" data-sortable>
+                            <thead><tr>
+                                <th data-sort="num">#</th>
+                                <th data-sort="text">Vendeur</th>
+                                <th data-sort="num" class="num">Contacts</th>
+                                <th></th>
+                                <th data-sort="num" class="num">Appels</th>
+                                <th data-sort="num" class="num">WhatsApp</th>
+                                <th data-sort="num" class="num">Visiteurs différents</th>
+                                <th data-sort="num">Dernier contact</th>
+                                <th></th>
+                            </tr></thead>
+                            <tbody>
+                            @foreach($stats['top_contactes'] as $i => $v)
+                                <tr @if($v['admin_url']) data-href="{{ $ficheVendeur($v['id']) }}#qui-a-contacte" tabindex="0" @endif>
+                                    <td data-value="{{ $i + 1 }}"><span class="st-rank rank-{{ $i + 1 }}">{{ $i + 1 }}</span></td>
+                                    <td data-value="{{ $v['nom'] }}">
+                                        <div class="st-person">
+                                            <img src="{{ $v['photo'] }}" alt="" loading="lazy">
+                                            <div>
+                                                @if($v['admin_url'])<a href="{{ $ficheVendeur($v['id']) }}#qui-a-contacte">{{ $v['nom'] }}</a>@else{{ $v['nom'] }}@endif
+                                                @if($v['certifie'])<i class="fas fa-circle-check badge-cert" title="Certifié"></i>@endif
+                                                <small>{{ $v['email'] }} @if($v['boutique_url'])· <a href="{{ $v['boutique_url'] }}" target="_blank" class="fw-normal">boutique</a>@endif</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="num" data-value="{{ $v['contacts'] }}"><strong>{{ $fmt($v['contacts']) }}</strong></td>
+                                    <td><div class="st-bar"><span style="width: {{ $maxC ? round($v['contacts'] / $maxC * 100) : 0 }}%"></span></div></td>
+                                    <td class="num" data-value="{{ $v['appels'] }}">{{ $fmt($v['appels']) }}</td>
+                                    <td class="num" data-value="{{ $v['whatsapp'] }}">{{ $fmt($v['whatsapp']) }}</td>
+                                    <td class="num" data-value="{{ $v['contacteurs'] }}">{{ $fmt($v['contacteurs']) }}</td>
+                                    <td data-value="{{ $v['dernier'] ? \Carbon\Carbon::createFromFormat('d/m/Y H:i', $v['dernier'])->format('YmdHi') : 0 }}" style="white-space:nowrap">{{ $v['dernier'] ?? '—' }}</td>
+                                    <td><a class="st-see-all" href="{{ $detailUrl('contacts', ['vendeur' => $v['id']]) }}" title="Journal de ses contacts">qui ? <i class="fas fa-arrow-right"></i></a></td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="st-block" id="st-contacts-journal">
+        <div class="admin-card">
+            <div class="admin-card-header st-card-head">
+                <h5 class="admin-card-title"><a href="{{ $detailUrl('contacts') }}">Derniers contacts <small class="text-muted fw-normal">— qui a contacté qui</small></a></h5>
+                <span class="st-card-actions"><a class="st-see-all" href="{{ $detailUrl('contacts') }}">Tout le journal <i class="fas fa-arrow-right"></i></a></span>
+            </div>
+            <div class="admin-card-body">
+                @if(empty($stats['derniers_contacts']))
+                    <div class="st-empty"><i class="fas fa-phone-slash"></i>Aucun appel ni WhatsApp enregistré sur cette période.</div>
+                @else
+                    <div class="table-responsive">
+                        <table class="st-table">
+                            <thead><tr>
+                                <th>Date</th>
+                                <th>Canal</th>
+                                <th>Vendeur contacté</th>
+                                <th>Visiteur</th>
+                                <th>Depuis</th>
+                                <th>Origine</th>
+                            </tr></thead>
+                            <tbody>
+                            @foreach($stats['derniers_contacts'] as $ct)
+                                <tr>
+                                    <td style="white-space:nowrap">{{ $ct['date'] }}</td>
+                                    @include('admin.statistics.partials._cell', ['value' => $ct['canal'], 'format' => 'canal'])
+                                    <td>
+                                        @if($ct['vendeur']['admin_url'])
+                                            <a href="{{ $ficheVendeur($ct['vendeur']['id']) }}#qui-a-contacte">{{ $ct['vendeur']['nom'] }}</a>
+                                        @else
+                                            {{ $ct['vendeur']['nom'] }}
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($ct['visiteur'])
+                                            <a href="{{ route('admin.users.show', $ct['visiteur']['id']) }}">{{ $ct['visiteur']['nom'] }}</a>
+                                            @if($ct['visiteur']['telephone'])<small class="d-block text-muted">{{ $ct['visiteur']['telephone'] }}</small>@endif
+                                        @elseif($ct['visiteur_supprime'])
+                                            <span class="text-muted">Compte supprimé</span>
+                                        @else
+                                            <span class="text-muted">Visiteur non connecté</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if(! $ct['annonce'])
+                                            Sa boutique
+                                        @elseif($ct['annonce']['url'])
+                                            <a href="{{ $ficheAnnonce($ct['annonce']['id']) }}">{{ \Illuminate\Support\Str::limit($ct['annonce']['titre'], 50) }}</a>
+                                        @else
+                                            <span class="text-muted">{{ $ct['annonce']['titre'] }}</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $ct['source'] === 'appli' ? 'Appli mobile' : 'Site' }}</td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 </section>
@@ -251,7 +427,7 @@
         </div>
         <div class="st-block" id="st-courbes-audience">
             <div class="admin-card mb-0">
-                <div class="admin-card-header"><h5 class="admin-card-title">Audience : vues, boutiques, recherches</h5></div>
+                <div class="admin-card-header"><h5 class="admin-card-title">Audience : vues, boutiques, recherches, contacts</h5></div>
                 <div class="admin-card-body"><div class="st-chart sm"><canvas id="chartAudience"></canvas></div></div>
             </div>
         </div>
@@ -1029,6 +1205,8 @@
                     line('Vues d\'annonces', s.vues, '#3b82f6', { fill: true }),
                     line('Visites de boutiques', s.visites_boutiques, '#8b5cf6'),
                     line('Recherches', s.recherches, '#0ea5e9'),
+                    line('Appels', s.appels, '#f59e0b'),
+                    line('WhatsApp', s.whatsapp, '#22c55e'),
                 ] },
                 options: timeOptions(),
             })));

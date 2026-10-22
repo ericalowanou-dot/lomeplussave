@@ -196,6 +196,117 @@ class ContactTrackingTest extends TestCase
             ->assertSee('Sa boutique');
     }
 
+    /**
+     * Deux vendeurs : Kossi (2 contacts, dont un depuis l'appli) et Ama (1 contact à Kara).
+     */
+    private function seedContacts(): array
+    {
+        $kossi = $this->makeUser(['name' => 'Kossi Mensah']);
+        $ama = $this->makeUser(['name' => 'Ama Doe']);
+        $iphone = $this->makeArticle($kossi);
+        $velo = $this->makeArticle($ama, ['titre' => 'Vélo de course', 'lieu' => 'Kara']);
+        $afi = $this->makeUser(['name' => 'Afi Acheteuse', 'telephone' => '+22891112233']);
+
+        $this->actingAs($afi)->clic(['canal' => 'whatsapp', 'vendeur_id' => $kossi->id, 'article_id' => $iphone->id]);
+        $this->actingAs($afi)->clic(['canal' => 'appel', 'vendeur_id' => $ama->id, 'article_id' => $velo->id]);
+        Sanctum::actingAs($this->makeUser(['name' => 'Yao Mobile']));
+        $this->postJson("/api/v1/shops/{$kossi->id}/contact", ['canal' => 'appel'])->assertNoContent();
+        auth()->forgetGuards();
+
+        return [$kossi, $ama, $iphone, $velo, $this->makeUser(['role' => 'admin'])];
+    }
+
+    public function test_statistics_page_has_a_contacts_tab_and_cards(): void
+    {
+        [$kossi, , , , $admin] = $this->seedContacts();
+
+        $response = $this->actingAs($admin)->get(route('admin.statistics.index', ['periode' => '7j']))->assertOk();
+        $stats = $response->viewData('stats');
+
+        $this->assertSame(2, $stats['kpis']['appels']['valeur']);
+        $this->assertSame(1, $stats['kpis']['whatsapp']['valeur']);
+        $this->assertSame(2, $stats['kpis']['vendeurs_contactes']);
+        $this->assertSame($kossi->id, $stats['top_contactes'][0]['id']);
+        $this->assertSame(2, $stats['top_contactes'][0]['contacts']);
+        $this->assertCount(3, $stats['derniers_contacts']);
+        $this->assertSame(2, array_sum($stats['series']['appels']));
+
+        $response->assertSee('data-panel="contacts"', false)
+            ->assertSee('Vendeur le plus contacté')
+            ->assertSee('Appels aux vendeurs')
+            ->assertSee('Vendeurs les plus contactés')
+            ->assertSee('Afi Acheteuse')
+            ->assertSee(route('admin.statistics.details', ['type' => 'contacts', 'canal' => 'appel', 'periode' => '7j']));
+
+        // Le filtre ville ne garde que les contacts liés à Kara
+        $kara = $this->actingAs($admin)->get(route('admin.statistics.index', ['periode' => '7j', 'ville' => 'Kara']))->viewData('stats');
+        $this->assertSame(1, $kara['kpis']['appels']['valeur']);
+        $this->assertSame(0, $kara['kpis']['whatsapp']['valeur']);
+        $this->assertSame('Ama Doe', $kara['top_contactes'][0]['nom']);
+
+        $this->actingAs($admin)->get(route('admin.statistics.export', ['section' => 'contactes', 'periode' => '7j']))
+            ->assertOk()
+            ->assertDownload();
+    }
+
+    public function test_contacts_journal_lists_filters_searches_and_exports(): void
+    {
+        [$kossi, $ama, , $velo, $admin] = $this->seedContacts();
+        $this->actingAs($admin);
+        $journal = fn (array $q = []) => $this->get(route('admin.statistics.details', ['type' => 'contacts', 'periode' => '7j'] + $q))->assertOk();
+
+        $this->assertSame(3, $journal()->viewData('detail')['total']);
+        $journal()->assertSee('Afi Acheteuse')->assertSee('+22891112233')->assertSee('Yao Mobile')->assertSee('Sa boutique')->assertSee('Appli mobile');
+
+        $this->assertSame(2, $journal(['canal' => 'appel'])->viewData('detail')['total']);
+        $this->assertSame(1, $journal(['origine' => 'appli'])->viewData('detail')['total']);
+        $this->assertSame(2, $journal(['vendeur' => $kossi->id])->viewData('detail')['total']);
+        $this->assertSame(1, $journal(['annonce' => $velo->id])->viewData('detail')['total']);
+        $this->assertSame(1, $journal(['q' => 'Vélo'])->viewData('detail')['total']);
+        $journal(['canal' => 'whatsapp'])->assertSee('Canal : WhatsApp');
+        foreach (['date', 'canal', 'vendeur', 'visiteur'] as $tri) {
+            $journal(['tri' => $tri, 'sens' => 'asc']);
+        }
+
+        $csv = $this->get(route('admin.statistics.details.export', ['type' => 'contacts', 'periode' => '7j']))->assertOk()->streamedContent();
+        $this->assertStringContainsString('Afi Acheteuse', $csv);
+        $this->assertStringContainsString('WhatsApp', $csv);
+
+        $ranking = $this->get(route('admin.statistics.details', ['type' => 'vendeurs-contactes', 'periode' => '7j']))->assertOk()->viewData('detail');
+        $this->assertSame(2, $ranking['total']);
+        $this->assertSame('Kossi Mensah', $ranking['lignes'][0]['personne']['nom']);
+        $this->assertSame(1, $ranking['lignes'][0]['whatsapp']);
+        $this->assertSame($ama->id, (int) $this->get(route('admin.statistics.details', ['type' => 'vendeurs-contactes', 'periode' => '7j', 'q' => 'Ama']))->viewData('detail')['paginator']->items()[0]->id);
+    }
+
+    public function test_article_fiche_shows_its_contacts(): void
+    {
+        [, , $iphone, , $admin] = $this->seedContacts();
+
+        $fiche = $this->actingAs($admin)->get(route('admin.statistics.annonce', ['article' => $iphone->id, 'periode' => '7j']))
+            ->assertOk()
+            ->assertSee('Contacts WhatsApp')
+            ->assertSee(route('admin.statistics.details', ['type' => 'contacts', 'annonce' => $iphone->id, 'canal' => 'whatsapp', 'periode' => '7j']))
+            ->viewData('fiche');
+
+        $this->assertSame(1, $fiche['kpis']['whatsapp']['valeur']);
+        $this->assertSame(0, $fiche['kpis']['appels']['valeur']);
+        $this->assertSame(1, array_sum($fiche['series']['contacts']));
+    }
+
+    public function test_contact_screens_render_without_contacts_table(): void
+    {
+        \Illuminate\Support\Facades\Schema::drop('stat_contacts');
+        $seller = $this->makeUser();
+        $article = $this->makeArticle($seller);
+        $this->actingAs($this->makeUser(['role' => 'admin']));
+
+        $this->get(route('admin.statistics.index'))->assertOk()->assertSee('Aucun appel ni WhatsApp');
+        $this->get(route('admin.statistics.details', ['type' => 'contacts', 'tri' => 'vendeur']))->assertOk()->assertSee('pas encore activé');
+        $this->get(route('admin.statistics.details', ['type' => 'vendeurs-contactes']))->assertOk()->assertSee('pas encore activé');
+        $this->get(route('admin.statistics.annonce', ['article' => $article->id]))->assertOk();
+    }
+
     public function test_seller_fiche_renders_without_contacts_table(): void
     {
         \Illuminate\Support\Facades\Schema::drop('stat_contacts');

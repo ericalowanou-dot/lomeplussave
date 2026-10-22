@@ -46,6 +46,17 @@ class StatisticsFiches
         $likesPrev = $likes()->whereBetween('article_user_like.created_at', $previous)->count();
         $likesTotal = $likes()->count();
 
+        // Clics « Appeler » / « WhatsApp » depuis cette annonce
+        $contacts = fn (?string $canal = null) => DB::table('stat_contacts')->where('stat_contacts.article_id', $article->id)
+            ->when($canal, fn ($q) => $q->where('stat_contacts.canal', $canal));
+        $appels = $whatsapp = $this->stats->metric(0, 0);
+        if ($this->stats->hasContacts()) {
+            [$appels, $whatsapp] = array_map(fn ($canal) => $this->stats->metric(
+                $contacts($canal)->whereBetween('created_at', $period)->count(),
+                $contacts($canal)->whereBetween('created_at', $previous)->count(),
+            ), ['appel', 'whatsapp']);
+        }
+
         // Comparaison avec les autres annonces de la même sous-catégorie
         $comparaison = $this->compareInSousCategorie($article, $vues);
 
@@ -56,6 +67,9 @@ class StatisticsFiches
                 ? $this->stats->bucketize($this->stats->dailyCounts($visits(), 'stat_visites.created_at'), $buckets)
                 : array_fill(0, count($buckets), 0),
             'likes' => $this->stats->bucketize($this->stats->dailyCounts($likes(), 'article_user_like.created_at'), $buckets),
+            'contacts' => $this->stats->hasContacts()
+                ? $this->stats->bucketize($this->stats->dailyCounts($contacts(), 'stat_contacts.created_at'), $buckets)
+                : array_fill(0, count($buckets), 0),
         ];
 
         $fans = DB::table('article_user_like')
@@ -77,6 +91,9 @@ class StatisticsFiches
                 'likes' => $this->stats->metric($likesPeriode, $likesPrev),
                 'likes_total' => $likesTotal,
                 'taux' => $this->stats->percent($likesPeriode, $vues),
+                'appels' => $appels,
+                'whatsapp' => $whatsapp,
+                'taux_contact' => $this->stats->percent($appels['valeur'] + $whatsapp['valeur'], $vues),
             ],
             'comparaison' => $comparaison,
             'series' => $series,
@@ -271,7 +288,8 @@ class StatisticsFiches
             ->whereBetween('created_at', $period)
             ->orderByDesc('created_at')->orderByDesc('id')
             ->paginate(self::PER_PAGE, ['*'], 'contacts_page')
-            ->withQueryString();
+            ->withQueryString()
+            ->fragment('qui-a-contacte');
 
         $items = collect($rows->items());
         $visiteurs = User::whereIn('id', $items->pluck('visiteur_id')->filter()->unique())->get(['id', 'name', 'telephone', 'whatsapp'])->keyBy('id');

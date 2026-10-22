@@ -87,16 +87,16 @@
         <div class="st-kpi-value">{{ $fmt($k['likes']['valeur']) }}</div>
         <div class="st-kpi-sub">{!! $trend($k['likes']) !!} · {{ $fmt($k['likes_total']) }} au total</div>
     </div>
-    <div class="st-kpi" style="--kpi:#f59e0b">
+    <a class="st-kpi" href="#qui-a-contacte" style="--kpi:#f59e0b" title="Voir qui l'a contacté">
         <div class="st-kpi-label"><span>Appels</span><i class="fas fa-phone"></i></div>
         <div class="st-kpi-value">{{ $fmt($k['appels']['valeur']) }}</div>
         <div class="st-kpi-sub">{!! $trend($k['appels']) !!} vs {{ $fmt($k['appels']['precedent']) }}</div>
-    </div>
-    <div class="st-kpi" style="--kpi:#22c55e">
+    </a>
+    <a class="st-kpi" href="#qui-a-contacte" style="--kpi:#22c55e" title="Voir qui l'a contacté">
         <div class="st-kpi-label"><span>Contacts WhatsApp</span><i class="fab fa-whatsapp"></i></div>
         <div class="st-kpi-value">{{ $fmt($k['whatsapp']['valeur']) }}</div>
         <div class="st-kpi-sub">{!! $trend($k['whatsapp']) !!} vs {{ $fmt($k['whatsapp']['precedent']) }}</div>
-    </div>
+    </a>
     <div class="st-kpi" style="--kpi:#f97316">
         <div class="st-kpi-label"><span>Annonces publiées</span><i class="fas fa-newspaper"></i></div>
         <div class="st-kpi-value">{{ $fmt($k['annonces']['valeur']) }}</div>
@@ -116,6 +116,66 @@
         <i class="fas fa-angle-right text-muted"></i>
     </a>
 @endif
+
+<div class="admin-card" id="qui-a-contacte">
+    <div class="admin-card-header st-card-head">
+        <h5 class="admin-card-title">Qui l'a contacté <small class="text-muted fw-normal">— clics « Appeler » et « WhatsApp » sur la période</small></h5>
+        <span class="st-card-actions"><a class="st-see-all" href="{{ route('admin.statistics.details', ['type' => 'contacts', 'vendeur' => $u->id] + $params) }}">Journal complet et export <i class="fas fa-arrow-right"></i></a></span>
+    </div>
+    <div class="admin-card-body">
+        @php $contacts = $fiche['contacts']; @endphp
+        @if(! $contacts || $contacts->isEmpty())
+            <div class="st-empty"><i class="fas fa-phone-slash"></i>Aucun contact enregistré sur la période.</div>
+        @else
+            <div class="table-responsive">
+                <table class="st-table">
+                    <thead><tr>
+                        <th>Date</th>
+                        <th>Canal</th>
+                        <th>Visiteur</th>
+                        <th>Depuis</th>
+                        <th>Origine</th>
+                    </tr></thead>
+                    <tbody>
+                    @foreach($contacts->items() as $ct)
+                        <tr>
+                            <td>{{ $ct->date->format('d/m/Y H:i') }}</td>
+                            <td>
+                                @if($ct->canal === 'whatsapp')
+                                    <span class="st-badge approved"><i class="fab fa-whatsapp"></i> WhatsApp</span>
+                                @else
+                                    <span class="st-badge pending"><i class="fas fa-phone"></i> Appel</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($ct->visiteur)
+                                    <a href="{{ route('admin.users.show', $ct->visiteur->id) }}">{{ $ct->visiteur->name }}</a>
+                                    @if($ct->visiteur->telephone || $ct->visiteur->whatsapp)<small class="d-block text-muted">{{ $ct->visiteur->telephone ?: $ct->visiteur->whatsapp }}</small>@endif
+                                @else
+                                    <span class="text-muted">Visiteur non connecté</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($ct->annonce)
+                                    <a href="{{ route('admin.statistics.annonce', ['article' => $ct->annonce->id] + $params) }}">{{ \Illuminate\Support\Str::limit($ct->annonce->titre, 50) }}</a>
+                                @elseif($ct->article_id)
+                                    <span class="text-muted">Annonce supprimée</span>
+                                @else
+                                    Sa boutique
+                                @endif
+                            </td>
+                            <td>{{ $ct->source === 'appli' ? 'Appli mobile' : 'Site' }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @if($contacts->hasPages())
+                <div class="st-pagination">{{ $contacts->onEachSide(1)->links() }}</div>
+            @endif
+        @endif
+    </div>
+</div>
 
 <div class="admin-card">
     <div class="admin-card-header"><h5 class="admin-card-title">Audience dans le temps</h5></div>
@@ -173,65 +233,6 @@
     </div>
 </div>
 
-
-<div class="admin-card">
-    <div class="admin-card-header st-card-head">
-        <h5 class="admin-card-title">Qui l'a contacté <small class="text-muted fw-normal">— clics « Appeler » et « WhatsApp » sur la période</small></h5>
-    </div>
-    <div class="admin-card-body">
-        @php $contacts = $fiche['contacts']; @endphp
-        @if(! $contacts || $contacts->isEmpty())
-            <div class="st-empty"><i class="fas fa-phone-slash"></i>Aucun contact enregistré sur la période.</div>
-        @else
-            <div class="table-responsive">
-                <table class="st-table">
-                    <thead><tr>
-                        <th>Date</th>
-                        <th>Canal</th>
-                        <th>Visiteur</th>
-                        <th>Depuis</th>
-                        <th>Origine</th>
-                    </tr></thead>
-                    <tbody>
-                    @foreach($contacts->items() as $ct)
-                        <tr>
-                            <td>{{ $ct->date->format('d/m/Y H:i') }}</td>
-                            <td>
-                                @if($ct->canal === 'whatsapp')
-                                    <span class="st-badge approved"><i class="fab fa-whatsapp"></i> WhatsApp</span>
-                                @else
-                                    <span class="st-badge pending"><i class="fas fa-phone"></i> Appel</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($ct->visiteur)
-                                    <a href="{{ route('admin.users.show', $ct->visiteur->id) }}">{{ $ct->visiteur->name }}</a>
-                                    @if($ct->visiteur->telephone || $ct->visiteur->whatsapp)<small class="d-block text-muted">{{ $ct->visiteur->telephone ?: $ct->visiteur->whatsapp }}</small>@endif
-                                @else
-                                    <span class="text-muted">Visiteur non connecté</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($ct->annonce)
-                                    <a href="{{ route('admin.statistics.annonce', ['article' => $ct->annonce->id] + $params) }}">{{ \Illuminate\Support\Str::limit($ct->annonce->titre, 50) }}</a>
-                                @elseif($ct->article_id)
-                                    <span class="text-muted">Annonce supprimée</span>
-                                @else
-                                    Sa boutique
-                                @endif
-                            </td>
-                            <td>{{ $ct->source === 'appli' ? 'Appli mobile' : 'Site' }}</td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
-            @if($contacts->hasPages())
-                <div class="st-pagination">{{ $contacts->onEachSide(1)->links() }}</div>
-            @endif
-        @endif
-    </div>
-</div>
 
 @endsection
 

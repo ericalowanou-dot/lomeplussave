@@ -33,7 +33,13 @@ class StatisticsDetails
         'villes' => ['Villes', 'villes'],
         'mots-cles' => ['Mots-clés des titres', 'annonces/mots-cles'],
         'recherches' => ['Recherches des visiteurs', 'recherches'],
+        'contacts' => ['Appels et WhatsApp reçus par les vendeurs', 'contacts/journal'],
+        'vendeurs-contactes' => ['Vendeurs les plus contactés', 'contacts/vendeurs'],
     ];
+
+    public const CANAUX = ['appel' => 'Appel', 'whatsapp' => 'WhatsApp'];
+
+    public const ORIGINES = ['site' => 'Site', 'appli' => 'Appli mobile'];
 
     public const PER_PAGE = [25, 50, 100];
 
@@ -76,6 +82,8 @@ class StatisticsDetails
             'villes' => $this->villes(),
             'mots-cles' => $this->motsCles(),
             'recherches' => $this->recherches(),
+            'contacts' => $this->contacts(),
+            'vendeurs-contactes' => $this->vendeursContactes(),
         };
 
         $sortable = array_keys(array_filter($definition['colonnes'], fn ($c) => isset($c['tri'])));
@@ -830,6 +838,189 @@ class StatisticsDetails
         ];
     }
 
+    // ------------------------------------------------------------------
+    // Appels et WhatsApp
+    // ------------------------------------------------------------------
+
+    /**
+     * Journal des clics « Appeler » / « WhatsApp » : qui a contacté quel vendeur, quand, d'où.
+     */
+    private function contacts(): array
+    {
+        $colonnes = [
+            'date' => ['label' => 'Date', 'format' => 'datetime', 'tri' => 'stat_contacts.created_at'],
+            'canal' => ['label' => 'Canal', 'format' => 'canal', 'tri' => 'stat_contacts.canal', 'sens' => 'asc'],
+            'vendeur' => ['label' => 'Vendeur contacté', 'format' => 'personne', 'tri' => 'vendeurs.name', 'sens' => 'asc'],
+            'visiteur' => ['label' => 'Visiteur', 'format' => 'personne', 'tri' => 'visiteurs.name', 'sens' => 'asc'],
+            'telephone' => ['label' => 'Tél. du visiteur', 'format' => 'texte'],
+            'depuis' => ['label' => 'Depuis', 'format' => 'annonce_mini'],
+            'origine' => ['label' => 'Origine', 'format' => 'texte'],
+        ];
+
+        if (! $this->stats->hasContacts()) {
+            return [
+                'query' => DB::table('users')->whereRaw('1 = 0')->selectRaw('users.created_at'),
+                'tri' => 'date',
+                'avertissement' => 'Le suivi des appels et WhatsApp n\'est pas encore activé (php artisan migrate).',
+                'colonnes' => ['date' => ['label' => 'Date', 'format' => 'datetime', 'tri' => 'users.created_at']] + array_map(fn ($c) => array_diff_key($c, ['tri' => true]), $colonnes),
+                'hydrate' => fn ($items) => [],
+            ];
+        }
+
+        $query = $this->stats->contacts()
+            ->leftJoin('users as vendeurs', 'vendeurs.id', '=', 'stat_contacts.vendeur_id')
+            ->leftJoin('users as visiteurs', 'visiteurs.id', '=', 'stat_contacts.visiteur_id')
+            ->whereBetween('stat_contacts.created_at', $this->stats->period())
+            ->select('stat_contacts.id', 'stat_contacts.canal', 'stat_contacts.source', 'stat_contacts.article_id',
+                'stat_contacts.vendeur_id', 'stat_contacts.visiteur_id', 'stat_contacts.created_at');
+
+        $filtres = $this->contactFilters($query);
+
+        if ($this->search !== '') {
+            $like = '%' . $this->search . '%';
+            $query->where(fn ($q) => $q->where('vendeurs.name', 'like', $like)
+                ->orWhere('visiteurs.name', 'like', $like)
+                ->orWhereIn('stat_contacts.article_id', DB::table('articles')->select('id')->where('titre', 'like', $like)));
+        }
+
+        return [
+            'description' => 'Chaque clic sur « Appeler » ou « WhatsApp » d\'une annonce ou d\'une boutique (site et appli). Un même visiteur ne compte qu\'une fois par tranche de dix minutes.',
+            'query' => $query,
+            'cle' => 'stat_contacts.id',
+            'tri' => 'date',
+            'filtres' => $filtres,
+            'recherche' => 'Rechercher un vendeur, un visiteur ou une annonce…',
+            'colonnes' => $colonnes,
+            'hydrate' => function ($items) {
+                $users = User::whereIn('id', $items->pluck('vendeur_id')->merge($items->pluck('visiteur_id'))->filter()->unique())->get()->keyBy('id');
+                $articles = $this->stats->loadArticles($items->pluck('article_id')->filter()->unique()->all());
+
+                return $items->map(function ($row) use ($users, $articles) {
+                    $visiteur = $row->visiteur_id ? $users->get($row->visiteur_id) : null;
+
+                    return [
+                        'date' => $row->created_at,
+                        'canal' => $row->canal,
+                        'vendeur' => $this->personne($users->get($row->vendeur_id), (int) $row->vendeur_id),
+                        'visiteur' => $this->visiteur($visiteur, $row->visiteur_id),
+                        'telephone' => $visiteur ? ($visiteur->telephone ?: $visiteur->whatsapp) : null,
+                        'depuis' => $row->article_id
+                            ? $this->annonce($articles->get($row->article_id), (int) $row->article_id)
+                            : ['titre' => 'Sa boutique', 'photo' => null, 'fiche' => null, 'note' => 'page boutique'],
+                        'origine' => self::ORIGINES[$row->source] ?? $row->source,
+                        '_href' => route('admin.statistics.vendeur', ['user' => $row->vendeur_id] + $this->stats->queryParams()),
+                    ];
+                })->all();
+            },
+        ];
+    }
+
+    /**
+     * Classement complet des vendeurs contactés sur la période.
+     */
+    private function vendeursContactes(): array
+    {
+        $query = DB::table('users')->select('users.id', 'users.name');
+
+        if (! $this->stats->hasContacts()) {
+            $query->whereRaw('1 = 0')->selectRaw('0 as contacts, 0 as appels, 0 as whatsapp, 0 as contacteurs, NULL as dernier');
+        } else {
+            $ofUser = fn (?string $canal = null) => $this->stats->contacts()
+                ->whereColumn('stat_contacts.vendeur_id', 'users.id')
+                ->whereBetween('stat_contacts.created_at', $this->stats->period())
+                ->when($canal, fn ($q) => $q->where('stat_contacts.canal', $canal));
+
+            $query->whereExists($ofUser()->select(DB::raw(1)))
+                ->selectSub($ofUser()->selectRaw('COUNT(*)'), 'contacts')
+                ->selectSub($ofUser('appel')->selectRaw('COUNT(*)'), 'appels')
+                ->selectSub($ofUser('whatsapp')->selectRaw('COUNT(*)'), 'whatsapp')
+                ->selectSub($ofUser()->selectRaw('COUNT(DISTINCT stat_contacts.visiteur_hash)'), 'contacteurs')
+                ->selectSub($ofUser()->selectRaw('MAX(stat_contacts.created_at)'), 'dernier');
+        }
+
+        if ($this->search !== '') {
+            $query->where(fn ($q) => $q->where('users.name', 'like', "%{$this->search}%")->orWhere('users.email', 'like', "%{$this->search}%"));
+        }
+
+        return [
+            'description' => 'Vendeurs ayant reçu des clics « Appeler » ou « WhatsApp » pendant la période. Cliquez un vendeur pour voir qui l\'a contacté.',
+            'query' => $query,
+            'cle' => 'users.id',
+            'tri' => 'contacts',
+            'recherche' => 'Rechercher un vendeur…',
+            'avertissement' => $this->stats->hasContacts() ? null : 'Le suivi des appels et WhatsApp n\'est pas encore activé (php artisan migrate).',
+            'colonnes' => [
+                'personne' => ['label' => 'Vendeur', 'format' => 'personne', 'tri' => 'users.name', 'sens' => 'asc'],
+                'contacts' => ['label' => 'Contacts', 'format' => 'num', 'tri' => 'contacts'],
+                'appels' => ['label' => 'Appels', 'format' => 'num', 'tri' => 'appels'],
+                'whatsapp' => ['label' => 'WhatsApp', 'format' => 'num', 'tri' => 'whatsapp'],
+                'contacteurs' => ['label' => 'Visiteurs différents', 'format' => 'num', 'tri' => 'contacteurs'],
+                'dernier' => ['label' => 'Dernier contact', 'format' => 'datetime', 'tri' => 'dernier'],
+            ],
+            'hydrate' => fn ($items) => $this->userRows($items, fn ($row) => [
+                'contacts' => (int) $row->contacts,
+                'appels' => (int) $row->appels,
+                'whatsapp' => (int) $row->whatsapp,
+                'contacteurs' => (int) $row->contacteurs,
+                'dernier' => $row->dernier,
+            ]),
+        ];
+    }
+
+    /** Filtres canal / origine / vendeur du journal des contacts (paramètres d'URL). */
+    private function contactFilters(Builder $query): array
+    {
+        $filtres = [];
+
+        $canal = $this->request->query('canal');
+        if (is_string($canal) && array_key_exists($canal, self::CANAUX)) {
+            $query->where('stat_contacts.canal', $canal);
+            $filtres['canal'] = 'Canal : ' . self::CANAUX[$canal];
+        }
+
+        $origine = $this->request->query('origine');
+        if (is_string($origine) && array_key_exists($origine, self::ORIGINES)) {
+            $query->where('stat_contacts.source', $origine);
+            $filtres['origine'] = 'Origine : ' . self::ORIGINES[$origine];
+        }
+
+        $annonce = (int) $this->request->query('annonce', 0);
+        if ($annonce > 0) {
+            $query->where('stat_contacts.article_id', $annonce);
+            $filtres['annonce'] = 'Annonce : ' . (DB::table('articles')->where('id', $annonce)->value('titre') ?? '#' . $annonce);
+        }
+
+        $vendeur = (int) $this->request->query('vendeur', 0);
+        if ($vendeur > 0) {
+            $query->where('stat_contacts.vendeur_id', $vendeur);
+            $filtres['vendeur'] = 'Vendeur : ' . (User::whereKey($vendeur)->value('name') ?? '#' . $vendeur);
+        }
+
+        return $filtres;
+    }
+
+    /** Personne qui a cliqué : compte connecté, compte supprimé ou visiteur anonyme. */
+    private function visiteur(?User $user, mixed $id): array
+    {
+        if (! $user) {
+            return [
+                'nom' => $id ? 'Compte supprimé (#' . $id . ')' : 'Visiteur non connecté',
+                'photo' => $this->stats->relativeUrl(User::defaultProfilPhotoUrl()),
+                'sous' => null,
+                'certifie' => false,
+                'fiche' => null,
+            ];
+        }
+
+        return [
+            'nom' => $user->name,
+            'photo' => $this->stats->relativeUrl($user->getProfilPhotoUrl()),
+            'sous' => $user->email,
+            'certifie' => false,
+            'fiche' => route('admin.users.show', $user->id),
+        ];
+    }
+
     private function rechercheColumns(): array
     {
         return [
@@ -923,6 +1114,7 @@ class StatisticsDetails
             is_array($value) => (string) ($value['titre'] ?? $value['nom'] ?? ''),
             $format === 'bool' => $value ? 'oui' : 'non',
             $format === 'statut' => self::STATUTS[$value] ?? (string) $value,
+            $format === 'canal' => self::CANAUX[$value] ?? (string) $value,
             in_array($format, ['date', 'datetime'], true) => $value ? CarbonImmutable::parse($value)->format($format === 'date' ? 'd/m/Y' : 'd/m/Y H:i') : '',
             default => (string) $value,
         };

@@ -89,6 +89,17 @@
         <div class="st-kpi-value">{{ number_format($k['taux'], 1, ',', ' ') }} %</div>
         <div class="st-kpi-sub">part des vues qui finissent en like</div>
     </div>
+    <a class="st-kpi" href="{{ route('admin.statistics.details', ['type' => 'contacts', 'annonce' => $a->id, 'canal' => 'appel'] + $params) }}" style="--kpi:#f59e0b" title="Voir qui a appelé">
+        <div class="st-kpi-label"><span>Appels</span><i class="fas fa-phone"></i></div>
+        <div class="st-kpi-value">{{ $fmt($k['appels']['valeur']) }}</div>
+        <div class="st-kpi-sub">{!! $trend($k['appels']) !!} vs {{ $fmt($k['appels']['precedent']) }}</div>
+    </a>
+    <a class="st-kpi" href="{{ route('admin.statistics.details', ['type' => 'contacts', 'annonce' => $a->id, 'canal' => 'whatsapp'] + $params) }}" style="--kpi:#22c55e" title="Voir qui a écrit">
+        <div class="st-kpi-label"><span>Contacts WhatsApp</span><i class="fab fa-whatsapp"></i></div>
+        <div class="st-kpi-value">{{ $fmt($k['whatsapp']['valeur']) }}</div>
+        <div class="st-kpi-sub">{!! $trend($k['whatsapp']) !!} vs {{ $fmt($k['whatsapp']['precedent']) }}</div>
+        <div class="st-kpi-sub mt-1">{{ number_format($k['taux_contact'], 1, ',', ' ') }} % des vues finissent en contact</div>
+    </a>
 </div>
 
 @if($fiche['comparaison'])
@@ -104,7 +115,7 @@
 @endif
 
 <div class="admin-card">
-    <div class="admin-card-header"><h5 class="admin-card-title">Vues et likes dans le temps</h5></div>
+    <div class="admin-card-header"><h5 class="admin-card-title">Vues, likes et contacts dans le temps</h5></div>
     <div class="admin-card-body"><div class="st-chart"><canvas id="chartFiche"></canvas></div></div>
 </div>
 
@@ -159,6 +170,7 @@
         data: { labels: s.labels, datasets: [
             { type: 'bar', label: 'Vues', data: s.vues, backgroundColor: '#3b82f6', borderRadius: 4, yAxisID: 'y' },
             { type: 'line', label: 'Likes', data: s.likes, borderColor: '#ef4444', backgroundColor: '#ef4444', tension: .3, pointRadius: s.labels.length > 60 ? 0 : 3, borderWidth: 2, yAxisID: 'y1' },
+            { type: 'line', label: 'Appels et WhatsApp', data: s.contacts, borderColor: '#22c55e', backgroundColor: '#22c55e', tension: .3, pointRadius: s.labels.length > 60 ? 0 : 3, borderWidth: 2, yAxisID: 'y1' },
         ] },
         options: {
             responsive: true, maintainAspectRatio: false,
@@ -166,7 +178,7 @@
             plugins: { legend: { labels: { usePointStyle: true } }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label} : ${nf.format(ctx.parsed.y)}` } } },
             scales: {
                 y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Vues' } },
-                y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { precision: 0 }, title: { display: true, text: 'Likes' } },
+                y1: { beginAtZero: true, position: 'right', grid: { display: false }, ticks: { precision: 0 }, title: { display: true, text: 'Likes et contacts' } },
                 x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } },
             },
         },

@@ -192,9 +192,9 @@ class AdminStatistics
         // un résultat calculé sans les tables de suivi n'est jamais resservi depuis le cache.
         $this->detectTrackingTables();
 
-        $key = 'admin_statistics:v3:' . md5(implode('|', [
+        $key = 'admin_statistics:v4:' . md5(implode('|', [
             $this->from->toDateString(), $this->to->toDateString(), $this->granularity, $this->top,
-            (int) $this->hasVisites, (int) $this->hasRecherches, $this->period === 'tout' ? 'tout' : '',
+            (int) $this->hasVisites, (int) $this->hasRecherches, (int) $this->hasContacts, $this->period === 'tout' ? 'tout' : '',
             StatTracker::normalize((string) $this->ville), $this->categorieId, $this->sousCategorieId,
         ]));
 
@@ -339,6 +339,7 @@ class AdminStatistics
             'tracking' => [
                 'visites' => $this->hasVisites,
                 'recherches' => $this->hasRecherches,
+                'contacts' => $this->hasContacts,
                 'depuis_visites' => $this->trackingSince('stat_visites', $this->hasVisites),
                 'depuis_recherches' => $this->trackingSince('stat_recherches', $this->hasRecherches),
             ],
@@ -354,6 +355,8 @@ class AdminStatistics
             'top_articles_vus' => $this->topViewedArticles(),
             'top_boutiques' => $this->topShops(),
             'top_articles_aimes' => $this->topLikedArticles(),
+            'top_contactes' => $this->topContacted(),
+            'derniers_contacts' => $this->latestContacts(),
             'recherches' => $this->searches(),
         ];
     }
@@ -431,6 +434,26 @@ class AdminStatistics
 
         if ($this->hasArticleFilter()) {
             $query->whereIn('stat_visites.vendeur_id', $this->articles()->select('articles.user_id'));
+        }
+
+        return $query;
+    }
+
+    /**
+     * Clics « Appeler » / « WhatsApp » (filtrés : contacts depuis une annonce correspondante,
+     * ou depuis la boutique d'un vendeur ayant au moins une annonce correspondante).
+     */
+    public function contacts(): Builder
+    {
+        $query = DB::table('stat_contacts');
+
+        if ($this->hasArticleFilter()) {
+            $query->leftJoin('articles', 'articles.id', '=', 'stat_contacts.article_id')
+                ->where(function (Builder $where) {
+                    $where->where(fn (Builder $shop) => $shop->whereNull('stat_contacts.article_id')
+                        ->whereIn('stat_contacts.vendeur_id', $this->articles()->select('articles.user_id')))
+                        ->orWhere(fn (Builder $article) => $this->filterArticles($article->whereNotNull('stat_contacts.article_id')));
+                });
         }
 
         return $query;
@@ -530,7 +553,22 @@ class AdminStatistics
             'visiteurs_uniques' => 0,
             'visites_boutiques' => $this->metric(0, 0),
             'recherches' => $this->metric(0, 0),
+            'appels' => $this->metric(0, 0),
+            'whatsapp' => $this->metric(0, 0),
+            'contacteurs' => 0,
+            'vendeurs_contactes' => 0,
         ];
+
+        if ($this->hasContacts) {
+            foreach (['appels' => 'appel', 'whatsapp' => 'whatsapp'] as $key => $canal) {
+                $kpis[$key] = $this->metric(
+                    $this->contacts()->where('stat_contacts.canal', $canal)->whereBetween('stat_contacts.created_at', $current)->count(),
+                    $this->contacts()->where('stat_contacts.canal', $canal)->whereBetween('stat_contacts.created_at', $previous)->count(),
+                );
+            }
+            $kpis['contacteurs'] = $this->contacts()->whereBetween('stat_contacts.created_at', $current)->distinct()->count('stat_contacts.visiteur_hash');
+            $kpis['vendeurs_contactes'] = $this->contacts()->whereBetween('stat_contacts.created_at', $current)->distinct()->count('stat_contacts.vendeur_id');
+        }
 
         if ($this->hasVisites) {
             $kpis['vues_annonces'] = $this->metric(
@@ -595,7 +633,15 @@ class AdminStatistics
             'vues' => $empty,
             'visites_boutiques' => $empty,
             'recherches' => $empty,
+            'appels' => $empty,
+            'whatsapp' => $empty,
         ];
+
+        if ($this->hasContacts) {
+            foreach (['appels' => 'appel', 'whatsapp' => 'whatsapp'] as $key => $canal) {
+                $series[$key] = $this->bucketize($this->dailyCounts($this->contacts()->where('stat_contacts.canal', $canal), 'stat_contacts.created_at'), $buckets);
+            }
+        }
 
         if ($this->hasVisites) {
             $series['vues'] = $this->bucketize($this->dailyCounts($this->articleVisits(), 'stat_visites.created_at'), $buckets);
@@ -1149,6 +1195,80 @@ class AdminStatistics
                 'meilleure_annonce' => $top
                     ? $this->articleColumns($articles->get($top['article_id']), $top['article_id']) + ['vues' => $top['vues']]
                     : null,
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * Vendeurs les plus contactés (clics « Appeler » / « WhatsApp ») sur la période.
+     */
+    private function topContacted(): array
+    {
+        if (! $this->hasContacts) {
+            return [];
+        }
+
+        $rows = $this->contacts()
+            ->whereBetween('stat_contacts.created_at', $this->period())
+            ->selectRaw("stat_contacts.vendeur_id as vid, COUNT(*) as contacts,
+                SUM(CASE WHEN stat_contacts.canal = 'appel' THEN 1 ELSE 0 END) as appels,
+                SUM(CASE WHEN stat_contacts.canal = 'whatsapp' THEN 1 ELSE 0 END) as whatsapp,
+                COUNT(DISTINCT stat_contacts.visiteur_hash) as contacteurs,
+                MAX(stat_contacts.created_at) as dernier")
+            ->groupBy('stat_contacts.vendeur_id')
+            ->orderByDesc('contacts')
+            ->orderByDesc('dernier')
+            ->limit($this->top)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $users = User::whereIn('id', $rows->pluck('vid'))->get()->keyBy('id');
+
+        return $rows->map(fn ($row) => $this->userColumns($users->get($row->vid), (int) $row->vid) + [
+            'contacts' => (int) $row->contacts,
+            'appels' => (int) $row->appels,
+            'whatsapp' => (int) $row->whatsapp,
+            'contacteurs' => (int) $row->contacteurs,
+            'dernier' => $row->dernier ? CarbonImmutable::parse($row->dernier)->format('d/m/Y H:i') : null,
+        ])->values()->all();
+    }
+
+    /**
+     * Derniers clics « Appeler » / « WhatsApp » de la période (aperçu ; la liste complète
+     * est sur la page de détail « contacts »).
+     */
+    private function latestContacts(): array
+    {
+        if (! $this->hasContacts) {
+            return [];
+        }
+
+        $rows = $this->contacts()
+            ->whereBetween('stat_contacts.created_at', $this->period())
+            ->select('stat_contacts.id', 'stat_contacts.canal', 'stat_contacts.source', 'stat_contacts.article_id',
+                'stat_contacts.vendeur_id', 'stat_contacts.visiteur_id', 'stat_contacts.created_at')
+            ->orderByDesc('stat_contacts.created_at')
+            ->orderByDesc('stat_contacts.id')
+            ->limit($this->top)
+            ->get();
+
+        $users = User::whereIn('id', $rows->pluck('vendeur_id')->merge($rows->pluck('visiteur_id'))->filter()->unique())->get()->keyBy('id');
+        $articles = $this->loadArticles($rows->pluck('article_id')->filter()->unique()->all());
+
+        return $rows->map(function ($row) use ($users, $articles) {
+            $visiteur = $row->visiteur_id ? $users->get($row->visiteur_id) : null;
+
+            return [
+                'date' => CarbonImmutable::parse($row->created_at)->format('d/m/Y H:i'),
+                'canal' => $row->canal,
+                'source' => $row->source,
+                'vendeur' => $this->userColumns($users->get($row->vendeur_id), (int) $row->vendeur_id),
+                'visiteur' => $visiteur ? ['id' => $visiteur->id, 'nom' => $visiteur->name, 'telephone' => $visiteur->telephone ?: $visiteur->whatsapp] : null,
+                'visiteur_supprime' => $row->visiteur_id && ! $visiteur,
+                'annonce' => $row->article_id ? $this->articleColumns($articles->get($row->article_id), (int) $row->article_id) : null,
             ];
         })->values()->all();
     }
