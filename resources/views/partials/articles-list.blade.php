@@ -31,17 +31,11 @@
                         </div>
                     @endif
 
-                    <!-- Heure en haut à droite -->
+                    <!-- Âge de l'annonce en haut à droite (ex. « 2 heures », « 1 an ») -->
                     <div class="position-absolute top-0 end-0 px-1 py-0 rounded-bottom-start small d-flex heure">
-                        @php
-                            $diffHours = $article->created_at->diffInHours();
-                        @endphp
-
-                        @if ($diffHours < 24)
-                            <p class="mb-0">
-                                <strong>Récent</strong>
-                            </p>
-                        @endif
+                        <p class="mb-0">
+                            <strong>{{ $article->created_at->diffForHumans(null, true) }}</strong>
+                        </p>
                     </div>
 
                     <!-- Image de l'article -->

@@ -49,4 +49,20 @@ class BrowseFiltersTest extends TestCase
         $this->assertSame(['meuble', 'cher'], $this->titles(['ville' => 'Lomé']));
         $this->assertSame(['meuble'], $this->titles(['q' => 'meuble']));
     }
+
+    public function test_every_article_card_shows_its_age(): void
+    {
+        $seller = $this->seller();
+
+        $this->makeArticle($seller, ['created_at' => now()->subHours(2)->subMinutes(5)]);
+        $this->makeArticle($seller, ['created_at' => now()->subDays(3)->subMinutes(5)]);
+        $this->makeArticle($seller, ['created_at' => now()->subYear()->subDays(5)]);
+
+        $this->get(route('articles.index'))
+            ->assertOk()
+            ->assertSee('<strong>2 heures</strong>', false)
+            ->assertSee('<strong>3 jours</strong>', false)
+            ->assertSee('<strong>1 an</strong>', false)
+            ->assertDontSee('<strong>Récent</strong>', false);
+    }
 }
