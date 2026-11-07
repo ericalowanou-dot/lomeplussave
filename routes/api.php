@@ -32,6 +32,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('/categories', [CatalogController::class, 'categories'])->name('categories');
         Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
         Route::get('/articles/search', [ArticleController::class, 'search'])->name('articles.search');
+        Route::get('/articles/suggestions', [ArticleController::class, 'suggestions'])->name('articles.suggestions');
         Route::get('/articles/{article}', [ArticleController::class, 'show'])->whereNumber('article')->name('articles.show');
         Route::get('/articles/{article}/comments', [CommentController::class, 'index'])->whereNumber('article')->name('comments.index');
         Route::get('/shops/{user}', [CatalogController::class, 'shop'])->whereNumber('user')->name('shops.show');

@@ -45,6 +45,79 @@
     </form>
 </div>
 
+{{-- Suggestions pendant la saisie. Le style et le script restent ici : les assets compilés ne sont pas dans git. --}}
+<style>
+    .search-container-navigation { position: relative; }
+    .search-suggestions { position: absolute; top: 100%; left: 0; right: 0; z-index: 1050; margin: 4px 0 0; padding: 4px 0; background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15); list-style: none; }
+    .search-suggestions[hidden] { display: none; }
+    .search-suggestions button { display: block; width: 100%; padding: 8px 12px; border: 0; background: none; color: #212529; text-align: left; cursor: pointer; }
+    .search-suggestions button:hover { background: #f1f3f5; }
+    .search-suggestions small { color: #6c757d; }
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const input = document.getElementById('search');
+        const form = document.getElementById('search-form');
+        if (!input || !form) return;
+
+        const list = document.createElement('ul');
+        list.className = 'search-suggestions';
+        list.hidden = true;
+        form.parentNode.appendChild(list);
+
+        let timer = null;
+        let lastRequest = 0;
+
+        function choose(value) {
+            input.value = value;
+            list.hidden = true;
+            form.submit();
+        }
+
+        function addItem(label, hint) {
+            const item = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = label;
+            if (hint) {
+                const small = document.createElement('small');
+                small.textContent = ' ' + hint;
+                button.appendChild(small);
+            }
+            button.addEventListener('click', () => choose(label));
+            item.appendChild(button);
+            list.appendChild(item);
+        }
+
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            const query = input.value.trim();
+            if (query.length < 2) {
+                list.hidden = true;
+                return;
+            }
+
+            timer = setTimeout(function () {
+                const request = ++lastRequest;
+                fetch(@json(route('search.suggestions')) + '?q=' + encodeURIComponent(query), { headers: { 'Accept': 'application/json' } })
+                    .then(response => response.ok ? response.json() : null)
+                    .then(function (data) {
+                        if (!data || request !== lastRequest) return;
+                        list.textContent = '';
+                        if (data.correction) addItem(data.correction, '(Vous voulez dire)');
+                        data.suggestions.forEach(s => addItem(s.label, s.type === 'categorie' ? '(catégorie)' : ''));
+                        list.hidden = list.children.length === 0;
+                    })
+                    .catch(() => { list.hidden = true; });
+            }, 250);
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!form.parentNode.contains(event.target)) list.hidden = true;
+        });
+    });
+</script>
+
 {{-- NOTE: ne pas utiliser l'id "articles-results" ici.
    Il est réservé au conteneur principal de la liste d'articles dans <main>. --}}
 

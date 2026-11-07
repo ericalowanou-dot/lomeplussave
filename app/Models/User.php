@@ -25,6 +25,13 @@ class User extends Authenticatable
         static::deleting(function (User $user) {
             $user->articles()->get()->each->delete();
         });
+
+        // Le nom, la ville et la certification du vendeur font partie de l'index de recherche.
+        static::updated(function (User $user) {
+            if ($user->wasChanged(['name', 'ville', 'certifie'])) {
+                app(\App\Services\Search\SearchIndexer::class)->syncWhere(fn ($articles) => $articles->where('user_id', $user->id));
+            }
+        });
     }
 
     public function getProfilPhotoUrl(){

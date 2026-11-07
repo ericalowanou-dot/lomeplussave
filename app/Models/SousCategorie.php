@@ -14,6 +14,18 @@ class SousCategorie extends Model
     protected $fillable = ['nom', 'image', 'description', 'categorie_id'];
     protected $table = 'sous_categories'; // Nom de la table associée dans la base de données
 
+    protected static function booted(): void
+    {
+        // Le nom de la sous-catégorie fait partie de l'index de recherche.
+        static::updated(function (SousCategorie $sousCategorie) {
+            if ($sousCategorie->wasChanged(['nom', 'categorie_id'])) {
+                app(\App\Services\Search\SearchIndexer::class)->syncWhere(
+                    fn ($articles) => $articles->where('sous_categorie_id', $sousCategorie->id)
+                );
+            }
+        });
+    }
+
     public function categorie()
     {
         return $this->belongsTo(Categorie::class, 'categorie_id');

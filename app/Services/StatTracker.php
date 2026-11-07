@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Article;
 use App\Models\User;
+use App\Services\Search\RankedPaginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -93,12 +95,23 @@ class StatTracker
     }
 
     /**
+     * Enregistre une page de résultats. Les annonces du secours ne sont pas de vrais
+     * résultats : la recherche reste comptée « sans résultat ».
+     */
+    public function recordResults(string $terme, LengthAwarePaginator $articles, Request $request, string $source): void
+    {
+        $outcome = $articles instanceof RankedPaginator ? $articles->outcome : null;
+
+        $this->recordSearch($terme, $outcome?->realCount ?? $articles->total(), $request, $source, $outcome?->niveau);
+    }
+
+    /**
      * Enregistre une recherche. Les frappes successives d'une recherche en direct
      * (« ord », « ordi », « ordinateur ») sont fusionnées dans une seule ligne.
      */
-    public function recordSearch(string $terme, int $resultats, Request $request, string $source): void
+    public function recordSearch(string $terme, int $resultats, Request $request, string $source, ?int $niveau = null): void
     {
-        $this->safely(function () use ($terme, $resultats, $request, $source) {
+        $this->safely(function () use ($terme, $resultats, $request, $source, $niveau) {
             $terme = Str::limit(trim(preg_replace('/\s+/u', ' ', $terme)), 250, '');
             $normalise = self::normalize($terme);
 
@@ -127,6 +140,7 @@ class StatTracker
                         'terme' => $terme,
                         'terme_normalise' => $normalise,
                         'resultats' => $resultats,
+                        'niveau' => $niveau,
                         'updated_at' => $now,
                     ]);
 
@@ -138,6 +152,7 @@ class StatTracker
                 'terme' => $terme,
                 'terme_normalise' => $normalise,
                 'resultats' => $resultats,
+                'niveau' => $niveau,
                 'source' => $source,
                 'user_id' => $request->user()?->id,
                 'visiteur_hash' => $hash,

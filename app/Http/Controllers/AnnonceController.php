@@ -9,6 +9,7 @@ use App\Models\Article;
 use App\Models\User;
 use App\Models\Categorie;
 use App\Models\SousCategorie;
+use App\Services\Articles\ArticleSearch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Services\StatTracker;
@@ -172,11 +173,11 @@ public function index(Request $request)
 
 
 
-    public function searchArticles(Request $request)
+    public function searchArticles(Request $request, ArticleSearch $search)
     {
         $q = trim((string) $request->input('q', ''));
 
-        $articles = Article::query()
+        $articles = $search->usesCascade() && $q !== '' ? $search->paginateSearch($q, 30) : Article::query()
             ->where('status', 'approved')
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($inner) use ($q) {
@@ -192,7 +193,7 @@ public function index(Request $request)
             ->paginate(30);
 
         if ($q !== '' && $articles->currentPage() === 1) {
-            app(StatTracker::class)->recordSearch($q, $articles->total(), $request, 'recherche_directe');
+            app(StatTracker::class)->recordResults($q, $articles, $request, 'recherche_directe');
         }
 
         if ($request->ajax()) {

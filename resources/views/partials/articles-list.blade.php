@@ -5,6 +5,8 @@
     $feedIdPrefix = $feedIdPrefix ?? 'promo-feed';
 @endphp
 
+@include('partials.search-feedback')
+
 @if($articles->isEmpty())
     <p class="text-center" style="color: red; font-weight: bold;">Aucun résultat trouvé.</p>
 @else

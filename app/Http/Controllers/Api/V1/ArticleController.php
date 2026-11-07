@@ -8,6 +8,8 @@ use App\Http\Requests\Articles\UpdateArticleRequest;
 use App\Http\Resources\ArticleResource;
 use App\Models\Article;
 use App\Services\Articles\ArticleSearch;
+use App\Services\Search\RankedPaginator;
+use App\Services\Search\SearchSuggestions;
 use App\Services\Articles\ArticleService;
 use App\Services\Articles\PhotoStorageException;
 use App\Services\CoinService;
@@ -37,27 +39,48 @@ class ArticleController extends Controller
             'q' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $articles = $search->browse($request->only(ArticleSearch::BROWSE_FILTERS))
-            ->paginate($this->perPage($request))
+        $articles = $search->paginateBrowse($request->only(ArticleSearch::BROWSE_FILTERS), $this->perPage($request))
             ->withQueryString();
 
         $this->trackSearch($request, (string) $request->input('q', ''), $articles);
 
-        return ArticleResource::collection(ArticleResource::markLikedBy($articles, $request->user()));
+        return $this->searchResponse($articles, $request);
     }
 
     /** Recherche large : titre, description, lieu, vendeur, catégories. */
     public function search(Request $request, ArticleSearch $search)
     {
-        $data = $request->validate(['q' => ['required', 'string', 'min:2', 'max:255']]);
+        $data = $request->validate(['q' => ['required', 'string', 'max:255']]);
 
-        $articles = $search->search($data['q'])
-            ->paginate($this->perPage($request))
+        $articles = $search->paginateSearch($data['q'], $this->perPage($request))
             ->withQueryString();
 
         $this->trackSearch($request, $data['q'], $articles);
 
-        return ArticleResource::collection(ArticleResource::markLikedBy($articles, $request->user()));
+        return $this->searchResponse($articles, $request);
+    }
+
+    /** Suggestions pendant la saisie. */
+    public function suggestions(Request $request, SearchSuggestions $suggestions)
+    {
+        $data = $request->validate(['q' => ['required', 'string', 'max:255']]);
+
+        return response()->json($suggestions->for($data['q']));
+    }
+
+    /** Liste d'annonces, plus ce que le moteur a compris (champ « recherche », absent sans moteur). */
+    private function searchResponse($articles, Request $request)
+    {
+        $collection = ArticleResource::collection(ArticleResource::markLikedBy($articles, $request->user()));
+        $outcome = $articles instanceof RankedPaginator ? $articles->outcome : null;
+
+        return $outcome ? $collection->additional(['recherche' => [
+            'niveau' => $outcome->niveau,
+            'secours' => $outcome->isFallback(),
+            'categorie_proche' => $outcome->categorieProche,
+            'corrections' => (object) $outcome->corrections,
+            'comprehension' => $outcome->comprehension,
+        ]]) : $collection;
     }
 
     public function show(Request $request, int $article): ArticleResource
@@ -185,7 +208,7 @@ class ArticleController extends Controller
     private function trackSearch(Request $request, string $q, $articles): void
     {
         if (trim($q) !== '' && $articles->currentPage() === 1) {
-            app(StatTracker::class)->recordSearch($q, $articles->total(), $request, 'appli');
+            app(StatTracker::class)->recordResults($q, $articles, $request, 'appli');
         }
     }
 

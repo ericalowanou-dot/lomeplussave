@@ -15,6 +15,7 @@ use App\Models\SousCategorie;
 use App\Http\Requests\Articles\StoreArticleRequest;
 use App\Http\Requests\Articles\UpdateArticleRequest;
 use App\Services\Articles\ArticleSearch;
+use App\Services\Search\SearchSuggestions;
 use App\Services\Articles\ArticleService;
 use App\Services\Articles\PhotoStorageException;
 use Illuminate\Support\Facades\Gate;
@@ -88,6 +89,18 @@ class ArticleController extends Controller
 
 
 
+    /** Suggestions pendant la saisie. */
+    public function suggestions(Request $request, SearchSuggestions $suggestions): JsonResponse
+    {
+        $request->validate(['q' => 'nullable|string|max:255']);
+
+        if (config('search.engine') !== 'cascade') {
+            return response()->json(['suggestions' => [], 'correction' => null]);
+        }
+
+        return response()->json($suggestions->for((string) $request->input('q', '')));
+    }
+
     public function search(Request $request, ArticleSearch $search){
 
         // Validation (assouplie en AJAX live : q optionnel si on nettoie)
@@ -95,7 +108,7 @@ class ArticleController extends Controller
 
         if (!$isAjax) {
             $request->validate([
-                'q' => 'required|min:3|string|max:255'
+                'q' => 'required|string|max:255'
             ]);
         } else {
             $request->validate([
@@ -105,12 +118,11 @@ class ArticleController extends Controller
 
         $q = trim((string) $request->input('q', ''));
 
-        $articles = $search->search($q)
-            ->paginate(120)
+        $articles = $search->paginateSearch($q, 120)
             ->appends($request->query());
 
         if ($q !== '' && $articles->currentPage() === 1) {
-            app(StatTracker::class)->recordSearch($q, $articles->total(), $request, $isAjax ? 'recherche_directe' : 'recherche');
+            app(StatTracker::class)->recordResults($q, $articles, $request, $isAjax ? 'recherche_directe' : 'recherche');
         }
 
         // Récupérer les catégories pour la navigation (avec cache)
@@ -159,13 +171,12 @@ class ArticleController extends Controller
             $perPage = 120;
         }
 
-        $articles = $search->browse($request->only(ArticleSearch::BROWSE_FILTERS))
-            ->paginate($perPage)
+        $articles = $search->paginateBrowse($request->only(ArticleSearch::BROWSE_FILTERS), (int) $perPage)
             ->appends($request->query());
 
         $searchTerm = trim((string) $request->input('q', ''));
         if ($searchTerm !== '' && $articles->currentPage() === 1) {
-            app(StatTracker::class)->recordSearch($searchTerm, $articles->total(), $request, 'accueil');
+            app(StatTracker::class)->recordResults($searchTerm, $articles, $request, 'accueil');
         }
 
 

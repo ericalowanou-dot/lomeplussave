@@ -75,6 +75,7 @@ Route::get('/search', [ArticleController::class, 'search'])->name('article.searc
 
 
 Route::get('/search/articles', [AnnonceController::class, 'searchArticles'])->name('search.articles');
+Route::get('/search/suggestions', [ArticleController::class, 'suggestions'])->name('search.suggestions');
 
 
 

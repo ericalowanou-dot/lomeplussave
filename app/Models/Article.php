@@ -17,12 +17,26 @@ class Article extends Model
 
         public const PHOTO_FIELDS = ['photo', 'photo1', 'photo2', 'photo3', 'photo4', 'photo5', 'photo6'];
 
+        /** Colonnes qui comptent pour l'index de recherche. */
+        private const SEARCH_FIELDS = [
+            'titre', 'description', 'lieu', 'sous_categorie_id', 'user_id', 'status', 'boosted_until', 'created_at',
+            'photo', 'photo1', 'photo2', 'photo3', 'photo4', 'photo5', 'photo6',
+        ];
+
         protected static function booted(): void
         {
             // Supprimer l'annonce supprime aussi ses photos (sinon le disque se remplit avec le temps).
             // afterCommit : si la suppression est annulée par une transaction, les fichiers restent.
             static::deleted(function (Article $article) {
                 \Illuminate\Support\Facades\DB::afterCommit(fn () => $article->deletePhotoFiles());
+                app(\App\Services\Search\SearchIndexer::class)->forget($article->id);
+            });
+
+            // Index de recherche : suit la modération, les modifications et les boosts.
+            static::saved(function (Article $article) {
+                if ($article->wasRecentlyCreated || $article->wasChanged(self::SEARCH_FIELDS)) {
+                    app(\App\Services\Search\SearchIndexer::class)->sync($article->id);
+                }
             });
         }
 

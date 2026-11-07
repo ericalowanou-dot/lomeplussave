@@ -22,6 +22,19 @@ class Categorie extends Model
 
      // Définir la table associée
      protected $table = 'categories';
+
+     protected static function booted(): void
+     {
+         // Le nom de la catégorie fait partie de l'index de recherche.
+         static::updated(function (Categorie $categorie) {
+             if ($categorie->wasChanged('nom')) {
+                 app(\App\Services\Search\SearchIndexer::class)->syncWhere(fn ($articles) => $articles->whereIn(
+                     'sous_categorie_id',
+                     SousCategorie::where('categorie_id', $categorie->id)->select('id')
+                 ));
+             }
+         });
+     }
  
      // Définir les colonnes modifiables
      protected $fillable = [

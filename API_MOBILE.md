@@ -27,7 +27,8 @@ Limites : 10 tentatives de connexion par minute et 120 requêtes par minute (ré
 | Méthode | Route | Notes |
 |---|---|---|
 | GET | `/articles` | filtres du site : `q, categorie, sous_categorie, prix_min, prix_max, ville, etat (neuf/occasion), pro_only, livraison_only, order_by (recent/pro/prix_asc/prix_desc)` |
-| GET | `/articles/search?q=` | recherche large : titre, description, lieu, vendeur, catégories (2 caractères minimum) |
+| GET | `/articles/search?q=` | recherche large : titre, description, lieu, vendeur, catégories. Avec le nouveau moteur, la réponse ajoute un champ `recherche` (niveau, secours, catégorie proche, corrections, ce que le moteur a compris) |
+| GET | `/articles/suggestions?q=` | suggestions pendant la saisie : `suggestions` (catégories et titres) et `correction` |
 | GET | `/articles/{id}` | détail complet (photos, description, vendeur, téléphone, lien WhatsApp) |
 | POST | `/articles` 🔒 | **multipart** : `categorie, sous_categorie_id, titre, prix_ht, lieu, description (20-1500), etat, livraison?, photos[]` (1 à 6 images, 30 Mo maximum, pas de SVG). L'annonce part en validation (`status: pending`). |
 | POST | `/articles/{id}` 🔒 | modification en **multipart** (PHP ne lit pas les fichiers d'un PUT). Une annonce validée repasse en validation (`en_validation: true`). |

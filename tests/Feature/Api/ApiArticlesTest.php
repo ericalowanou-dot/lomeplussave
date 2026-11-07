@@ -71,7 +71,7 @@ class ApiArticlesTest extends TestCase
 
         $this->getJson('/api/v1/articles/search?q=Ablodé')->assertOk()->assertJsonPath('data.0.titre', 'Chaussures');
         $this->getJson('/api/v1/articles/search?q=Téléphones')->assertJsonCount(1, 'data');
-        $this->getJson('/api/v1/articles/search?q=x')->assertStatus(422);
+        $this->getJson('/api/v1/articles/search')->assertStatus(422);
 
         $this->assertDatabaseHas('stat_recherches', ['terme' => 'Ablodé', 'source' => 'appli']);
     }
