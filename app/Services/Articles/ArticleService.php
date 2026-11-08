@@ -76,8 +76,8 @@ class ArticleService
                     $article->$field = $path;
                 }
 
-                // Remodération anti-fraude : approved/blocked → pending, sans toucher created_at
-                $needsReview = in_array($article->status, ['approved', 'blocked'], true);
+                // Remodération : approved/blocked/to_modify → pending, sans toucher created_at
+                $needsReview = in_array($article->status, ['approved', 'blocked', 'to_modify'], true);
                 if ($needsReview) {
                     $article->submitForReview();
                 }

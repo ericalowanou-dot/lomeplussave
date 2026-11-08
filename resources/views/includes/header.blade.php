@@ -390,8 +390,12 @@
             left: 0 !important;
             right: 0 !important;
             bottom: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            width: 100% !important;
+            /* Couvrir tout l'écran mobile (évite le trou sous le blur avec 100vh) */
+            height: auto !important;
+            min-height: 100vh !important;
+            min-height: 100dvh !important;
+            min-height: -webkit-fill-available !important;
             max-width: none !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -1089,13 +1093,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         position: fixed;
 
+        inset: 0;
+
         top: 0;
 
         left: 0;
 
+        right: 0;
+
+        bottom: 0;
+
         width: 100%;
 
-        height: 100%;
+        height: auto;
+
+        min-height: 100vh;
+
+        min-height: 100dvh;
+
+        min-height: -webkit-fill-available;
 
         background: rgba(255, 255, 255, 0.3);
 
@@ -2176,13 +2192,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 position: fixed; /* Fixe le modal à l'écran pour qu'il ne défile pas avec la page */
 
+                inset: 0;
+
                 top: 0; /* Positionne le modal en haut de la page */
 
                 left: 0; /* Positionne le modal à gauche de la page */
 
+                right: 0;
+
+                bottom: 0;
+
                 width: 100%; /* S'étend sur toute la largeur de l'écran */
 
-                height: 100%; /* S'étend sur toute la hauteur de l'écran */
+                height: auto;
+
+                min-height: 100vh;
+
+                min-height: 100dvh;
+
+                min-height: -webkit-fill-available;
 
                 background: rgba(255, 255, 255, 0.3); /* Fond flou au lieu de noir */
 
@@ -3892,13 +3920,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         position: fixed;
 
+        inset: 0;
+
         top: 0;
 
         left: 0;
 
+        right: 0;
+
+        bottom: 0;
+
         width: 100%;
 
-        height: 100%;
+        height: auto;
+
+        min-height: 100vh;
+
+        min-height: 100dvh;
+
+        min-height: -webkit-fill-available;
 
         background: rgba(255, 255, 255, 0.3);
 

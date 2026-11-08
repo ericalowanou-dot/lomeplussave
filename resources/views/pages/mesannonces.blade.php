@@ -663,6 +663,20 @@
                                         </div>
                                     @endif
                                 </a>
+                                <a href="{{ route('mes_annonces', ['status' => 'to_modify']) }}" class="stat-card stat-card--pending stat-card--filter {{ request('status') == 'to_modify' ? 'stat-card--active' : '' }}" data-filter-type="status" data-filter-value="to_modify">
+                                    <div class="stat-card__icon">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </div>
+                                    <div class="stat-card__content">
+                                        <div class="stat-card__value">{{ $stats['to_modify'] ?? 0 }}</div>
+                                        <div class="stat-card__label">À modifier</div>
+                                    </div>
+                                    @if(request('status') == 'to_modify')
+                                        <div class="stat-card__badge">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </div>
+                                    @endif
+                                </a>
                                 <a href="{{ route('mes_annonces', ['status' => 'approved']) }}" class="stat-card stat-card--approved stat-card--filter {{ request('status') == 'approved' ? 'stat-card--active' : '' }}" data-filter-type="status" data-filter-value="approved">
                                     <div class="stat-card__icon">
                                         <i class="bi bi-check-circle"></i>
@@ -739,6 +753,7 @@
                                                 <select class="form-select mes-annonces-filters__select" name="status" id="status">
                                                     <option value="">Tous les états</option>
                                                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>En attente</option>
+                                                    <option value="to_modify" {{ request('status') == 'to_modify' ? 'selected' : '' }}>À modifier</option>
                                                     <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approuvé</option>
                                                     <option value="blocked" {{ request('status') == 'blocked' ? 'selected' : '' }}>Bloqué</option>
                                                 </select>

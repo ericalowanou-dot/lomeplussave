@@ -143,8 +143,11 @@
         #accountModal.modal {
             position: fixed !important;
             inset: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 100vh !important;
+            min-height: 100dvh !important;
+            min-height: -webkit-fill-available !important;
             z-index: 10050 !important;
         }
     </style>

@@ -93,15 +93,17 @@ public function index(Request $request)
         ->selectRaw("
             COUNT(*) as total,
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'to_modify' THEN 1 ELSE 0 END) as to_modify,
             SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
             SUM(CASE WHEN status = 'blocked' THEN 1 ELSE 0 END) as blocked,
             SUM(CASE WHEN boosted_until IS NOT NULL AND boosted_until > ? THEN 1 ELSE 0 END) as boosted
         ", [now()])
         ->first();
-    
+
     $stats = [
         'total' => (int) $statsQuery->total,
         'pending' => (int) $statsQuery->pending,
+        'to_modify' => (int) $statsQuery->to_modify,
         'approved' => (int) $statsQuery->approved,
         'blocked' => (int) $statsQuery->blocked,
         'boosted' => (int) $statsQuery->boosted,

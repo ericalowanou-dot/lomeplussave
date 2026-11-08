@@ -1,457 +1,358 @@
 @extends('admin.layout')
 
-@section('title', 'Gestion des articles')
-@section('page-title', 'Gestion des articles')
+@section('title', 'Modération des articles')
+@section('page-title', 'Modération des articles')
+
+@push('styles')
+<link href="{{ asset('css/admin-articles-queue.css') }}" rel="stylesheet">
+@endpush
+
+@php
+    use App\Http\Controllers\AdminController;
+
+    $tabs = [
+        'pending' => 'En attente',
+        'to_modify' => 'À modifier',
+        'approved' => 'Approuvées',
+        'blocked' => 'Bloquées',
+    ];
+
+    $formatPrice = fn ($article) => number_format((float) $article->prix_ht, 0, ',', ' ') . ' CFA';
+    $categoryLabel = function ($article) {
+        $sous = $article->sousCategorie;
+        if (! $sous) {
+            return '—';
+        }
+        $parent = $sous->categorie->nom ?? null;
+
+        return $parent ? $parent . ' › ' . $sous->nom : $sous->nom;
+    };
+@endphp
 
 @section('content')
-<div class="search-filters">
-    <form method="GET" action="{{ route('admin.articles.index') }}">
-        <div class="filter-row">
-            <div class="filter-group">
-                <label for="search" class="form-label">Rechercher</label>
-                <input type="text" name="search" id="search" class="form-control" 
-                       value="{{ request('search') }}" placeholder="Titre, description ou auteur...">
-            </div>
-            
-            <div class="filter-group">
-                <label for="status" class="form-label">Statut</label>
-                <select name="status" id="status" class="form-control">
-                    <option value="">Tous</option>
-                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>En attente</option>
-                    <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Approuvés</option>
-                    <option value="blocked" {{ request('status') === 'blocked' ? 'selected' : '' }}>Bloqués</option>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search"></i> Filtrer
-                </button>
-                <a href="{{ route('admin.articles.index') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times"></i> Réinitialiser
-                </a>
-            </div>
-        </div>
+<div class="aq-page-head">
+    <h1>Modération des annonces</h1>
+    <p>Chaque annonce est vérifiée avant d’apparaître sur la plateforme.</p>
+</div>
+
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
+@if($errors->any())
+    <div class="alert alert-danger">{{ $errors->first() }}</div>
+@endif
+
+<div class="aq-filters-bar">
+    <div class="aq-filters">
+        @foreach($tabs as $key => $label)
+            <a href="{{ route('admin.articles.index', array_filter(['tab' => $key, 'search' => request('search')])) }}"
+               class="aq-chip {{ $tab === $key ? 'is-active' : '' }}">
+                {{ $label }} <span>{{ $counts[$key] ?? 0 }}</span>
+            </a>
+        @endforeach
+    </div>
+
+    <form method="GET" action="{{ route('admin.articles.index') }}" class="aq-search d-flex gap-2">
+        <input type="hidden" name="tab" value="{{ $tab }}">
+        <input type="text" name="search" class="form-control form-control-sm" value="{{ request('search') }}" placeholder="Rechercher…">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">OK</button>
     </form>
 </div>
 
-<div class="admin-card">
-    <div class="admin-card-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="admin-card-title">
-                <i class="fas fa-newspaper"></i>
-                Liste des articles ({{ $articles->total() }})
-            </h5>
-            
-            @if($articles->count() > 0)
-            <div class="bulk-actions">
-                <button type="button" class="btn btn-success btn-sm" onclick="bulkApprove()">
-                    <i class="fas fa-check"></i> Approuver sélectionnés
-                </button>
-                <button type="button" class="btn btn-warning btn-sm" onclick="bulkBlock()">
-                    <i class="fas fa-ban"></i> Bloquer sélectionnés
-                </button>
-            </div>
-            @endif
-        </div>
-    </div>
-    <div class="admin-card-body">
-        @if($articles->count() > 0)
-            <form id="bulkForm" method="POST">
-                @csrf
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th width="50">
-                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-                                </th>
-                                <th>Article</th>
-                                <th>Auteur</th>
-                                <!-- <th>Catégorie</th>
-                                <th>Prix</th> -->
-                                <th>Statut</th>
-                                <th>Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($articles as $article)
-                            <tr>
-                                <td>
-                                    <input type="checkbox" name="article_ids[]" value="{{ $article->id }}" class="article-checkbox">
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="{{ $article->photo_url }}" 
-                                             alt="Photo" 
-                                             class="rounded me-2" 
-                                             width="50" 
-                                             height="50" 
-                                             style="object-fit: cover;"
-                                             onerror="this.src='{{ asset('images/placeholder.png') }}';">
-                                        <div>
-                                            <strong>{{ Str::limit($article->titre, 20) }}</strong>
-                                            <br>
-                                            <small class="text-muted">{{ Str::limit($article->description, 20) }}</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="{{ $article->user->getProfilPhotoUrl() }}" 
-                                             alt="Photo de profil" 
-                                             class="rounded-circle me-2" 
-                                             width="30" 
-                                             height="30"
-                                             onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
-                                        <span>{{ $article->user->name }}</span>
-                                    </div>
-                                </td>
-                                <!-- <td>{{ $article->sousCategorie->nom ?? 'N/A' }}</td> -->
-                                <!-- <td>{{ number_format($article->prix_ht, 0, ',', ' ') }} FCFA</td> -->
-                                <td>
-                                    @if($article->status === 'pending')
-                                        <span class="status-badge pending">En attente</span>
-                                    @elseif($article->status === 'approved')
-                                        <span class="status-badge approved">Approuvé</span>
-                                        @if($article->approved_at)
-                                            <br><small class="text-muted">{{ $article->approved_at ? $article->approved_at->format('d/m/Y') : '' }}</small>
-                                        @endif
-                                    @else
-                                        <span class="status-badge blocked">Bloqué</span>
-                                        @if($article->blocked_at)
-                                            <br><small class="text-muted">{{ $article->blocked_at ? $article->blocked_at->format('d/m/Y') : '' }}</small>
-                                        @endif
-                                    @endif
-                                </td>
-                                <td>{{ $article->created_at ? $article->created_at->format('d/m/Y') : 'N/A' }}</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <a href="{{ route('admin.articles.show', $article) }}" class="btn-action btn-sm btn-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        
-                                        @if($article->status === 'pending')
-                                            <button type="button" class="btn-action btn-sm btn-approve" 
-                                                    onclick="approveArticle({{ $article->id }}, '{{ addslashes($article->titre) }}')">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                        @endif
-                                        
-                                        @if($article->status !== 'blocked')
-                                            <button type="button" class="btn-action btn-sm btn-block" 
-                                                    onclick="blockArticle({{ $article->id }}, '{{ $article->titre }}')">
-                                                <i class="fas fa-ban"></i>
-                                            </button>
-                                        @endif
-                                        
-                                        <button type="button" class="btn-action btn-sm btn-delete" 
-                                                onclick="deleteArticle({{ $article->id }}, '{{ $article->titre }}')">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+@if($tab === 'pending')
+    @if($current)
+        <form id="approve-many" method="POST" action="{{ route('admin.articles.bulk-approve') }}">@csrf</form>
+
+        <div class="aq-review">
+            <div class="aq-review-card">
+                <div class="aq-review-photo">
+                    <img src="{{ $current->photo_url }}"
+                         alt="{{ $current->titre }}"
+                         onerror="this.src='{{ asset('images/placeholder.png') }}';">
+                    <span class="aq-tag">{{ $current->photosCount() }} photo(s)</span>
                 </div>
-            </form>
-            
-            <!-- Mobile Cards View -->
-            <div class="d-md-none">
+
+                <div class="aq-review-body">
+                    <div class="aq-cell-stack" style="gap:4px">
+                        <span class="aq-sub">
+                            Soumise {{ $current->updated_at->diffForHumans() }}
+                            @if($current->lieu) · {{ $current->lieu }}@endif
+                        </span>
+                        <span class="aq-title">{{ $current->titre }}</span>
+                        <span class="aq-price aq-review-price">{{ $formatPrice($current) }}</span>
+                    </div>
+
+                    <div class="aq-facts">
+                        <div class="aq-fact">
+                            <span>Catégorie</span>
+                            <strong>{{ $categoryLabel($current) }}</strong>
+                        </div>
+                        <div class="aq-fact">
+                            <span>Déjà publiée</span>
+                            <strong>{{ $current->approved_at ? 'Oui, modification' : 'Non, nouvelle' }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="aq-description">{{ $current->description }}</div>
+
+                    <div class="aq-seller">
+                        <span class="aq-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($current->user->name ?? '?', 0, 1)) }}</span>
+                        <div class="aq-cell-stack">
+                            <span class="aq-strong">{{ $current->user->name ?? 'Utilisateur' }}</span>
+                            <span class="aq-sub">
+                                Membre depuis {{ optional($current->user?->created_at)->translatedFormat('F Y') ?? '—' }}
+                            </span>
+                        </div>
+                        <a href="{{ route('admin.articles.show', $current) }}" class="btn btn-sm btn-outline-secondary ms-auto">Détail</a>
+                    </div>
+
+                    <div class="aq-decisions">
+                        <form method="POST" action="{{ route('admin.articles.approve', $current) }}">
+                            @csrf
+                            <button type="submit" class="aq-btn aq-btn-success">Approuver</button>
+                        </form>
+                        <button type="button"
+                                class="aq-btn aq-btn-soft"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modifyModal"
+                                data-action="{{ route('admin.articles.request-modification', $current) }}"
+                                data-title="{{ $current->titre }}">
+                            Modifier
+                        </button>
+                        <button type="button"
+                                class="aq-btn aq-btn-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#blockModal"
+                                data-action="{{ route('admin.articles.block', $current) }}"
+                                data-title="{{ $current->titre }}">
+                            Bloquer
+                        </button>
+                    </div>
+
+                    @if($next)
+                        <a class="aq-skip" href="{{ route('admin.articles.index', ['tab' => 'pending', 'article' => $next->id, 'page' => $articles->currentPage(), 'search' => request('search')]) }}">
+                            Passer, décider plus tard
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            <div class="aq-queue">
+                <span class="aq-strong" style="font-size:13px">En attente ({{ $articles->total() }})</span>
+                <span class="aq-sub">Cochez pour approuver en une fois.</span>
+
                 @foreach($articles as $article)
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div class="form-check">
-                                <input type="checkbox" name="article_ids[]" value="{{ $article->id }}" class="form-check-input article-checkbox">
-                            </div>
-                            <div class="action-buttons">
-                                <a href="{{ route('admin.articles.show', $article) }}" class="btn-action btn-sm btn-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                
-                                @if($article->status === 'pending')
-                                    <button type="button" class="btn-action btn-sm btn-approve" 
-                                            onclick="approveArticle({{ $article->id }}, '{{ addslashes($article->titre) }}')">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                @endif
-                                
-                                @if($article->status !== 'blocked')
-                                    <button type="button" class="btn-action btn-sm btn-block" 
-                                            onclick="blockArticle({{ $article->id }}, '{{ $article->titre }}')">
-                                        <i class="fas fa-ban"></i>
-                                    </button>
-                                @endif
-                                
-                                <button type="button" class="btn-action btn-sm btn-delete" 
-                                        onclick="deleteArticle({{ $article->id }}, '{{ $article->titre }}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="d-flex align-items-center mb-2">
-                            <img src="{{ $article->photo_url }}" 
-                                 alt="Photo" 
-                                 class="rounded me-2" 
-                                 width="60" 
-                                 height="60" 
-                                 style="object-fit: cover;"
+                    <div class="aq-queue-item {{ $article->is($current) ? 'is-active' : '' }}">
+                        <input type="checkbox"
+                               name="article_ids[]"
+                               value="{{ $article->id }}"
+                               form="approve-many"
+                               class="queue-check"
+                               aria-label="Sélectionner « {{ $article->titre }} »">
+                        <a href="{{ route('admin.articles.index', ['tab' => 'pending', 'article' => $article->id, 'page' => $articles->currentPage(), 'search' => request('search')]) }}"
+                           class="aq-queue-item"
+                           style="flex:1;min-width:0;margin:0;padding:0">
+                            <img class="aq-thumb"
+                                 src="{{ $article->photo_url }}"
+                                 alt=""
                                  onerror="this.src='{{ asset('images/placeholder.png') }}';">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">{{ Str::limit($article->titre, 40) }}</h6>
-                                <small class="text-muted">{{ Str::limit($article->description, 60) }}</small>
-                            </div>
-                        </div>
-                        
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <small class="text-muted d-block">Auteur</small>
-                                <div class="d-flex align-items-center justify-content-center">
-                                    <img src="{{ $article->user->getProfilPhotoUrl() }}" 
-                                         alt="Photo de profil" 
-                                         class="rounded-circle me-1" 
-                                         width="20" 
-                                         height="20"
-                                         onerror="this.src='{{ asset('assets/icons/user_default.png') }}';">
-                                    <small>{{ Str::limit($article->user->name, 15) }}</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-muted d-block">Prix</small>
-                                <strong class="text-success">{{ number_format($article->prix_ht, 0, ',', ' ') }} FCFA</strong>
-                            </div>
-                            <div class="col-4">
-                                <small class="text-muted d-block">Statut</small>
-                                @if($article->status === 'pending')
-                                    <span class="status-badge pending">En attente</span>
-                                @elseif($article->status === 'approved')
-                                    <span class="status-badge approved">Approuvé</span>
-                                @else
-                                    <span class="status-badge blocked">Bloqué</span>
-                                @endif
-                            </div>
-                        </div>
-                        
-                        <div class="mt-2 text-center">
-                            <small class="text-muted">{{ $article->created_at ? $article->created_at->format('d/m/Y') : 'N/A' }}</small>
-                        </div>
+                            <span class="aq-cell-stack">
+                                <span class="aq-strong aq-truncate" style="font-size:12.5px">{{ $article->titre }}</span>
+                                <span class="aq-price" style="font-size:12px">{{ $formatPrice($article) }}</span>
+                            </span>
+                        </a>
                     </div>
-                </div>
                 @endforeach
+
+                <button type="submit"
+                        form="approve-many"
+                        id="approveSelectedBtn"
+                        class="aq-btn aq-btn-success"
+                        style="display:none">
+                    Approuver la sélection (<span id="selectedCount">0</span>)
+                </button>
+
+                <div class="mt-2">
+                    {{ $articles->links() }}
+                </div>
             </div>
-            
-            <div class="pagination-wrapper">
-                {{ $articles->appends(request()->query())->links() }}
+        </div>
+    @else
+        <div class="aq-empty">
+            <strong>Toutes les annonces ont été traitées</strong><br>
+            Les nouvelles annonces apparaîtront ici automatiquement.
+        </div>
+    @endif
+@else
+    <div class="aq-table">
+        <div class="aq-row aq-row-head">
+            <span></span>
+            <span>Annonce</span>
+            <span>Prix</span>
+            <span>Statut</span>
+            <span></span>
+        </div>
+
+        @forelse($articles as $article)
+            <div class="aq-row">
+                <img class="aq-thumb"
+                     src="{{ $article->photo_url }}"
+                     alt=""
+                     style="width:58px;height:58px;border-radius:10px"
+                     onerror="this.src='{{ asset('images/placeholder.png') }}';">
+                <div class="aq-cell-stack">
+                    <span class="aq-strong aq-truncate">{{ $article->titre }}</span>
+                    <span class="aq-sub aq-truncate">
+                        {{ $article->user->name ?? '—' }} · {{ $categoryLabel($article) }} · {{ $article->updated_at->diffForHumans() }}
+                    </span>
+                    @if(in_array($tab, ['to_modify', 'blocked'], true) && $article->block_reason)
+                        <span class="aq-reason aq-truncate">{{ Str::limit($article->block_reason, 80) }}</span>
+                    @endif
+                </div>
+                <span class="aq-price">{{ $formatPrice($article) }}</span>
+                <span class="aq-badge aq-badge-{{ $tab }}">{{ $tabs[$tab] }}</span>
+                <div class="d-flex gap-1 justify-content-end">
+                    <a href="{{ route('admin.articles.show', $article) }}" class="btn btn-sm btn-outline-secondary">Voir</a>
+                    @if($tab !== 'blocked')
+                        <button type="button"
+                                class="aq-btn aq-btn-danger aq-btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#blockModal"
+                                data-action="{{ route('admin.articles.block', $article) }}"
+                                data-title="{{ $article->titre }}">
+                            Bloquer
+                        </button>
+                    @endif
+                </div>
             </div>
-        @else
-            <div class="text-center py-5">
-                <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Aucun article trouvé</h5>
-                <p class="text-muted">Aucun article ne correspond à vos critères de recherche.</p>
+        @empty
+            <div class="aq-empty" style="border:0;border-radius:0">Rien dans cette liste.</div>
+        @endforelse
+    </div>
+
+    <div class="mt-3">
+        {{ $articles->links() }}
+    </div>
+@endif
+
+{{-- Modal demande de modification --}}
+<div class="modal fade" id="modifyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content" id="modifyForm">
+            @csrf
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Demander une modification</h5>
+                    <small class="text-muted" id="modifyTitle"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-        @endif
+            <div class="modal-body">
+                <p class="fw-semibold mb-2">Ce qu’il faut corriger</p>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @foreach(AdminController::ARTICLE_FIXABLE as $item)
+                        <label class="btn btn-outline-secondary btn-sm">
+                            <input type="checkbox" name="items[]" value="{{ $item }}" class="form-check-input me-1"> {{ $item }}
+                        </label>
+                    @endforeach
+                </div>
+                <label class="form-label">Modification à faire (obligatoire)</label>
+                <textarea name="notes" class="form-control" rows="4" minlength="5" maxlength="2000" required
+                          placeholder="Ex. Ajoutez 2 photos nettes de face et indiquez l’état exact du produit."></textarea>
+                <p class="text-muted small mt-2 mb-0">
+                    L’annonce passe en « À modifier ». Le vendeur reçoit ces consignes ; après correction elle revient en attente.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary">Envoyer la demande</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Modal pour bloquer un article -->
-<div class="modal fade" id="blockArticleModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+{{-- Modal blocage --}}
+<div class="modal fade" id="blockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content" id="blockForm">
+            @csrf
             <div class="modal-header">
-                <h5 class="modal-title">Bloquer un article</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div>
+                    <h5 class="modal-title text-danger">Bloquer l’annonce</h5>
+                    <small class="text-muted" id="blockTitle"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
-            <form id="blockArticleForm" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <p>Vous êtes sur le point de bloquer l'article <strong id="articleName"></strong>.</p>
-                    <div class="form-group">
-                        <label for="block_reason" class="form-label">Raison du blocage (optionnel)</label>
-                        <textarea name="reason" id="block_reason" class="form-control" rows="3" 
-                                  placeholder="Expliquez pourquoi cet article est bloqué..."></textarea>
-                    </div>
+            <div class="modal-body">
+                <p class="fw-semibold mb-2">Raison du blocage</p>
+                <div class="d-flex flex-column gap-2 mb-3">
+                    @foreach(AdminController::ARTICLE_BLOCK_REASONS as $reason)
+                        <label class="form-check">
+                            <input type="radio" class="form-check-input" name="reason" value="{{ $reason }}" required>
+                            <span class="form-check-label">{{ $reason }}</span>
+                        </label>
+                    @endforeach
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-warning">Bloquer l'article</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal pour supprimer un article -->
-<div class="modal fade" id="deleteArticleModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Supprimer un article</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <label class="form-label">Message au vendeur (facultatif, obligatoire si « Autre raison »)</label>
+                <textarea name="notes" class="form-control" rows="3" maxlength="500"
+                          placeholder="Expliquez ce que le vendeur doit savoir…"></textarea>
             </div>
-            <form id="deleteArticleForm" method="POST">
-                @csrf
-                @method('DELETE')
-                <div class="modal-body">
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Attention !</strong> Cette action est irréversible.
-                    </div>
-                    <p>Vous êtes sur le point de supprimer définitivement l'article <strong id="deleteArticleName"></strong>.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-danger">Supprimer définitivement</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal pour bloquer plusieurs articles -->
-<div class="modal fade" id="bulkBlockModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Bloquer plusieurs articles</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-danger">Confirmer le blocage</button>
             </div>
-            <form id="bulkBlockForm" method="POST" action="{{ route('admin.articles.bulk-block') }}">
-                @csrf
-                <div class="modal-body">
-                    <p>Vous êtes sur le point de bloquer <span id="bulkBlockCount"></span> article(s).</p>
-                    <div class="form-group">
-                        <label for="bulk_block_reason" class="form-label">Raison du blocage (optionnel)</label>
-                        <textarea name="reason" id="bulk_block_reason" class="form-control" rows="3" 
-                                  placeholder="Expliquez pourquoi ces articles sont bloqués..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-warning">Bloquer les articles</button>
-                </div>
-            </form>
-        </div>
+        </form>
     </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-    function toggleSelectAll() {
-        const selectAll = document.getElementById('selectAll');
-        const checkboxes = document.querySelectorAll('.article-checkbox');
-        
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = selectAll.checked;
+(function () {
+    const checks = document.querySelectorAll('.queue-check');
+    const btn = document.getElementById('approveSelectedBtn');
+    const countEl = document.getElementById('selectedCount');
+
+    function refreshSelection() {
+        if (!btn || !countEl) return;
+        const n = document.querySelectorAll('.queue-check:checked').length;
+        countEl.textContent = String(n);
+        btn.style.display = n > 0 ? 'block' : 'none';
+    }
+
+    checks.forEach((el) => el.addEventListener('change', refreshSelection));
+    refreshSelection();
+
+    const modifyModal = document.getElementById('modifyModal');
+    if (modifyModal) {
+        modifyModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const form = document.getElementById('modifyForm');
+            form.action = button.getAttribute('data-action');
+            document.getElementById('modifyTitle').textContent = button.getAttribute('data-title') || '';
         });
     }
 
-    function approveArticle(articleId, articleTitle) {
-        if (confirm(`Approuver l'article "${articleTitle}" ?`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/admin/articles/${articleId}/approve`;
-            
-            const csrfToken = document.querySelector('meta[name="csrf-token"]');
-            if (csrfToken) {
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = '_token';
-                csrfInput.value = csrfToken.getAttribute('content');
-                form.appendChild(csrfInput);
-            } else {
-                // Fallback: chercher le token dans un autre formulaire
-                const existingForm = document.querySelector('form');
-                if (existingForm) {
-                    const existingToken = existingForm.querySelector('input[name="_token"]');
-                    if (existingToken) {
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = '_token';
-                        csrfInput.value = existingToken.value;
-                        form.appendChild(csrfInput);
-                    }
-                }
+    const blockModal = document.getElementById('blockModal');
+    if (blockModal) {
+        blockModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const form = document.getElementById('blockForm');
+            form.action = button.getAttribute('data-action');
+            document.getElementById('blockTitle').textContent = button.getAttribute('data-title') || '';
+        });
+
+        blockModal.addEventListener('submit', function (event) {
+            const form = event.target;
+            const reason = form.querySelector('input[name="reason"]:checked');
+            const notes = form.querySelector('textarea[name="notes"]');
+            if (reason && reason.value === 'Autre raison' && notes && notes.value.trim().length < 5) {
+                event.preventDefault();
+                notes.focus();
+                alert('Précisez la raison (au moins 5 caractères).');
             }
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-    }
-
-    function blockArticle(articleId, articleTitle) {
-        const form = document.getElementById('blockArticleForm');
-        const nameElement = document.getElementById('articleName');
-        
-        form.action = `/admin/articles/${articleId}/block`;
-        nameElement.textContent = articleTitle;
-        
-        const modal = new bootstrap.Modal(document.getElementById('blockArticleModal'));
-        modal.show();
-    }
-
-    function deleteArticle(articleId, articleTitle) {
-        const form = document.getElementById('deleteArticleForm');
-        const nameElement = document.getElementById('deleteArticleName');
-        
-        form.action = `/admin/articles/${articleId}`;
-        nameElement.textContent = articleTitle;
-        
-        const modal = new bootstrap.Modal(document.getElementById('deleteArticleModal'));
-        modal.show();
-    }
-
-    function bulkApprove() {
-        const checkedBoxes = document.querySelectorAll('.article-checkbox:checked');
-        
-        if (checkedBoxes.length === 0) {
-            alert('Veuillez sélectionner au moins un article.');
-            return;
-        }
-        
-        if (confirm(`Approuver ${checkedBoxes.length} article(s) sélectionné(s) ?`)) {
-            const form = document.getElementById('bulkForm');
-            form.action = '{{ route("admin.articles.bulk-approve") }}';
-            form.submit();
-        }
-    }
-
-    function bulkBlock() {
-        const checkedBoxes = document.querySelectorAll('.article-checkbox:checked');
-        
-        if (checkedBoxes.length === 0) {
-            alert('Veuillez sélectionner au moins un article.');
-            return;
-        }
-        
-        const countElement = document.getElementById('bulkBlockCount');
-        countElement.textContent = checkedBoxes.length;
-        
-        const modal = new bootstrap.Modal(document.getElementById('bulkBlockModal'));
-        modal.show();
-    }
-
-    // Update bulk form when modal is shown
-    document.getElementById('bulkBlockModal').addEventListener('show.bs.modal', function() {
-        const checkedBoxes = document.querySelectorAll('.article-checkbox:checked');
-        const form = document.getElementById('bulkBlockForm');
-        
-        // Clear previous hidden inputs
-        form.querySelectorAll('input[name="article_ids[]"]').forEach(input => input.remove());
-        
-        // Add selected article IDs
-        checkedBoxes.forEach(checkbox => {
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'article_ids[]';
-            hiddenInput.value = checkbox.value;
-            form.appendChild(hiddenInput);
         });
-    });
+    }
+})();
 </script>
 @endpush

@@ -225,6 +225,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->name('admin.')->group(fun
     Route::get('/articles', [AdminController::class, 'articles'])->name('articles.index');
     // Routes POST et DELETE avant GET pour éviter les conflits de routing
     Route::post('/articles/{article}/approve', [AdminController::class, 'approveArticle'])->name('articles.approve');
+    Route::post('/articles/{article}/request-modification', [AdminController::class, 'requestModificationArticle'])->name('articles.request-modification');
     Route::post('/articles/{article}/block', [AdminController::class, 'blockArticle'])->name('articles.block');
     Route::delete('/articles/{article}', [AdminController::class, 'deleteArticle'])->name('articles.delete');
     Route::get('/articles/{article}', [AdminController::class, 'showArticle'])->name('articles.show');

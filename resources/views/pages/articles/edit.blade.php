@@ -974,6 +974,13 @@
 
                         <div style="font-size: 0.9rem; color: #6b7280;">
 
+                            @if($article->status === 'to_modify' && $article->block_reason)
+                                <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px;margin-bottom:12px;color:#9a3412;">
+                                    <strong>Corrections demandées</strong>
+                                    <div style="white-space:pre-line;margin-top:6px;font-size:0.88rem;">{{ $article->block_reason }}</div>
+                                </div>
+                            @endif
+
                             <p><strong>Date de création:</strong> {{ $article->created_at->format('d/m/Y à H:i') }}</p>
 
                             <p><strong>Dernière modification:</strong> {{ $article->updated_at->format('d/m/Y à H:i') }}</p>
@@ -986,6 +993,8 @@
 
                                     @elseif($article->status === 'pending') background: #fef3c7; color: #92400e;
 
+                                    @elseif($article->status === 'to_modify') background: #ffedd5; color: #9a3412;
+
                                     @else background: #fee2e2; color: #991b1b;
 
                                     @endif">
@@ -993,6 +1002,8 @@
                                     @if($article->status === 'approved') Approuvé
 
                                     @elseif($article->status === 'pending') En attente
+
+                                    @elseif($article->status === 'to_modify') À modifier
 
                                     @else Bloqué
 

@@ -25,6 +25,10 @@
                                 <span class="status-badge approved">
                                     <i class="bi bi-check-circle"></i> Approuvé
                                 </span>
+                            @elseif($article->status === 'to_modify')
+                                <span class="status-badge to-modify">
+                                    <i class="bi bi-pencil-square"></i> À modifier
+                                </span>
                             @else
                                 <span class="status-badge blocked">
                                     <i class="bi bi-x-circle"></i> Bloqué
@@ -260,6 +264,7 @@
     }
     .status-badge.pending { background-color: #fef3c7; color: #92400e; }
     .status-badge.approved { background-color: #d1fae5; color: #065f46; }
+    .status-badge.to-modify { background-color: #ffedd5; color: #9a3412; }
     .status-badge.blocked { background-color: #fee2e2; color: #991b1b; }
 </style>
 <script>

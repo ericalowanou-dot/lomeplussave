@@ -100,7 +100,7 @@
                         </table>
                     </div>
                     <div class="text-center mt-3">
-                        <a href="{{ route('admin.articles.index', ['status' => 'pending']) }}" class="btn btn-primary">
+                        <a href="{{ route('admin.articles.index', ['tab' => 'pending']) }}" class="btn btn-primary">
                             Voir tous les articles en attente
                         </a>
                     </div>

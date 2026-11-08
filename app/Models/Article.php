@@ -169,6 +169,11 @@ class Article extends Model
             return $this->status === 'blocked';
         }
 
+        public function isToModify(): bool
+        {
+            return $this->status === 'to_modify';
+        }
+
         public function isBoosted(): bool
         {
             return !is_null($this->boosted_until) && $this->boosted_until->isFuture();
@@ -194,12 +199,24 @@ class Article extends Model
         }
 
         /**
+         * Demande de correction au vendeur (onglet « À modifier »).
+         */
+        public function requestModification(?string $reason = null): void
+        {
+            $this->update([
+                'status' => 'to_modify',
+                'blocked_at' => null,
+                'block_reason' => $reason,
+            ]);
+        }
+
+        /**
          * Remet l'annonce en file de modération après modification vendeur.
          * Ne touche jamais created_at (évite de remonter comme une nouvelle pub).
          */
         public function submitForReview(): void
         {
-            if (! in_array($this->status, ['approved', 'blocked'], true)) {
+            if (! in_array($this->status, ['approved', 'blocked', 'to_modify'], true)) {
                 return;
             }
 
@@ -207,6 +224,24 @@ class Article extends Model
             $this->blocked_at = null;
             $this->block_reason = null;
             // created_at et approved_at inchangés volontairement
+        }
+
+        public function photosCount(): int
+        {
+            return collect(self::PHOTO_FIELDS)
+                ->filter(fn ($field) => filled($this->getAttribute($field)))
+                ->count();
+        }
+
+        public function statusLabel(): string
+        {
+            return match ($this->status) {
+                'pending' => 'En attente',
+                'approved' => 'Approuvée',
+                'blocked' => 'Bloquée',
+                'to_modify' => 'À modifier',
+                default => (string) $this->status,
+            };
         }
 
         // Scope pour récupérer seulement les articles approuvés
@@ -225,6 +260,11 @@ class Article extends Model
         public function scopeBlocked($query)
         {
             return $query->where('status', 'blocked');
+        }
+
+        public function scopeToModify($query)
+        {
+            return $query->where('status', 'to_modify');
         }
 
         /**

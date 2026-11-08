@@ -26,15 +26,16 @@ class AdminController extends Controller
                 'blocked_users' => User::where('is_blocked', true)->count(),
                 'total_articles' => Article::count(),
                 'pending_articles' => Article::where('status', 'pending')->count(),
+                'to_modify_articles' => Article::where('status', 'to_modify')->count(),
                 'approved_articles' => Article::where('status', 'approved')->count(),
                 'blocked_articles' => Article::where('status', 'blocked')->count(),
                 'total_coins' => User::sum('coins'),
             ];
         });
 
-        $recent_pending_articles = Article::with(['user', 'sousCategorie'])
+        $recent_pending_articles = Article::with(['user', 'sousCategorie.categorie'])
             ->where('status', 'pending')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('updated_at', 'asc')
             ->limit(5)
             ->get();
 
@@ -234,30 +235,72 @@ class AdminController extends Controller
     /**
      * Afficher la liste des articles
      */
+    public const ARTICLE_FIXABLE = ['Photos', 'Titre', 'Prix', 'Description', 'Catégorie', 'Coordonnées'];
+
+    public const ARTICLE_BLOCK_REASONS = [
+        'Arnaque / fraude',
+        'Contenu interdit',
+        'Photos floues ou trompeuses',
+        'Prix incohérent',
+        'Mauvaise catégorie',
+        'Numéro ou lien dans le texte',
+        'Annonce en double',
+        'Autre raison',
+    ];
+
     public function articles(Request $request)
     {
-        $query = Article::with(['user', 'sousCategorie']);
+        $tab = $request->validate([
+            'tab' => 'nullable|in:pending,to_modify,approved,blocked',
+            'article' => 'nullable|integer',
+            'search' => 'nullable|string|max:255',
+        ])['tab'] ?? 'pending';
 
-        // Filtrage par statut
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
+        $query = Article::with(['user', 'sousCategorie.categorie']);
 
-        // Recherche
-        if ($request->has('search') && $request->search) {
+        $query->where('status', $tab);
+
+        if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('user', function($userQuery) use ($search) {
+                  ->orWhereHas('user', function ($userQuery) use ($search) {
                       $userQuery->where('name', 'like', "%{$search}%");
                   });
             });
         }
 
-        $articles = $query->orderBy('created_at', 'desc')->paginate(15);
+        // File d'attente : plus anciennes d'abord ; listes traitées : plus récentes d'abord
+        if ($tab === 'pending') {
+            $query->orderBy('updated_at', 'asc');
+        } else {
+            $query->orderBy('updated_at', 'desc');
+        }
 
-        return view('admin.articles.index', compact('articles'));
+        $articles = $query->paginate(25)->withQueryString();
+
+        $current = null;
+        $next = null;
+        if ($tab === 'pending') {
+            $requestedId = (int) $request->input('article');
+            $current = $articles->firstWhere('id', $requestedId) ?? $articles->first();
+            if ($current) {
+                $next = $articles->getCollection()
+                    ->skipUntil(fn (Article $a) => $a->is($current))
+                    ->skip(1)
+                    ->first();
+            }
+        }
+
+        $counts = [
+            'pending' => Article::where('status', 'pending')->count(),
+            'to_modify' => Article::where('status', 'to_modify')->count(),
+            'approved' => Article::where('status', 'approved')->count(),
+            'blocked' => Article::where('status', 'blocked')->count(),
+        ];
+
+        return view('admin.articles.index', compact('articles', 'tab', 'current', 'next', 'counts'));
     }
 
     /**
@@ -273,16 +316,45 @@ class AdminController extends Controller
     }
 
     /**
+     * Demander une modification au vendeur.
+     */
+    public function requestModificationArticle(Request $request, Article $article)
+    {
+        $data = $request->validate([
+            'items' => 'nullable|array',
+            'items.*' => 'in:' . implode(',', self::ARTICLE_FIXABLE),
+            'notes' => 'required|string|min:5|max:2000',
+        ]);
+
+        $reason = empty($data['items'])
+            ? $data['notes']
+            : 'À corriger : ' . implode(', ', $data['items']) . "\n\n" . $data['notes'];
+
+        $article->requestModification($reason);
+        $this->sendArticleNotification($article, 'to_modify', $reason);
+        Cache::forget('admin_dashboard_stats');
+
+        return redirect()
+            ->route('admin.articles.index', ['tab' => 'pending'])
+            ->with('success', 'Modification demandée au vendeur.');
+    }
+
+    /**
      * Bloquer un article
      */
     public function blockArticle(Request $request, Article $article)
     {
-        $request->validate([
-            'reason' => 'nullable|string|max:500'
+        $data = $request->validate([
+            'reason' => 'required|string|max:500',
+            'notes' => 'nullable|string|min:5|max:500',
         ]);
 
-        $article->block($request->reason);
-        $this->sendArticleNotification($article, 'blocked', $request->reason);
+        $reason = filled($data['notes'] ?? null)
+            ? $data['reason'] . ' : ' . $data['notes']
+            : $data['reason'];
+
+        $article->block($reason);
+        $this->sendArticleNotification($article, 'blocked', $reason);
         Cache::forget('admin_dashboard_stats');
 
         return redirect()->back()->with('success', 'Article bloqué avec succès.');
@@ -372,15 +444,20 @@ class AdminController extends Controller
             'article_ids.*' => 'exists:articles,id'
         ]);
 
-        $articles = Article::whereIn('id', $request->article_ids)->get();
-        
+        $articles = Article::whereIn('id', $request->article_ids)
+            ->where('status', 'pending')
+            ->get();
+
         foreach ($articles as $article) {
             $article->approve();
             $this->sendArticleNotification($article, 'approved');
         }
         Cache::forget('admin_dashboard_stats');
 
-        return redirect()->back()->with('success', count($request->article_ids) . ' articles approuvés avec succès.');
+        return redirect()->back()->with(
+            'success',
+            $articles->count() . ' article(s) approuvé(s) avec succès.'
+        );
     }
 
     /**
@@ -408,7 +485,7 @@ class AdminController extends Controller
     /**
      * Envoyer une notification automatique au propriétaire d'un article
      */
-    private function sendArticleNotification(Article $article, string $action, string $reason = null)
+    private function sendArticleNotification(Article $article, string $action, ?string $reason = null)
     {
         $user = $article->user;
         
@@ -436,6 +513,17 @@ class AdminController extends Controller
                     $body .= "Raison : {$reason}\n\n";
                 }
                 $body .= "Si vous pensez qu'il s'agit d'une erreur, vous pouvez nous contacter pour plus d'informations.\n\n";
+                $body .= "Cordialement,\nL'équipe de modération";
+                break;
+
+            case 'to_modify':
+                $subject = 'Modification demandée pour votre annonce';
+                $body = "Bonjour {$user->name},\n\n";
+                $body .= "Votre annonce \"{$article->titre}\" nécessite des corrections avant publication.\n\n";
+                if ($reason) {
+                    $body .= "Consignes :\n{$reason}\n\n";
+                }
+                $body .= "Modifiez votre annonce dans « Mes annonces ». Elle reviendra automatiquement en validation.\n\n";
                 $body .= "Cordialement,\nL'équipe de modération";
                 break;
         }

@@ -1,5 +1,5 @@
 <!-- Page Loader Professionnel -->
-<div id="pageLoader" class="page-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; z-index: 99999; display: flex; align-items: center; justify-content: center;">
+<div id="pageLoader" class="page-loader" style="position: fixed; inset: 0; width: 100%; height: 100%; min-height: 100dvh; background: #ffffff; z-index: 99999; display: flex; align-items: center; justify-content: center;">
     <div class="loader-content">
         <!-- Logo avec spinner autour -->
         <div class="loader-logo-wrapper">
@@ -20,10 +20,17 @@
 /* Le loader doit être visible immédiatement - IMPORTANT: pas de display:none */
 #pageLoader {
     position: fixed !important;
+    inset: 0 !important;
     top: 0 !important;
     left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    /* 100vh laisse un trou en bas sur mobile (barre d'adresse) → dvh + fill-available */
+    height: 100% !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    min-height: -webkit-fill-available !important;
     background: #ffffff !important;
     z-index: 99999 !important;
     display: flex !important;

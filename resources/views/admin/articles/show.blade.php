@@ -52,6 +52,8 @@
                                 <span class="status-badge pending">En attente</span>
                             @elseif($article->status === 'approved')
                                 <span class="status-badge approved">Approuvé</span>
+                            @elseif($article->status === 'to_modify')
+                                <span class="status-badge" style="background:#ffedd5;color:#9a3412">À modifier</span>
                             @else
                                 <span class="status-badge blocked">Bloqué</span>
                             @endif
@@ -252,8 +254,17 @@
                 <div class="modal-body">
                     <p>Vous êtes sur le point de bloquer l'article <strong id="articleName"></strong>.</p>
                     <div class="mb-3">
-                        <label for="block_reason" class="form-label">Raison du blocage (optionnel)</label>
-                        <textarea name="reason" id="block_reason" class="form-control" rows="3" placeholder="Expliquez pourquoi cet article est bloqué..."></textarea>
+                        <label for="block_reason" class="form-label">Raison du blocage</label>
+                        <select name="reason" id="block_reason" class="form-select" required>
+                            <option value="">Choisir…</option>
+                            @foreach(\App\Http\Controllers\AdminController::ARTICLE_BLOCK_REASONS as $reason)
+                                <option value="{{ $reason }}">{{ $reason }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="block_notes" class="form-label">Message au vendeur (facultatif)</label>
+                        <textarea name="notes" id="block_notes" class="form-control" rows="3" maxlength="500" placeholder="Précisions…"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
