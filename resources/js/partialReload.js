@@ -468,15 +468,12 @@ function initAjaxSearch() {
             const context = getSearchContext();
             const listEl = getSearchResultsEl(context);
 
+            // Favoris / mes annonces : simple filtre de la liste, sans rechargement.
             if (isLocalSearchContext(context) && listEl) {
                 runLocalSearch({ dismissKeyboard: false });
-                return;
             }
-
-            if (context === 'articles' && listEl) {
-                runArticlesSearch({ dismissKeyboard: false });
-            }
-            // Pas de live sur les autres pages : submit uniquement
+            // Annonces : pas de recherche pendant la frappe (elle naviguait vers
+            // /search au milieu d'un mot). On attend Entrée ou la loupe (submit).
         }, 300),
     );
 }
