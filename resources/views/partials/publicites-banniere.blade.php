@@ -1,7 +1,8 @@
 {{--
     Carrousel « À la une » de la page d'accueil, au-dessus du titre « Annonces ».
-    Reprend l'affichage de new.lomeplus.com : fond orange, image à gauche fondue
-    dans le fond, titre + annonceur à droite, pastilles en bas, défilement 6 s.
+    Position et carrousel de new.lomeplus.com (pastilles en bas, défilement 6 s),
+    mais l'image de la pub s'affiche en entier sur toute la largeur. Le fond orange
+    avec titre ne sert que pour une pub sans image.
     Source : publicités actives des positions « homepage_top » puis « header ».
 --}}
 @php
@@ -26,22 +27,25 @@
     <div class="site-banners-track" data-site-banners-track>
         @foreach($bannieres as $i => $pub)
             @php $tag = $pub->lien_url ? 'a' : 'div'; @endphp
-            <{{ $tag }} class="site-banner"
+            <{{ $tag }} class="site-banner{{ $pub->image ? ' site-banner--image' : '' }}"
                 @if($pub->lien_url) href="{{ $pub->lien_url }}" target="_blank" rel="nofollow noopener" @endif
+                @if($pub->image) style="--banner-img: url('{{ $pub->image_url }}')" @endif
                 data-publicite-id="{{ $pub->id }}"
                 aria-roledescription="diapositive"
                 aria-label="{{ $i + 1 }} sur {{ $bannieres->count() }}"
                 tabindex="{{ $i === 0 ? 0 : -1 }}">
                 @if($pub->image)
-                    <img src="{{ $pub->image_url }}" alt="" class="site-banner-image"
+                    {{-- Image entière, sans fond orange ; ses bords sont comblés par un flou de la même image. --}}
+                    <img src="{{ $pub->image_url }}" alt="{{ $pub->titre ?? 'Publicité' }}" class="site-banner-image"
                          @if($i > 0) loading="lazy" @endif decoding="async">
+                @else
+                    <span class="site-banner-text">
+                        @if($pub->titre)
+                            <span class="site-banner-headline">{{ $pub->titre }}</span>
+                        @endif
+                        <span class="site-banner-advertiser">Lome+</span>
+                    </span>
                 @endif
-                <span class="site-banner-text">
-                    @if($pub->titre)
-                        <span class="site-banner-headline">{{ $pub->titre }}</span>
-                    @endif
-                    <span class="site-banner-advertiser">Lome+</span>
-                </span>
             </{{ $tag }}>
         @endforeach
     </div>
@@ -94,6 +98,27 @@
         -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent);
                 mask-image: linear-gradient(90deg, #000 72%, transparent);
     }
+    /* Bannière avec image : l'image s'affiche en entier, sans dégradé ni texte. */
+    .site-banner--image {
+        position: relative;
+        overflow: hidden;
+        background: #1f2937;
+    }
+    .site-banner--image::before {
+        content: "";
+        position: absolute;
+        inset: -20px;
+        background: var(--banner-img) center / cover no-repeat;
+        filter: blur(18px) brightness(0.85);
+    }
+    .site-banner--image .site-banner-image {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        -webkit-mask-image: none;
+                mask-image: none;
+    }
     .site-banner-text {
         flex: 1 1 0%;
         min-width: 0;
@@ -142,6 +167,7 @@
         .site-banner-text { padding: 14px 14px 24px 8px; }
         .site-banner-headline { font-size: clamp(1rem, .875rem + .5556vw, 1.375rem); }
         .site-banner-image { width: 45%; }
+        .site-banner--image .site-banner-image { width: 100%; }
     }
     @media (prefers-reduced-motion: reduce) {
         .site-banners-track { transition: none; }

@@ -47,13 +47,24 @@ class HomepageBannersTest extends TestCase
         // homepage_top d'abord, puis header ; ni inactive ni autre position.
         $this->assertLessThan(strpos($html, 'Pub-header'), strpos($html, 'Pub-top'));
         $this->assertStringNotContainsString('Pub-inactive', $html);
-        $this->assertSame(1, substr_count($html, 'site-banner-headline">Pub-header'));
+        // Image en entier : pas de titre par-dessus, le titre sert de texte alternatif.
+        $this->assertStringContainsString('alt="Pub-header"', $html);
+        $this->assertStringNotContainsString('site-banner-headline">Pub-header', $html);
         $this->assertSame(2, substr_count($html, 'data-site-banners-dot='));
         $this->assertStringContainsString('href="https://exemple.tg"', $html);
 
         // Les anciens bandeaux empilés ne sont plus rendus.
         $this->assertStringNotContainsString('publicites-header', $html);
         $this->assertStringNotContainsString('publicites-homepage_top', $html);
+    }
+
+    public function test_ad_without_image_falls_back_to_orange_text_banner(): void
+    {
+        $this->pub(['titre' => 'Pub-texte', 'position' => 'header', 'image' => '']);
+
+        $html = $this->get(route('articles.index'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('site-banner-headline">Pub-texte', $html);
     }
 
     public function test_no_carousel_without_ads(): void
