@@ -1,7 +1,7 @@
 {{--
     Carrousel « À la une » de la page d'accueil, au-dessus du titre « Annonces ».
     Position et carrousel de new.lomeplus.com (pastilles en bas, défilement 6 s),
-    mais l'image de la pub s'affiche en entier sur toute la largeur. Le fond orange
+    mais l'image de la pub remplit toute la bannière. Le fond orange
     avec titre ne sert que pour une pub sans image.
     Source : publicités actives des positions « homepage_top » puis « header ».
 --}}
@@ -29,13 +29,12 @@
             @php $tag = $pub->lien_url ? 'a' : 'div'; @endphp
             <{{ $tag }} class="site-banner{{ $pub->image ? ' site-banner--image' : '' }}"
                 @if($pub->lien_url) href="{{ $pub->lien_url }}" target="_blank" rel="nofollow noopener" @endif
-                @if($pub->image) style="--banner-img: url('{{ $pub->image_url }}')" @endif
                 data-publicite-id="{{ $pub->id }}"
                 aria-roledescription="diapositive"
                 aria-label="{{ $i + 1 }} sur {{ $bannieres->count() }}"
                 tabindex="{{ $i === 0 ? 0 : -1 }}">
                 @if($pub->image)
-                    {{-- Image entière, sans fond orange ; ses bords sont comblés par un flou de la même image. --}}
+                    {{-- L'image remplit toute la bannière (recadrée au centre si son format diffère). --}}
                     <img src="{{ $pub->image_url }}" alt="{{ $pub->titre ?? 'Publicité' }}" class="site-banner-image"
                          @if($i > 0) loading="lazy" @endif decoding="async">
                 @else
@@ -98,24 +97,16 @@
         -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent);
                 mask-image: linear-gradient(90deg, #000 72%, transparent);
     }
-    /* Bannière avec image : l'image s'affiche en entier, sans dégradé ni texte. */
+    /* Bannière avec image : l'image remplit toute la bannière, sans dégradé ni texte. */
     .site-banner--image {
-        position: relative;
         overflow: hidden;
-        background: #1f2937;
-    }
-    .site-banner--image::before {
-        content: "";
-        position: absolute;
-        inset: -20px;
-        background: var(--banner-img) center / cover no-repeat;
-        filter: blur(18px) brightness(0.85);
+        background: #e5e7eb;
     }
     .site-banner--image .site-banner-image {
-        position: relative;
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
+        object-position: center;
         -webkit-mask-image: none;
                 mask-image: none;
     }
