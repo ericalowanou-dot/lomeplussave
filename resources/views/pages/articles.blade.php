@@ -1020,10 +1020,9 @@
                 </div>
                 <div class="col-12 homepage-main-col">
                     <div class="homepage-articles-panel">
-                        {{-- Bandeau haut : visible mobile + PC --}}
-                        @include('partials.publicites', ['position' => 'homepage_top'])
+                        {{-- Carrousel « À la une » (positions homepage_top + header), style new.lomeplus.com --}}
+                        @include('partials.publicites-banniere')
                         <h4><i class="bi bi-grid me-2"></i>Annonces</h4>
-                        @include('partials.publicites', ['position' => 'header'])
                         <div id="articles-results" data-context="articles">
                             @include('partials.articles-list', ['articles' => $articles])
                         </div>

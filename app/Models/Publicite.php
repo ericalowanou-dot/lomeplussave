@@ -40,7 +40,7 @@ class Publicite extends Model
     public static function positions(): array
     {
         return [
-            'header' => 'Header (sous le titre Annonces)',
+            'header' => 'Carrousel accueil (au-dessus des annonces)',
             'sidebar' => 'Sidebar (barre latérale)',
             'footer' => 'Footer (pied de page)',
             'entre_articles' => 'Section annonces (carrousel / scroll)',
