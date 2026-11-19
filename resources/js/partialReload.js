@@ -170,6 +170,15 @@ function replaceSearchResultsDom(context, { list, pagination }) {
     }
 }
 
+/** En-tête « Résultats pour « … » » de /search : suit le nouveau terme après une recherche AJAX. */
+function updateSearchHeader(q, total) {
+    const header = document.querySelector('[data-search-header]');
+    const term = header?.querySelector('[data-search-term]');
+    if (!header || !term) return;
+    term.textContent = `« ${q} »`;
+    header.hidden = Number(total) === 0;
+}
+
 function isLocalSearchContext(context = getSearchContext()) {
     return context === 'favoris' || context === 'mesannonces';
 }
@@ -306,6 +315,12 @@ function initAjaxPagination() {
         try {
             const data = await fetchArticlesPartial(window.location.href);
             replaceArticlesDom(data);
+            const q = new URL(window.location.href).searchParams.get('q');
+            if (q) {
+                updateSearchHeader(q, data.total);
+                const input = document.getElementById('search');
+                if (input) input.value = q;
+            }
         } catch {
             // Si ça échoue, on laisse le navigateur faire au prochain click
         }
@@ -428,6 +443,7 @@ function initAjaxSearch() {
         try {
             const data = await fetchArticlesPartial(url.toString());
             replaceSearchResultsDom('articles', data);
+            updateSearchHeader(q, data.total);
             window.history.pushState({ partial: true }, '', url.toString());
 
             if (!dismissKeyboard) return;

@@ -139,12 +139,13 @@
         <div class="container mt-4" style="margin-top: 180px !important;">
 
   <!-- En-tête recherche -->
-  @if(isset($q) && $articles->total() > 0)
-  <div class="search-results-header mb-3" style="padding: 14px 16px; background: #fff; border-radius: 12px; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);">
+  {{-- Toujours rendu (caché sans résultat) : la recherche AJAX met à jour le terme (partialReload.js). --}}
+  @if(isset($q))
+  <div class="search-results-header mb-3" data-search-header @if($articles->total() === 0) hidden @endif style="padding: 14px 16px; background: #fff; border-radius: 12px; border: 1px solid rgba(15, 23, 42, 0.08); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);">
     <p style="margin: 0; color: #64748b; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
       <i class="bi bi-search" style="color: #FF9900;" aria-hidden="true"></i>
       <span>Résultats pour</span>
-      <span style="color: #0f172a; font-weight: 700;">« {{ $q }} »</span>
+      <span data-search-term style="color: #0f172a; font-weight: 700;">« {{ $q }} »</span>
     </p>
   </div>
   @endif
