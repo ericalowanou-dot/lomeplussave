@@ -154,6 +154,7 @@
                                         class="form-control phone-input @error('whatsapp') is-invalid @enderror"
                                         value="{{ $placeholderWhats }}"
                                         data-initial-full="{{ $placeholderWhats }}"
+                                        required
                                         autocomplete="tel">
                                     <input type="hidden" name="whatsapp_country_code" id="whatsapp_country_code" value="{{ old('whatsapp_country_code') }}">
                                     <input type="hidden" name="whatsapp_full" id="whatsapp_full" value="{{ old('whatsapp_full') }}">
@@ -162,12 +163,9 @@
                                 @error('whatsapp')
                                     <div class="field-error">{{ $message }}</div>
                                 @enderror
-
-                                <label class="match-toggle">
-                                    <input type="checkbox" id="same_as_phone" name="same_as_phone" {{ old('same_as_phone') ? 'checked' : '' }}>
-                                    <span class="match-toggle__indicator"><i class="bi bi-link-45deg"></i></span>
-                                    <span class="match-toggle__label">Utiliser le même numéro que le téléphone</span>
-                                </label>
+                                @error('whatsapp_full')
+                                    <div class="field-error">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
                     </section>
@@ -258,7 +256,6 @@
             const form = document.getElementById('registerForm');
             const phoneInput = document.getElementById('telephone');
             const whatsappInput = document.getElementById('whatsapp');
-            const sameAsPhoneCheckbox = document.getElementById('same_as_phone');
             const phoneCountryField = document.getElementById('phone_country_code');
             const phoneFullField = document.getElementById('phone_full');
             const whatsappCountryField = document.getElementById('whatsapp_country_code');
@@ -329,9 +326,18 @@
                 const rawValue = input.value.trim();
 
                 if (!rawValue) {
-                    input.classList.remove('valid', 'invalid');
-                    if (messageContainer) messageContainer.textContent = '';
-                    return isOptional;
+                    if (isOptional) {
+                        input.classList.remove('valid', 'invalid');
+                        if (messageContainer) messageContainer.textContent = '';
+                        return true;
+                    }
+                    input.classList.remove('valid');
+                    input.classList.add('invalid');
+                    if (messageContainer) {
+                        messageContainer.textContent = '⚠ Ce numéro est obligatoire';
+                        messageContainer.style.color = '#f44336';
+                    }
+                    return false;
                 }
 
                 const togoDigits = togoNationalDigits(itiInstance, input);
@@ -347,15 +353,6 @@
                 }
 
                 return isValid;
-            };
-
-            const syncWhatsappWithPhone = () => {
-                if (!phoneIti || !whatsappIti) return;
-                whatsappIti.setNumber(getFullNumber(phoneIti, phoneInput));
-                whatsappIti.setCountry(phoneIti.getSelectedCountryData().iso2);
-                whatsappInput.value = getFullNumber(phoneIti, phoneInput);
-                whatsappMessage.textContent = '';
-                whatsappInput.classList.remove('valid', 'invalid');
             };
 
             if (phoneIti) {
@@ -374,48 +371,22 @@
                 setCountryByDialCode(whatsappIti, whatsappCountryField.value);
             }
 
-            if (sameAsPhoneCheckbox && sameAsPhoneCheckbox.checked) {
-                whatsappInput.readOnly = true;
-                syncWhatsappWithPhone();
-            }
-
             if (phoneInput && phoneIti) {
                 phoneInput.addEventListener('input', () => {
                     validatePhoneNumber(phoneIti, phoneInput, phoneMessage, false);
-                    if (sameAsPhoneCheckbox.checked) {
-                        syncWhatsappWithPhone();
-                    }
                 });
             }
 
             if (whatsappInput && whatsappIti) {
                 whatsappInput.addEventListener('input', () => {
-                    if (sameAsPhoneCheckbox.checked) return;
-                    validatePhoneNumber(whatsappIti, whatsappInput, whatsappMessage, true);
-                });
-            }
-
-            if (sameAsPhoneCheckbox) {
-                sameAsPhoneCheckbox.addEventListener('change', (event) => {
-                    if (!whatsappInput || !whatsappIti || !phoneIti) return;
-                    if (event.target.checked) {
-                        whatsappInput.readOnly = true;
-                        syncWhatsappWithPhone();
-                    } else {
-                        whatsappInput.readOnly = false;
-                        whatsappInput.value = '';
-                        whatsappInput.classList.remove('valid', 'invalid');
-                        whatsappMessage.textContent = '';
-                    }
+                    validatePhoneNumber(whatsappIti, whatsappInput, whatsappMessage, false);
                 });
             }
 
             if (form) {
                 form.addEventListener('submit', (e) => {
                     const phoneValid = validatePhoneNumber(phoneIti, phoneInput, phoneMessage, false);
-                    const whatsappValid = sameAsPhoneCheckbox.checked
-                        ? phoneValid
-                        : validatePhoneNumber(whatsappIti, whatsappInput, whatsappMessage, true);
+                    const whatsappValid = validatePhoneNumber(whatsappIti, whatsappInput, whatsappMessage, false);
 
                     if (!phoneValid || !whatsappValid) {
                         e.preventDefault();
@@ -427,17 +398,9 @@
                         phoneFullField.value = getFullNumber(phoneIti, phoneInput);
                     }
 
-                    if (sameAsPhoneCheckbox.checked) {
-                        if (phoneIti) {
-                            whatsappCountryField.value = phoneIti.getSelectedCountryData().dialCode;
-                            whatsappFullField.value = getFullNumber(phoneIti, phoneInput);
-                        }
-                    } else if (whatsappIti && whatsappInput.value.trim()) {
+                    if (whatsappIti) {
                         whatsappCountryField.value = whatsappIti.getSelectedCountryData().dialCode;
                         whatsappFullField.value = getFullNumber(whatsappIti, whatsappInput);
-                    } else {
-                        whatsappCountryField.value = '';
-                        whatsappFullField.value = '';
                     }
                 });
             }
