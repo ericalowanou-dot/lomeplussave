@@ -299,6 +299,30 @@
             const phoneIti = initIntlTelInput(phoneInput);
             const whatsappIti = initIntlTelInput(whatsappInput);
 
+            // La bibliothèque intl-tel-input 17 date de 2021 : pour le Togo elle ne connaît que
+            // les mobiles 70, 79, 90-93 et 96-99, et refuse donc les 71-78, 94, 95 qui existent.
+            // Pour le Togo on applique le plan de numérotation : 8 chiffres commençant par 2, 7 ou 9.
+            const togoNationalDigits = (itiInstance, input) => {
+                if (!itiInstance || !input) return null;
+                if (itiInstance.getSelectedCountryData().iso2 !== 'tg') return null;
+
+                let digits = input.value.replace(/\D/g, '');
+                if (digits.startsWith('00228')) digits = digits.slice(5);
+                else if (digits.startsWith('228') && digits.length === 11) digits = digits.slice(3);
+
+                return digits;
+            };
+
+            const isTogoNumberValid = (digits) => /^[279]\d{7}$/.test(digits);
+
+            const getFullNumber = (itiInstance, input) => {
+                const togoDigits = togoNationalDigits(itiInstance, input);
+                if (togoDigits !== null && isTogoNumberValid(togoDigits)) {
+                    return '+228' + togoDigits;
+                }
+                return itiInstance.getNumber();
+            };
+
             const validatePhoneNumber = (itiInstance, input, messageContainer, isOptional = false) => {
                 if (!input || !itiInstance) return true;
 
@@ -310,7 +334,10 @@
                     return isOptional;
                 }
 
-                const isValid = itiInstance.isValidNumber();
+                const togoDigits = togoNationalDigits(itiInstance, input);
+                const isValid = togoDigits !== null
+                    ? isTogoNumberValid(togoDigits)
+                    : itiInstance.isValidNumber();
                 input.classList.toggle('valid', isValid);
                 input.classList.toggle('invalid', !isValid);
 
@@ -324,9 +351,9 @@
 
             const syncWhatsappWithPhone = () => {
                 if (!phoneIti || !whatsappIti) return;
-                whatsappIti.setNumber(phoneIti.getNumber());
+                whatsappIti.setNumber(getFullNumber(phoneIti, phoneInput));
                 whatsappIti.setCountry(phoneIti.getSelectedCountryData().iso2);
-                whatsappInput.value = phoneIti.getNumber();
+                whatsappInput.value = getFullNumber(phoneIti, phoneInput);
                 whatsappMessage.textContent = '';
                 whatsappInput.classList.remove('valid', 'invalid');
             };
@@ -397,17 +424,17 @@
 
                     if (phoneIti) {
                         phoneCountryField.value = phoneIti.getSelectedCountryData().dialCode;
-                        phoneFullField.value = phoneIti.getNumber();
+                        phoneFullField.value = getFullNumber(phoneIti, phoneInput);
                     }
 
                     if (sameAsPhoneCheckbox.checked) {
                         if (phoneIti) {
                             whatsappCountryField.value = phoneIti.getSelectedCountryData().dialCode;
-                            whatsappFullField.value = phoneIti.getNumber();
+                            whatsappFullField.value = getFullNumber(phoneIti, phoneInput);
                         }
                     } else if (whatsappIti && whatsappInput.value.trim()) {
                         whatsappCountryField.value = whatsappIti.getSelectedCountryData().dialCode;
-                        whatsappFullField.value = whatsappIti.getNumber();
+                        whatsappFullField.value = getFullNumber(whatsappIti, whatsappInput);
                     } else {
                         whatsappCountryField.value = '';
                         whatsappFullField.value = '';
