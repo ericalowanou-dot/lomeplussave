@@ -300,6 +300,9 @@ function initAjaxPagination() {
             const data = await fetchArticlesPartial(a.href);
             replaceArticlesDom(data);
             window.history.pushState({ partial: true }, '', a.href);
+            // navigationFeedback.js affiche le loader sur tout clic de lien :
+            // sans rechargement de page, personne d'autre ne le masque.
+            window.hidePageLoader?.();
             // Option UX : remonter au début de la liste
             const listEl = document.querySelector('main #articles-results[data-context]');
             scrollToResults(listEl);
