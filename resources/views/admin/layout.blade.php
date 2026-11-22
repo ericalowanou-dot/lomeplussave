@@ -316,41 +316,67 @@
         (function() {
             const NOTIFICATION_CHECK_INTERVAL = 5000; // 5 secondes
             const DATA_REFRESH_INTERVAL = 30000; // 30 secondes
-            let lastNotificationCount = 0;
+            // Plus grand id de notification déjà vu (null = premier chargement, sans son).
+            let lastSeenNotificationId = null;
             let notificationCheckInterval;
             let dataRefreshInterval;
             let soundEnabled = true;
+            let audioContext = null;
 
-            // Fonction pour jouer le son de notification (douce mélodie)
-            function playNotificationSound() {
-                if (soundEnabled) {
-                    try {
-                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                        
-                        // Créer un son doux et agréable (fréquence de 800Hz avec une enveloppe douce)
+            // Un son par type de notification : [fréquence Hz, début s, durée s, forme d'onde].
+            const NOTIFICATION_SOUNDS = {
+                // Annonce en attente : trois notes montantes, bien reconnaissables.
+                article_pending: [[660, 0, 0.14, 'triangle'], [880, 0.16, 0.14, 'triangle'], [1175, 0.32, 0.28, 'triangle']],
+                // Signalements : deux notes graves répétées, façon alerte.
+                problem_report: [[520, 0, 0.16, 'square'], [390, 0.2, 0.16, 'square'], [520, 0.45, 0.16, 'square'], [390, 0.65, 0.22, 'square']],
+                user_report: [[520, 0, 0.16, 'square'], [390, 0.2, 0.16, 'square'], [520, 0.45, 0.16, 'square'], [390, 0.65, 0.22, 'square']],
+                // Nouvel inscrit : bip doux.
+                user_registered: [[800, 0, 0.3, 'sine']],
+            };
+
+            // Si plusieurs notifications arrivent ensemble, le son le plus important l'emporte.
+            const SOUND_PRIORITY = ['article_pending', 'problem_report', 'user_report', 'user_registered'];
+
+            function playNotificationSound(type) {
+                if (!soundEnabled) return;
+                try {
+                    audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioContext.state === 'suspended') audioContext.resume();
+
+                    const notes = NOTIFICATION_SOUNDS[type] || NOTIFICATION_SOUNDS.user_registered;
+                    const now = audioContext.currentTime;
+
+                    notes.forEach(([frequency, start, duration, wave]) => {
                         const oscillator = audioContext.createOscillator();
                         const gainNode = audioContext.createGain();
-                        
                         oscillator.connect(gainNode);
                         gainNode.connect(audioContext.destination);
-                        
-                        // Configuration du son doux
-                        oscillator.frequency.value = 800; // Fréquence douce
-                        oscillator.type = 'sine'; // Onde sinusoïdale (la plus douce)
-                        
-                        // Enveloppe ADSR pour un son doux
-                        const now = audioContext.currentTime;
-                        gainNode.gain.setValueAtTime(0, now);
-                        gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01); // Attaque rapide mais douce
-                        gainNode.gain.exponentialRampToValueAtTime(0.1, now + 0.1); // Décroissance
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3); // Fin douce
-                        
-                        oscillator.start(now);
-                        oscillator.stop(now + 0.3);
-                    } catch (e) {
-                        console.log('Impossible de jouer le son:', e);
-                    }
+
+                        oscillator.type = wave;
+                        oscillator.frequency.value = frequency;
+
+                        const t = now + start;
+                        const peak = wave === 'square' ? 0.12 : 0.3; // onde carrée plus forte à l'oreille
+                        gainNode.gain.setValueAtTime(0, t);
+                        gainNode.gain.linearRampToValueAtTime(peak, t + 0.01);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, t + duration);
+
+                        oscillator.start(t);
+                        oscillator.stop(t + duration);
+                    });
+                } catch (e) {
+                    console.log('Impossible de jouer le son:', e);
                 }
+            }
+
+            // Les messages contiennent des noms et titres saisis par les utilisateurs.
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
             }
 
             // Fonction pour formater la date
@@ -422,11 +448,19 @@
                         markAllBtn.style.display = 'none';
                     }
 
-                    // Jouer le son si nouvelle notification
-                    if (unreadCount > lastNotificationCount && lastNotificationCount > 0) {
-                        playNotificationSound();
+                    // Jouer le son des notifications arrivées depuis le dernier passage
+                    // (pas au premier chargement de la page).
+                    const maxId = notifications.reduce((max, n) => Math.max(max, Number(n.id) || 0), 0);
+                    if (lastSeenNotificationId !== null) {
+                        const newTypes = notifications
+                            .filter(n => Number(n.id) > lastSeenNotificationId)
+                            .map(n => n.type);
+                        if (newTypes.length > 0) {
+                            const type = SOUND_PRIORITY.find(t => newTypes.includes(t)) || newTypes[0];
+                            playNotificationSound(type);
+                        }
                     }
-                    lastNotificationCount = unreadCount;
+                    lastSeenNotificationId = Math.max(lastSeenNotificationId ?? 0, maxId);
 
                     // Mettre à jour la liste
                     const listContainer = document.getElementById('notificationsList');
@@ -434,14 +468,14 @@
                         listContainer.innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-check-circle fa-2x mb-2"></i><p class="mb-0">Aucune notification</p></div>';
                     } else {
                         listContainer.innerHTML = notifications.map(notif => `
-                            <div class="notification-item ${!notif.is_read ? 'unread' : ''} p-3 border-bottom" data-id="${notif.id}">
+                            <div class="notification-item ${!notif.is_read ? 'unread' : ''} p-3 border-bottom" data-id="${Number(notif.id)}">
                                 <div class="d-flex align-items-start">
                                     <div class="flex-shrink-0 me-3">
                                         <i class="fas ${getIcon(notif.type)} text-${getColor(notif.type)}"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <div class="fw-bold mb-1">${notif.title}</div>
-                                        <div class="small text-muted mb-2">${notif.message}</div>
+                                        <div class="fw-bold mb-1">${escapeHtml(notif.title)}</div>
+                                        <div class="small text-muted mb-2">${escapeHtml(notif.message)}</div>
                                         <div class="small text-muted">${formatDate(notif.created_at)}</div>
                                     </div>
                                 </div>
@@ -451,11 +485,14 @@
                         // Ajouter les événements de clic
                         listContainer.querySelectorAll('.notification-item').forEach(item => {
                             item.style.cursor = 'pointer';
-                            item.addEventListener('click', function() {
+                            item.addEventListener('click', async function() {
                                 const notifId = this.dataset.id;
-                                markAsRead(notifId);
-                                if (notifications.find(n => n.id == notifId)?.url) {
-                                    window.location.href = notifications.find(n => n.id == notifId).url;
+                                const url = notifications.find(n => n.id == notifId)?.url;
+                                // Attendre l'enregistrement « lu » avant de quitter la page,
+                                // sinon la redirection peut interrompre la requête.
+                                await markAsRead(notifId);
+                                if (url) {
+                                    window.location.href = url;
                                 }
                             });
                         });

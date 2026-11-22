@@ -9,15 +9,6 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Carbon;
 use App\Models\Categorie; 
 use App\Models\Article;
-use App\Events\UserRegistered;
-use App\Events\ArticlePending;
-use App\Events\ProblemReportCreated;
-use App\Events\UserReportCreated;
-use App\Listeners\CreateAdminNotification;
-use App\Listeners\CreateAdminNotificationForArticle;
-use App\Listeners\CreateAdminNotificationForReport;
-use App\Listeners\CreateAdminNotificationForUserReport;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -84,10 +75,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->id ?: $request->ip()));
         RateLimiter::for('api-auth', fn (Request $request) => Limit::perMinute(10)->by(strtolower((string) $request->input('email')) . '|' . $request->ip()));
 
-        // Enregistrer les listeners pour les notifications admin
-        Event::listen(UserRegistered::class, CreateAdminNotification::class);
-        Event::listen(ArticlePending::class, CreateAdminNotificationForArticle::class);
-        Event::listen(ProblemReportCreated::class, CreateAdminNotificationForReport::class);
-        Event::listen(UserReportCreated::class, CreateAdminNotificationForUserReport::class);
+        // Les listeners de notifications admin (app/Listeners) sont enregistrés par la
+        // découverte automatique de Laravel 11 : ne pas les ajouter ici avec Event::listen,
+        // sinon chaque notification est créée deux fois.
     }
 }
