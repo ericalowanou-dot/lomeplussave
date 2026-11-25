@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Cache;
 class ArticleSearch
 {
     /** Colonnes utiles à une carte d'annonce dans une liste. */
-    public const CARD_COLUMNS = ['id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'neuf', 'livraison'];
+    public const CARD_COLUMNS = ['id', 'user_id', 'titre', 'prix_ht', 'lieu', 'photo', 'sous_categorie_id', 'status', 'boosted_until', 'created_at', 'approved_at', 'neuf', 'livraison'];
 
     /** Paramètres acceptés par browse(), dans l'URL du site comme dans l'API. */
     public const BROWSE_FILTERS = ['q', 'sous_categorie', 'categorie', 'prix_min', 'prix_max', 'ville', 'etat', 'pro_only', 'livraison_only', 'order_by'];

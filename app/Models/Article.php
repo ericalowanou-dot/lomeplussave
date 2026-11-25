@@ -179,11 +179,22 @@ class Article extends Model
             return !is_null($this->boosted_until) && $this->boosted_until->isFuture();
         }
 
+        /**
+         * Date affichée au public (« il y a 3 jours ») : la première
+         * approbation, ou la création pour les annonces qui n'en ont pas.
+         */
+        public function publishedAt(): ?\Illuminate\Support\Carbon
+        {
+            return $this->approved_at ?? $this->created_at;
+        }
+
         public function approve()
         {
             $this->update([
                 'status' => 'approved',
-                'approved_at' => now(),
+                // Seule la première approbation compte : une réapprobation
+                // après modification ne remet pas le compteur public à zéro.
+                'approved_at' => $this->approved_at ?? now(),
                 'blocked_at' => null,
                 'block_reason' => null,
             ]);

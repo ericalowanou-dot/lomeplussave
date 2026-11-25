@@ -367,7 +367,7 @@
 
                                     <span class="meta-label-mobile">🕒 Publié</span>
 
-                                    <span class="meta-value-mobile">{{ $article->created_at->diffForHumans() }}</span>
+                                    <span class="meta-value-mobile">{{ $article->publishedAt()->diffForHumans() }}</span>
 
                                 </div>
 
@@ -583,7 +583,7 @@
 
                                     <span class="meta-label">Publié</span>
 
-                                    <span class="meta-value">{{ $article->created_at->diffForHumans() }}</span>
+                                    <span class="meta-value">{{ $article->publishedAt()->diffForHumans() }}</span>
 
                                 </div>
 

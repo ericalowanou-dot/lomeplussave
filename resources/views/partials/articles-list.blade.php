@@ -40,7 +40,7 @@
                     <!-- Âge de l'annonce en haut à droite (ex. « 2 heures », « 1 an ») -->
                     <div class="position-absolute top-0 end-0 px-1 py-0 rounded-bottom-start small d-flex heure">
                         <p class="mb-0">
-                            <strong>{{ $article->created_at->diffForHumans(null, true) }}</strong>
+                            <strong>{{ $article->publishedAt()->diffForHumans(null, true) }}</strong>
                         </p>
                     </div>
 

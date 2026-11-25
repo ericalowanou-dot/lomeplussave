@@ -155,6 +155,32 @@ class ArticleLifecycleTest extends TestCase
         $this->assertSame($createdAt, $article->created_at->toDateTimeString());
     }
 
+    public function test_public_age_counts_from_first_approval_and_survives_reapproval(): void
+    {
+        $seller = $this->seller();
+        $article = $this->makeArticle($seller, ['status' => 'pending']);
+        $article->forceFill(['created_at' => now()->subDays(5)])->save();
+
+        // Sans approbation, on retombe sur la date de création.
+        $this->assertSame($article->created_at->toDateTimeString(), $article->publishedAt()->toDateTimeString());
+
+        $this->travel(-2)->days();
+        $article->approve();
+        $this->travelBack();
+        $firstApproval = $article->refresh()->approved_at->toDateTimeString();
+        $this->assertSame($firstApproval, $article->publishedAt()->toDateTimeString());
+
+        // Modification par le vendeur puis réapprobation : l'heure ne bouge pas.
+        $this->actingAs($seller)
+            ->put(route('articles.update', $article), $this->articleData(['titre' => 'Titre corrigé']))
+            ->assertRedirect(route('mes_annonces'));
+        $this->assertSame('pending', $article->refresh()->status);
+
+        $article->approve();
+        $this->assertSame('approved', $article->refresh()->status);
+        $this->assertSame($firstApproval, $article->approved_at->toDateTimeString());
+    }
+
     public function test_updating_a_pending_article_keeps_it_pending(): void
     {
         $seller = $this->seller();

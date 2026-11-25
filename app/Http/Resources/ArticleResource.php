@@ -58,6 +58,8 @@ class ArticleResource extends JsonResource
             'vendeur' => new SellerResource($this->whenLoaded('user')),
             'url' => $this->whenLoaded('sousCategorie', fn () => $this->url()),
             'created_at' => $this->created_at?->toIso8601String(),
+            'approved_at' => $this->approved_at?->toIso8601String(),
+            'publie_le' => $this->publishedAt()?->toIso8601String(),
         ];
     }
 
